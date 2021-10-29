@@ -1819,7 +1819,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 
     /**
      * Get categories
-     * 
+     *
      * @return array
      */
     protected function getCategories()

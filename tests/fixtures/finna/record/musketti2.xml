@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <lidoWrap>
     <lido>
+        <category>
+            <term>Luonto</term>
+        </category>
         <lidoRecID type="PICTURE">musketti_www.M012:4878:1</lidoRecID>
         <descriptiveMetadata lang="fi">
             <objectClassificationWrap>
