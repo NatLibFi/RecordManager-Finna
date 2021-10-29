@@ -148,6 +148,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             = $this->getClassifications();
         $data['exhibition_str_mv'] = $this->getEventNames('näyttely');
 
+        $data['category_str_mv'] = $this->getCategories();
+
         foreach ($this->getSubjectDateRanges() as $range) {
             if (!isset($data['main_date_str'])) {
                 $data['main_date_str'] = $this->metadataUtils
@@ -1813,5 +1815,21 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         return false;
+    }
+
+    /**
+     * Get categories
+     * 
+     * @return array
+     */
+    protected function getCategories()
+    {
+        $results = [];
+        foreach ($this->doc->lido->category ?? [] as $category) {
+            foreach ($category->term ?? [] as $term) {
+                $results[] = trim((string)$term);
+            }
+        }
+        return $results;
     }
 }
