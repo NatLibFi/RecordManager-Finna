@@ -1822,7 +1822,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @return array
      */
-    protected function getCategories()
+    protected function getCategories(): array
     {
         $results = [];
         foreach ($this->doc->lido->category ?? [] as $category) {
