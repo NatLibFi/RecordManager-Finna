@@ -651,7 +651,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getDefaultLanguage()
     {
-        return 'fi';
+        return $this->getDriverParam('defaultDisplayLanguage', 'fi');
     }
 
     /**
