@@ -667,7 +667,7 @@ class PDODatabase extends AbstractDatabase
         [, $sqlOptions] = $this->optionsToSQL($options);
         $sql = "select count(*) from $collection";
         if ($where) {
-            $sql .= "where $where";
+            $sql .= " where $where";
         }
         $sql .= " $sqlOptions";
         return $this->dbQuery($sql, $params)->fetchColumn();
