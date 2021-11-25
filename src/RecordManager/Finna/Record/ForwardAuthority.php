@@ -87,7 +87,7 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
             if (!empty($name->AgentNameType) && !empty($name->PersonName)) {
                 $nameType = (string)$name->AgentNameType;
                 if (in_array($nameType, ['00'])) {
-                    $results[] = $name->PersonName;
+                    $results[] = (string)$name->PersonName;
                 }
             }
         }
