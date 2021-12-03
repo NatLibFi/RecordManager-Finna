@@ -134,6 +134,7 @@ return [
             'splitter' => [
                 'factories' => [
                     \RecordManager\Base\Splitter\Ead::class => \RecordManager\Base\Splitter\AbstractBaseFactory::class,
+                    \RecordManager\Base\Splitter\Ead3::class => \RecordManager\Base\Splitter\AbstractBaseFactory::class,
                     \RecordManager\Base\Splitter\File::class => \RecordManager\Base\Splitter\AbstractBaseFactory::class,
                 ],
             ],
@@ -164,6 +165,7 @@ return [
             \RecordManager\Base\Utils\FieldMapper::class => \RecordManager\Base\Utils\FieldMapperFactory::class,
             \RecordManager\Base\Utils\Logger::class => \RecordManager\Base\Utils\LoggerFactory::class,
             \RecordManager\Base\Utils\MetadataUtils::class => \RecordManager\Base\Utils\MetadataUtilsFactory::class,
+            \RecordManager\Base\Utils\WorkerPoolManager::class => \RecordManager\Base\Utils\WorkerPoolManagerFactory::class,
         ],
         'shared' => [
             \RecordManager\Base\Database\AbstractDatabase::class => false,

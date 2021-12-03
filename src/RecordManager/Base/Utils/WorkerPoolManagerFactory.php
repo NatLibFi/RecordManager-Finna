@@ -1,6 +1,6 @@
 <?php
 /**
- * SolrUpdater factory
+ * WorkerPoolManager factory
  *
  * PHP version 7
  *
@@ -25,7 +25,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-namespace RecordManager\Base\Solr;
+namespace RecordManager\Base\Utils;
 
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
@@ -33,7 +33,7 @@ use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Exception\ServiceNotFoundException;
 
 /**
- * SolrUpdater factory
+ * WorkerPoolManager Factory
  *
  * @category DataManagement
  * @package  RecordManager
@@ -41,7 +41,8 @@ use Laminas\ServiceManager\Exception\ServiceNotFoundException;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class SolrUpdaterFactory implements \Laminas\ServiceManager\Factory\FactoryInterface
+class WorkerPoolManagerFactory
+    implements \Laminas\ServiceManager\Factory\FactoryInterface
 {
     /**
      * Create an object
@@ -66,20 +67,8 @@ class SolrUpdaterFactory implements \Laminas\ServiceManager\Factory\FactoryInter
         $requestedName,
         array $options = null
     ) {
-        $configReader = $container->get(\RecordManager\Base\Settings\Ini::class);
-
         return new $requestedName(
-            $configReader->get('recordmanager.ini'),
-            $configReader->get('datasources.ini'),
-            $container->get(\RecordManager\Base\Database\AbstractDatabase::class),
-            $container->get(\RecordManager\Base\Utils\Logger::class),
-            $container->get(\RecordManager\Base\Record\PluginManager::class),
-            $container->get(\RecordManager\Base\Enrichment\PluginManager::class),
-            $container->get(\RecordManager\Base\Http\ClientManager::class),
-            $configReader,
-            $container->get(\RecordManager\Base\Utils\FieldMapper::class),
-            $container->get(\RecordManager\Base\Utils\MetadataUtils::class),
-            $container->get(\RecordManager\Base\Utils\WorkerPoolManager::class)
+            $container->get(\RecordManager\Base\Utils\Logger::class)
         );
     }
 }
