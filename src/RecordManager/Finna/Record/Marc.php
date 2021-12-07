@@ -1641,7 +1641,8 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $this->logger->logDebug(
                     'Marc',
                     "Invalid date range {$startDate} - {$endDate}, record "
-                        . "{$this->source}." . $this->getID()
+                        . "{$this->source}." . $this->getID(),
+                    true
                 );
                 $this->storeWarning('invalid date range in 008');
                 $endDate = substr($startDate, 0, 4) . '-12-31T23:59:59Z';

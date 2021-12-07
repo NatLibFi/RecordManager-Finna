@@ -42,6 +42,26 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 trait QdcRecordTrait
 {
     /**
+     * Rights statements indicating open access
+     *
+     * @var array
+     */
+    protected $openAccessRights = [
+        'openAccess',
+        'info:eu-repo/semantics/openAccess',
+    ];
+
+    /**
+     * Rights statements indicating restricted access
+     *
+     * @var array
+     */
+    protected $restrictedAccessRights = [
+        'closedAccess',
+        'info:eu-repo/semantics/restrictedAccess',
+    ];
+
+    /**
      * Return fields to be indexed in Solr
      *
      * @param Database $db Database connection. Omit to avoid database lookups for
@@ -83,7 +103,8 @@ trait QdcRecordTrait
             ];
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
-            // Mark everything free until we know better
+            // Mark everything free until we know better. This may get overridden
+            // below.
             $data['free_online_boolean'] = true;
             $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
@@ -100,14 +121,34 @@ trait QdcRecordTrait
             ];
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
+            // Mark everything free until we know better. This may get overridden
+            // below.
             $data['free_online_boolean'] = true;
-            // Mark everything free until we know better
             $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
             if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])
             ) {
                 $data['thumbnail'] = $url;
+            }
+        }
+
+        // Check rights for open access or restricted access indicators that will
+        // override any existing values:
+        foreach ($this->doc->rights as $rights) {
+            if (in_array(trim((string)$rights), $this->openAccessRights)) {
+                if (empty($data['free_online_boolean'])) {
+                    $data['free_online_boolean'] = true;
+                    $data['free_online_str_mv'] = $this->source;
+                }
+                break;
+            } elseif (in_array(trim((string)$rights), $this->restrictedAccessRights)
+            ) {
+                if (!empty($data['free_online_boolean'])) {
+                    unset($data['free_online_boolean']);
+                    unset($data['free_online_str_mv']);
+                }
+                break;
             }
         }
 

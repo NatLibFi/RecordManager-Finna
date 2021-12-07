@@ -73,4 +73,23 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
         }
         return $result;
     }
+
+    /**
+     * Get other names associated with the person
+     *
+     * @return array
+     */
+    protected function getUseForHeadings(): array
+    {
+        $doc = $this->getMainElement();
+        $results = [];
+        foreach ($doc->CAgentName as $name) {
+            if (!empty($name->AgentNameType) && !empty($name->PersonName)) {
+                if (in_array((string)$name->AgentNameType, ['00'])) {
+                    $results[] = (string)$name->PersonName;
+                }
+            }
+        }
+        return $results;
+    }
 }

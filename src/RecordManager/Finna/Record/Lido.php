@@ -747,7 +747,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "Invalid date range {$startDate} - {$endDate}, record "
-                    . "{$this->source}." . $this->getID()
+                    . "{$this->source}." . $this->getID(),
+                    true
                 );
                 $endDate = $startDate;
                 $this->storeWarning('invalid date range');
@@ -816,7 +817,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $this->logger->logDebug(
                         'Lido',
                         "Failed to parse date $date, record {$this->source}."
-                        . $this->getID()
+                        . $this->getID(),
+                        true
                     );
                     $this->storeWarning('invalid date');
                     return null;
@@ -1148,7 +1150,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "Failed to parse date $endDate, record {$this->source}."
-                        . $this->getID()
+                        . $this->getID(),
+                    true
                 );
                 $this->storeWarning('invalid end date');
                 return null;
@@ -1220,7 +1223,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "Failed to parse date $endDate, record {$this->source}."
-                        . $this->getID()
+                        . $this->getID(),
+                    true
                 );
                 $this->storeWarning('invalid end date');
                 return null;
@@ -1244,7 +1248,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "Failed to parse date $endDate, record {$this->source}."
-                        . $this->getID()
+                        . $this->getID(),
+                    true
                 );
                 $this->storeWarning('invalid end date');
                 return null;
@@ -1276,7 +1281,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "Failed to parse date $endDate, record {$this->source}."
-                        . $this->getID()
+                        . $this->getID(),
+                    true
                 );
                 $this->storeWarning('invalid end date');
                 return null;
@@ -1478,7 +1484,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             $this->logger->logDebug(
                 'Lido',
                 "Invalid date range {$startDate} - {$endDate} parsed from "
-                    . "'$input', record {$this->source}." . $this->getID()
+                    . "'$input', record {$this->source}." . $this->getID(),
+                true
             );
             $this->storeWarning('invalid date range');
             if ($start !== false) {
@@ -1492,7 +1499,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             $this->logger->logDebug(
                 'Lido',
                 "Invalid date range {$startDate} - {$endDate} parsed from '$input', "
-                    . "record {$this->source}." . $this->getID()
+                    . "record {$this->source}." . $this->getID(),
+                true
             );
             $this->storeWarning('invalid date range');
             $endDate = substr($startDate, 0, 4) . '-12-31T23:59:59Z';
