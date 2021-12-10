@@ -261,22 +261,22 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
         $keys = $record->getWorkIdentificationData();
 
         $expected = [
-            'authors' => [
-                [
-                    'type' => 'author',
-                    'value' => 'Hirsjärvi, Sirkka.',
+            [
+                'authors' => [
+                    [
+                        'type' => 'author',
+                        'value' => 'Hirsjärvi, Sirkka.',
+                    ],
                 ],
-            ],
-            'authorsAltScript' => [
-            ],
-            'titles' => [
-                [
-                    'type' => 'title',
-                    'value' => 'Tutki ja kirjoita /',
+                'authorsAltScript' => [],
+                'titles' => [
+                    [
+                        'type' => 'title',
+                        'value' => 'Tutki ja kirjoita /',
+                    ],
                 ],
-            ],
-            'titlesAltScript' => [
-            ],
+                'titlesAltScript' => [],
+            ]
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');

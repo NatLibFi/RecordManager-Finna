@@ -370,16 +370,18 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $record = $this->createRecord(Lido::class, 'lido_workkeys.xml', [], 'finna');
 
         $expected = [
-            'titles' => [
-                ['type' => 'title', 'value' => 'Rantakiviä litteitä'],
-                ['type' => 'title', 'value' => 'Shore Stones'],
-                ['type' => 'title', 'value' => 'other'],
-            ],
-            'authors' => [
-                ['type' => 'author', 'value' => 'Halonen, Pekka']
-            ],
-            'titlesAltScript' => [],
-            'authorsAltScript' => []
+            [
+                'titles' => [
+                    ['type' => 'title', 'value' => 'Rantakiviä litteitä'],
+                    ['type' => 'title', 'value' => 'Shore Stones'],
+                    ['type' => 'title', 'value' => 'other'],
+                ],
+                'authors' => [
+                    ['type' => 'author', 'value' => 'Halonen, Pekka']
+                ],
+                'titlesAltScript' => [],
+                'authorsAltScript' => []
+            ]
         ];
 
         $this->compareArray(
