@@ -1549,7 +1549,18 @@ class Marc extends \RecordManager\Base\Record\Marc
             $subC = $this->metadataUtils->stripTrailingPunctuation(
                 $this->getSubfield($field, 'c')
             );
-            $rights[] = $subC ? $subC : 'restricted';
+            if ($subC) {
+                $rights[] = $subC;
+            }
+            $url = $this->metadataUtils->stripTrailingPunctuation(
+                $this->getSubfield($field, 'u')
+            );
+            if ($url) {
+                $rights[] = $url;
+            }
+            if (!$url && !$subC) {
+                $rights[] = 'restricted';
+            }
         }
         return $rights;
     }
