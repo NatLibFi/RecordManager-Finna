@@ -551,8 +551,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (isset($date->daterange)) {
                 $range = $this->doc->did->unitdatestructured->daterange;
                 if (isset($range->fromdate) && isset($range->todate)) {
+                    // Some data sources have multiple ranges in one daterange
+                    // (non-standard presentation), try to handle the case sensibly:
+                    $toDate = (string)end($range->todate);
                     $result[] = $this->parseDateRange(
-                        (string)$range->fromdate . '/' . (string)$range->todate
+                        (string)$range->fromdate . '/' . $toDate
                     );
                 }
             } elseif (isset($date->datesingle)) {
