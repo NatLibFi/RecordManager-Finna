@@ -498,6 +498,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         // Handle each element separately. Any merging as an array is bound to cause
         // problems with element attributes.
+        foreach ($this->doc->userestrict->p->ref ?? [] as $restrict) {
+            $restrict = (string)$restrict;
+            if ($restrict !== '') {
+                return [$restrict];
+            }
+        }
         foreach ($this->doc->userestrict->p ?? [] as $restrict) {
             if ($result = $getRestriction($restrict)) {
                 return $result;
