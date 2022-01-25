@@ -483,6 +483,13 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getUsageRights()
     {
         $getRestriction = function ($restrict) {
+            if ($href = $restrict['href']) {
+                if (preg_match('/^https?:\/\/creativecommons\.org\//', $href)
+                    || preg_match('/^https?:\/\/rightsstatements\.org\//', $href)
+                ) {
+                    return [(string)$href];
+                }
+            }
             $restrict = (string)$restrict;
             if (strstr($restrict, 'No known copyright restrictions')) {
                 return ['No known copyright restrictions'];
@@ -491,21 +498,36 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 || strncasecmp($restrict, 'Public', 6) === 0
                 || strncasecmp($restrict, 'Julkinen', 8) === 0
             ) {
-                return [(string)$restrict];
+                return [$restrict];
             }
             return null;
         };
 
         // Handle each element separately. Any merging as an array is bound to cause
         // problems with element attributes.
-        foreach ($this->doc->userestrict->p ?? [] as $restrict) {
-            if ($result = $getRestriction($restrict)) {
-                return $result;
+        $nonRefRestrict = null;
+        foreach ($this->doc->userestrict ?? [] as $userestrict) {
+            foreach ($userestrict->p ?? [] as $p) {
+                // Use ref as the primary source with contents of the p as a
+                // fallback:
+                foreach ($p->ref as $ref) {
+                    if ($result = $getRestriction($ref)) {
+                        return $result;
+                    }
+                }
+                if (null === $nonRefRestrict) {
+                    $nonRefRestrict = $getRestriction($p);
+                }
             }
         }
-        foreach ($this->doc->accessrestrict->p ?? [] as $restrict) {
-            if ($result = $getRestriction($restrict)) {
-                return $result;
+        if ($nonRefRestrict) {
+            return $nonRefRestrict;
+        }
+        foreach ($this->doc->accessrestrict ?? [] as $accessrestrict) {
+            foreach ($accessrestrict->p ?? [] as $p) {
+                if ($result = $getRestriction($p)) {
+                    return $result;
+                }
             }
         }
 

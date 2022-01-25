@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2020.
+ * Copyright (C) The National Library of Finland 2012-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -78,6 +78,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         'Alakokoelma', 'alakokoelma', 'Erityiskokoelma', 'erityiskokoelma',
         'Hankintaerä', 'hankintaerä'
     ];
+
+    /**
+     * Description types to exclude from title
+     *
+     * @var array
+     */
+    protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
      * Return fields to be indexed in Solr
@@ -232,25 +239,6 @@ class Lido extends \RecordManager\Base\Record\Lido
             = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
 
         return $data;
-    }
-
-    /**
-     * Return record title
-     *
-     * @param bool     $forFiling            Whether the title is to be used in
-     *                                       filing (e.g. sorting, non-filing
-     *                                       characters should be removed)
-     * @param string   $lang                 Language
-     * @param string[] $excludedDescriptions Description types to exclude
-     *
-     * @return string
-     */
-    public function getTitle(
-        $forFiling = false,
-        $lang = null,
-        $excludedDescriptions = ['provenance']
-    ) {
-        return parent::getTitle($forFiling, $lang, ['provenienssi']);
     }
 
     /**

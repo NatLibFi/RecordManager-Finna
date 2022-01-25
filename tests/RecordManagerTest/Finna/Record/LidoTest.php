@@ -5,7 +5,7 @@
  * PHP version 7
  *
  * Copyright (C) Eero Heikkinen 2013.
- * Copyright (C) The National Library of Finland 2017-2021.
+ * Copyright (C) The National Library of Finland 2017-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -109,6 +109,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_short' => 'Imatrankoski',
             'title' => 'Imatrankoski',
             'title_sort' => 'Imatrankoski',
+            'title_alt' => [],
             'format' => 'kuva',
             'institution' => 'Museoviraston kuva-arkisto/',
             'author' => [
@@ -349,9 +350,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
 
         $this->assertEquals('Kuva', $fields['format']);
 
-        $this->assertRegExp('/aterimet/', $fields['title']);
-        $this->assertRegExp('/lusikka, haarukka, veitsi/', $fields['title']);
-        $this->assertRegExp('/Triennale/', $fields['title']);
+        $this->assertEquals('aterimet; lusikka, haarukka, veitsi; Triennale', $fields['title']);
+        $this->assertEquals([], $fields['title_alt']);
 
         $this->assertEquals('45106', $fields['identifier']);
 
@@ -372,9 +372,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $expected = [
             [
                 'titles' => [
-                    ['type' => 'title', 'value' => 'Rantakiviä litteitä'],
+                    ['type' => 'title', 'value' => 'Rantakiviä; litteitä; muu'],
                     ['type' => 'title', 'value' => 'Shore Stones'],
-                    ['type' => 'title', 'value' => 'other'],
                 ],
                 'authors' => [
                     ['type' => 'author', 'value' => 'Halonen, Pekka']
