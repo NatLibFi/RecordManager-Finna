@@ -845,16 +845,25 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             return $docLevel;
         }
 
+        $defaultFormat = null;
         foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
             $format = null;
             foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
                 $attributes = $part->attributes();
-                if (isset($attributes->lang)
-                    && (string)$attributes->lang === 'fin'
-                ) {
+                if ((string)($attributes->lang ?? '') === 'fin') {
                     $format = (string)$part;
                     break;
                 }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
             }
 
             if (!$format) {
@@ -874,6 +883,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     $level2 = $format;
                 }
             }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat;
         }
 
         return $level2 ? "$level1/$level2" : $level1;
