@@ -52,7 +52,7 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
     protected function getArchiveTitle(): string
     {
         $defaultTitle = '';
-        foreach ($this->doc->archdesc->did->unittitle as $title) {
+        foreach ($this->doc->archdesc->did->unittitle ?? [] as $title) {
             $attr = $title->attributes();
             if ('' === $defaultTitle) {
                 $defaultTitle = (string)$title;
