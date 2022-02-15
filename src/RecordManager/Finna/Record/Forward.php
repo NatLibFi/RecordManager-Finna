@@ -150,9 +150,9 @@ class Forward extends \RecordManager\Base\Record\Forward
 
         $allAuthors = $this->getAuthorsByRelator();
         $data['author2_id_str_mv']
-            = $this->addNamespaceToAuthorityIds($allAuthors['ids']);
+            = $this->addNamespaceToAuthorityIds($allAuthors['ids'], 'author');
         $data['author2_id_role_str_mv']
-            = $this->addNamespaceToAuthorityIds($allAuthors['idRoles']);
+            = $this->addNamespaceToAuthorityIds($allAuthors['idRoles'], 'author');
 
         $data['question_category_str_mv'] = $this->getQuestionCategories();
 

@@ -47,7 +47,9 @@ trait AuthoritySupportTrait
      */
     protected function getAuthorityNamespace($type = '*')
     {
-        return $this->dataSourceConfig[$this->source]['authority'][$type] ?? '';
+        return $this->dataSourceConfig[$this->source]['authority'][$type]
+            ?? $this->dataSourceConfig[$this->source]['authority']['*']
+            ?? '';
     }
 
     /**
@@ -78,8 +80,7 @@ trait AuthoritySupportTrait
                 $result[] = $id;
                 continue;
             }
-            $id = addcslashes($id, '\\.');
-            $result[] = $ns ? "$ns.$id" : $id;
+            $result[] = $ns ? ("$ns." . addcslashes($id, '\\.')) : $id;
         }
         return $result;
     }

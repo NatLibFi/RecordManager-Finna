@@ -27,14 +27,10 @@
  */
 namespace RecordManagerTest\Base\Solr;
 
-use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
-use RecordManager\Base\Settings\Ini;
-use RecordManager\Base\Solr\PreviewCreator;
-use RecordManager\Base\Utils\FieldMapper;
 use RecordManager\Base\Utils\Logger;
-use RecordManager\Base\Utils\WorkerPoolManager;
+use RecordManagerTest\Base\Feature\FixtureTrait;
+use RecordManagerTest\Base\Feature\PreviewCreatorTrait;
 
 /**
  * Preview creation tests
@@ -47,41 +43,8 @@ use RecordManager\Base\Utils\WorkerPoolManager;
  */
 class PreviewCreatorTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * Location of configuration files
-     *
-     * @var string
-     */
-    const CONFIG_DIR = __DIR__ . '/../../../fixtures/base/config/basic';
-
-    /**
-     * Holding test record
-     *
-     * @var string
-     */
-    protected $holdingRecord = <<<EOT
-<record>
-  <datafield tag="852">
-    <subfield code="b">B1</subfield>
-  </datafield>
-  <datafield tag="852">
-    <subfield code="b">A1</subfield>
-    <subfield code="c">2</subfield>
-  </datafield>
-  <datafield tag="852">
-    <subfield code="b">A1</subfield>
-    <subfield code="c">X</subfield>
-  </datafield>
-  <datafield tag="852">
-    <subfield code="b">C1</subfield>
-    <subfield code="c">2</subfield>
-  </datafield>
-  <datafield tag="852">
-    <subfield code="b">D1</subfield>
-    <subfield code="c">2</subfield>
-  </datafield>
-</record>
-EOT;
+    use FixtureTrait;
+    use PreviewCreatorTrait;
 
     /**
      * Data source settings
@@ -109,13 +72,30 @@ EOT;
      */
     public function testBuilding()
     {
-        $preview = $this->getPreviewCreator();
+        $logger = $this->createMock(Logger::class);
+        $metadataUtils = new \RecordManager\Base\Utils\MetadataUtils(
+            RECMAN_BASE_PATH,
+            [],
+            $logger
+        );
+        $marc = new \RecordManager\Base\Record\Marc(
+            [],
+            $this->dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $recordPM = $this->createMock(RecordPluginManager::class);
+        $recordPM->expects($this->once())
+            ->method('get')
+            ->will($this->returnValue($marc));
+        $preview = $this->getPreviewCreator($recordPM);
 
         $timestamp = time();
+        $xml = $this->getFixture('Solr/holdings_record.xml');
         $record = [
             'format' => 'marc',
-            'original_data' => $this->holdingRecord,
-            'normalized_data' => $this->holdingRecord,
+            'original_data' => $xml,
+            'normalized_data' => $xml,
             'source_id' => 'test',
             'linking_id' => '_preview',
             'oai_id' => '_preview',
@@ -129,51 +109,5 @@ EOT;
             ['B', 'A/2', 'A', 'DEF/2'],
             $result['building']
         );
-    }
-
-    /**
-     * Create PreviewCreator
-     *
-     * @return PreviewCreator
-     */
-    protected function getPreviewCreator()
-    {
-        $logger = $this->createMock(Logger::class);
-        $metadataUtils = new \RecordManager\Base\Utils\MetadataUtils(
-            RECMAN_BASE_PATH,
-            [],
-            $logger
-        );
-        $record = new \RecordManager\Base\Record\Marc(
-          [],
-          $this->dataSourceConfig,
-          $logger,
-          $metadataUtils
-        );
-        $recordPM = $this->createMock(RecordPluginManager::class);
-        $recordPM->expects($this->once())
-            ->method('get')
-            ->will($this->returnValue($record));
-
-        $fieldMapper = new FieldMapper(
-          self::CONFIG_DIR,
-          [],
-          $this->dataSourceConfig
-        );
-        $preview = new PreviewCreator(
-            [],
-            $this->dataSourceConfig,
-            null,
-            $logger,
-            $recordPM,
-            $this->createMock(EnrichmentPluginManager::class),
-            $this->createMock(HttpClientManager::class),
-            $this->createMock(Ini::class),
-            $fieldMapper,
-            $metadataUtils,
-            $this->createMock(WorkerPoolManager::class)
-        );
-
-        return $preview;
     }
 }

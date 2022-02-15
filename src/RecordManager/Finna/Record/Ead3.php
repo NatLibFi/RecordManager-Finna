@@ -259,10 +259,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
             $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
-                    array_unique(array_merge($corporateAuthorIds, $author2Ids))
+                    array_unique(array_merge($corporateAuthorIds, $author2Ids)),
+                    'author'
                 );
             $data['author2_id_role_str_mv']
-                = $this->addNamespaceToAuthorityIds($author2IdRoles);
+                = $this->addNamespaceToAuthorityIds($author2IdRoles, 'author');
         }
 
         if (isset($doc->controlaccess->persname)) {
@@ -308,20 +309,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
         $data['format_ext_str_mv'] = $data['format'];
 
-        $data['topic_id_str_mv'] = $this->getTopicURIs();
-        $data['geographic_id_str_mv'] = $this->getGeographicTopicURIs();
+        $data['topic_id_str_mv'] = $this->getTopicIDs();
+        $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         return $data;
-    }
-
-    /**
-     * Get topic URIs.
-     *
-     * @return array
-     */
-    public function getTopicURIs()
-    {
-        return $this->getTopicTerms('subject', self::SUBJECT_RELATORS, true);
     }
 
     /**
@@ -760,17 +751,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      * Helper function for getting controlaccess access elements filtered
      * by relator-attribute.
      *
-     * @param string $nodeName Name of node that contains the topic terms
-     * @param array  $relators Accepted relator-attribute values when relator
-     *                         is defined.
-     * @param bool   $uri      Return URI's instead of labels?
+     * @param string $nodeName    Name of node that contains the topic terms
+     * @param array  $relators    Accepted relator-attribute values when relator
+     *                            is defined.
+     * @param bool   $identifiers Return identifiers instead of labels?
      *
      * @return array
      */
     protected function getTopicTermsFromNodeWithRelators(
         $nodeName,
         $relators,
-        $uri = false
+        $identifiers = false
     ) {
         $result = [];
         if (!isset($this->doc->controlaccess->{$nodeName})) {
@@ -778,12 +769,14 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
 
         foreach ($this->doc->controlaccess->{$nodeName} as $node) {
-            $attr = $node->attributes();
-            $value = trim((string)$node->part);
-            if (!$attr->relator || in_array((string)$attr->relator, $relators)
-                && $value
-            ) {
-                $result[] = $uri ? $attr->identifier : $value;
+            if (!$node['relator'] || in_array((string)$node['relator'], $relators)) {
+                if ($identifiers) {
+                    if ($id = $node['identifier']) {
+                        $result[] = (string)$id;
+                    }
+                } elseif ($value = trim((string)$node->part)) {
+                    $result[] = $value;
+                }
             }
         }
         return $result;
@@ -803,6 +796,21 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get topic identifiers.
+     *
+     * @return array
+     */
+    public function getTopicIDs()
+    {
+        $result = $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+        return $this->addNamespaceToAuthorityIds($result, 'geographic');
+    }
+
+    /**
      * Get geographic topics
      *
      * @return array
@@ -816,17 +824,18 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get geographic topics URIs
+     * Get geographic topics IDs
      *
      * @return array
      */
-    protected function getGeographicTopicURIs()
+    protected function getGeographicTopicIDs()
     {
-        return $this->getTopicTermsFromNodeWithRelators(
+        $result = $this->getTopicTermsFromNodeWithRelators(
             'geogname',
             self::GEOGRAPHIC_SUBJECT_RELATORS,
             true
         );
+        return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
     /**

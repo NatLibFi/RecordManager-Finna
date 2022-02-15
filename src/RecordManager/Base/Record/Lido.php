@@ -82,6 +82,13 @@ class Lido extends AbstractRecord
     protected $descriptionTypesExcludedFromTitle = ['provenance'];
 
     /**
+     * Subject conceptID types included in topic identifiers (all lowercase).
+     *
+     * @var array
+     */
+    protected $subjectConceptIDTypes = ['uri', 'url'];
+
+    /**
      * Set record data
      *
      * @param string $source Source ID
@@ -392,6 +399,38 @@ class Lido extends AbstractRecord
     }
 
     /**
+     * Return subject identifiers associated with object.
+     *
+     * @param string[] $exclude List of subject types to exclude (defaults to
+     *                          'iconclass' since it doesn't contain human readable
+     *                          terms)
+     *
+     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
+     * #subjectComplexType
+     * @return array
+     */
+    public function getTopicIDs($exclude = ['iconclass'])
+    {
+        $result = [];
+        foreach ($this->getSubjectNodes($exclude) as $subject) {
+            foreach ($subject->subjectConcept as $concept) {
+                foreach ($concept->conceptID as $conceptID) {
+                    if ($id = trim((string)$conceptID)) {
+                        $type = mb_strtolower(
+                            (string)($conceptID['type'] ?? ''),
+                            'UTF-8'
+                        );
+                        if (in_array($type, $this->subjectConceptIDTypes)) {
+                            $result[] = $id;
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Return record titles
      *
      * @return array Associative array with keys 'preferred' (string) and
@@ -410,7 +449,7 @@ class Lido extends AbstractRecord
         $alternateTitles = [];
         $defaultLanguage = $this->getDefaultLanguage();
         foreach ($this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-            ->titleWrap->titleSet as $set
+            ->titleWrap->titleSet ?? [] as $set
         ) {
             $preferredParts = [];
             $alternateParts = [];

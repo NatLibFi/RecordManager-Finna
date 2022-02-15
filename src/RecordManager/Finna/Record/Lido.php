@@ -42,6 +42,8 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class Lido extends \RecordManager\Base\Record\Lido
 {
+    use AuthoritySupportTrait;
+
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
      *
@@ -234,6 +236,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['author_facet'] = $this->getActors($this->mainEvent, null, false);
 
         $data['format_ext_str_mv'] = $this->getObjectWorkTypes();
+
+        // Additional authority ids
+        $data['topic_id_str_mv'] = $this->getTopicIDs();
+        $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         $data['hierarchy_parent_title']
             = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
@@ -512,6 +518,61 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return $result;
+    }
+
+    /**
+     * Return subject identifiers associated with object.
+     *
+     * @param string[] $exclude List of subject types to exclude (defaults to
+     *                          'iconclass' since it doesn't contain human readable
+     *                          terms)
+     *
+     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
+     * #subjectComplexType
+     * @return array
+     */
+    public function getTopicIDs($exclude = ['iconclass'])
+    {
+        $result = parent::getTopicIDs();
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
+    }
+
+    /**
+     * Get geographic topic identifiers
+     *
+     * @return array
+     */
+    protected function getGeographicTopicIDs()
+    {
+        $result = [];
+
+        $getPlaceID = function ($placeID) {
+            $id = trim((string)$placeID);
+            if (!preg_match('/^https?:/', $id)
+                && $type = (string)($placeID['type'] ?? '')
+            ) {
+                $id = "($type)$id";
+            }
+            return $id;
+        };
+
+        foreach ($this->getEventNodes($this->usagePlaceEvent) as $eventNode) {
+            foreach ($eventNode->eventPlace as $eventPlace) {
+                if (isset($eventPlace->place->placeID)) {
+                    $result[] = $getPlaceID($eventPlace->place->placeID);
+                }
+            }
+        }
+
+        foreach ($this->getSubjectNodes() as $subject) {
+            foreach ($subject->subjectPlace as $subjectPlace) {
+                if (isset($subjectPlace->place->placeID)) {
+                    $result[] = $getPlaceID($subjectPlace->place->placeID);
+                }
+            }
+        }
+
+        return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
     /**

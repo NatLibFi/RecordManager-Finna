@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2020.
+ * Copyright (C) The National Library of Finland 2012-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -42,6 +42,8 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class Ead extends \RecordManager\Base\Record\Ead
 {
+    use AuthoritySupportTrait;
+
     /**
      * Field for geographic data
      *
@@ -350,5 +352,16 @@ class Ead extends \RecordManager\Base\Record\Ead
             }
         }
         return false;
+    }
+
+    /**
+     * Get topic identifiers.
+     *
+     * @return array
+     */
+    public function getTopicIDs()
+    {
+        $result = parent::getTopicIDs();
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 }

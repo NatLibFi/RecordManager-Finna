@@ -190,14 +190,17 @@ class Marc extends \RecordManager\Base\Record\Marc
         $secondaryAuthors = $this->getSecondaryAuthors();
         $corporateAuthors = $this->getCorporateAuthors();
         $data['author2_id_str_mv'] = array_merge(
-            $this->addNamespaceToAuthorityIds($primaryAuthors['ids']),
-            $this->addNamespaceToAuthorityIds($secondaryAuthors['ids']),
-            $this->addNamespaceToAuthorityIds($corporateAuthors['ids'])
+            $this->addNamespaceToAuthorityIds($primaryAuthors['ids'], 'author'),
+            $this->addNamespaceToAuthorityIds($secondaryAuthors['ids'], 'author'),
+            $this->addNamespaceToAuthorityIds($corporateAuthors['ids'], 'author')
         );
         $data['author2_id_role_str_mv'] = array_merge(
-            $this->addNamespaceToAuthorityIds($primaryAuthors['idRoles']),
-            $this->addNamespaceToAuthorityIds($secondaryAuthors['idRoles']),
-            $this->addNamespaceToAuthorityIds($corporateAuthors['idRoles'])
+            $this->addNamespaceToAuthorityIds($primaryAuthors['idRoles'], 'author'),
+            $this->addNamespaceToAuthorityIds(
+                $secondaryAuthors['idRoles'],
+                'author'
+            ),
+            $this->addNamespaceToAuthorityIds($corporateAuthors['idRoles'], 'author')
         );
 
         if (isset($data['publishDate'])) {
@@ -258,7 +261,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             $ids = $this->getSubfieldsArray($field, ['l' => 1]);
             $data['author2_id_str_mv'] = array_merge(
                 $data['author2_id_str_mv'],
-                $this->addNamespaceToAuthorityIds($ids)
+                $this->addNamespaceToAuthorityIds($ids, 'author')
             );
         }
 
@@ -805,7 +808,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // Additional authority ids
-        $data['topic_id_str_mv'] = $this->getTopicIds();
+        $data['topic_id_str_mv'] = $this->getTopicIDs();
+        $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         // Make sure center_coords is single-valued
         if (!empty($data['center_coords'])) {
@@ -837,18 +841,64 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array
      */
-    protected function getTopicIds()
+    protected function getTopicIDs()
     {
         $fieldTags = ['600', '610', '611', '630', '650'];
         $result = [];
         foreach ($fieldTags as $tag) {
             foreach ($this->getFields($tag) as $field) {
-                if ($id = $this->getSubfield($field, '0')) {
+                if ($id = $this->getIDFromField($field)) {
                     $result[] = $id;
                 }
             }
         }
-        return $this->addNamespaceToAuthorityIds($result);
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
+    }
+
+    /**
+     * Get identifier from subfield 0. Prefix with source if necessary.
+     *
+     * @param array $field MARC field
+     *
+     * @return string
+     */
+    protected function getIdFromField(array $field): string
+    {
+        if ($id = $this->getSubfield($field, '0')) {
+            if (!preg_match('/^https?:/', $id)
+                && $srcId = $this->getThesaurusId($field)
+            ) {
+                $id = "($srcId)$id";
+            }
+        }
+        return $id;
+    }
+
+    /**
+     * Get thesaurus ID from second indicator or subfield 2
+     *
+     * @param array $field MARC field
+     *
+     * @return string
+     */
+    protected function getThesaurusId(array $field): string
+    {
+        $map = [
+            '0' => 'LCSH',
+            '1' => 'LCCSH',
+            '2' => 'MSH',
+            '3' => 'NAL',
+            '5' => 'CanSH',
+            '6' => 'RVM'
+        ];
+        $ind2 = $this->getIndicator($field, 2);
+        if ($src = ($map[$ind2] ?? '')) {
+            return $src;
+        }
+        if ('7' === $ind2) {
+            return $this->getSubfield($field, '2');
+        }
+        return '';
     }
 
     /**
@@ -1925,6 +1975,21 @@ class Marc extends \RecordManager\Base\Record\Marc
             $this->getFieldsSubfields([[self::GET_NORMAL, '370', ['g' => 1]]])
         );
         return $result;
+    }
+
+    /**
+     * Get all geographic topic identifiers
+     *
+     * @return array
+     */
+    protected function getGeographicTopicIDs()
+    {
+        $result = $this->getFieldsSubfields(
+            [
+                [self::GET_NORMAL, '651', ['0' => 1]]
+            ]
+        );
+        return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
     /**

@@ -57,7 +57,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                     ],
                 ]
             ],
-            'base',
+            'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
             ]
@@ -136,11 +136,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title' => 'Tutki ja kirjoita',
             'title_sub' => '',
             'title_short' => 'Tutki ja kirjoita',
-            'title_full' => 'Tutki ja kirjoita / Sirkka Hirsjärvi, Pirkko Remes, Paula Sajavaara',
+            'title_full' => 'Tutki ja kirjoita / Sirkka Hirsjärvi, Pirkko Remes,'
+                . ' Paula Sajavaara',
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'tutki ja kirjoita / sirkka hirsjärvi, pirkko remes, paula sajavaara',
+            'title_sort' => 'tutki ja kirjoita / sirkka hirsjärvi, pirkko remes,'
+                . ' paula sajavaara',
             'series' => [],
             'publisher' => [
                 'Tammi',
@@ -178,6 +180,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'genre' => [],
             'geographic' => [],
+            'geographic_id_str_mv' => [],
             'era' => [],
             'topic_facet' => [
                 'oppaat',
@@ -282,7 +285,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
 
         $this->assertEquals(
-            ['(FOO)2345', '(FI-MELINDA)005246184'], $record->getUniqueIDs()
+            ['(FOO)2345', '(FI-MELINDA)005246184'],
+            $record->getUniqueIDs()
         );
     }
 
@@ -297,7 +301,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             Marc::class,
             'marc2.xml',
             [],
-            'base',
+            'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
             ]
@@ -414,6 +418,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'geographic' => [
             ],
+            'geographic_id_str_mv' => [],
             'era' => [
             ],
             'topic_facet' => [
@@ -467,9 +472,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [
                 'http://www.yso.fi/onto/yso/p14664',
-                'test\\\\\\.12',
-                'BIOTEST\\.12',
-                '(BIOTEST)1234',
+                '(test)test\\.12',
+                '(biotest)BIOTEST.12',
+                '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
         ];
@@ -490,7 +495,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             Marc::class,
             'marc_geo.xml',
             [],
-            'base',
+            'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
             ]
@@ -524,7 +529,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'kartat',
                 'Suomi',
                 'Turun ja Porin lääni',
-                'ysa',
+                'yso/fin',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
             ],
@@ -607,6 +612,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
+            ],
+            'geographic_id_str_mv' => [
+                'http://www.yso.fi/onto/yso/p94448',
+                'http://www.yso.fi/onto/yso/p94460',
+                'http://www.yso.fi/onto/yso/p94081',
             ],
             'era' => [
             ],
@@ -691,7 +701,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             Marc::class,
             'marc-thesis1.xml',
             [],
-            'finna',
+            'Finna',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
             ]
@@ -774,6 +784,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'genre' => [],
             'geographic' => [],
+            'geographic_id_str_mv' => [],
             'era' => [],
             'topic_facet' => [
                 'testaus',
@@ -834,7 +845,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             Marc::class,
             'marc-thesis2.xml',
             [],
-            'finna',
+            'Finna',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
             ]
@@ -912,6 +923,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'genre' => [],
             'geographic' => [],
+            'geographic_id_str_mv' => [],
             'era' => [],
             'topic_facet' => [
                 'testaus',

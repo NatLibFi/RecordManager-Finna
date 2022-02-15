@@ -187,3 +187,40 @@ institution = SierraLib
 format = marc
 dedup = true
 building_mapping = sierra_locations.map
+
+; Sample configuration for GeniePlus REST API
+[GeniePlus]
+type = GeniePlus
+geniePlusDatabase = "[api_database_name]"
+geniePlusOauthId = "[api_oauth_identifier]"
+geniePlusUsername = "[api_username]"
+geniePlusPassword = "[api_password]"
+; This setting specifies the template within the API which contains catalog
+; records:
+geniePlusTemplate = Catalog
+; These settings specify the GeniePlus API response fields containing unique ID
+; and MARC data.
+geniePlusIdField = UniqRecNum
+geniePlusMarcField = MarcRecord
+; These settings specify the GeniePlus API response fields containing item
+; information, to be injected into 852 fields in the MARC record.
+geniePlusLocationField = Inventory.Location.CodeDesc
+geniePlusSublocationField = Inventory.SubLoc.CodeDesc
+geniePlusCallnumberField = Inventory.CallNumLC
+geniePlusBarcodeField = Inventory.Barcode
+; When injecting 852 fields, you can limit the number of barcodes injected per
+; location-sublocation-callnumber combination in order to control the length
+; of generated MARC records. If you only need to index holdings-level data
+; instead of item-level data, it is recommended that you set this to 1. If you
+; do not want any location data, set it to 0. You can set it to -1 for no limit
+; (the default setting).
+geniePlusItemLimitPerLocationGroup = -1
+; These settings control the MARC field/subfield in which unique GeniePlus IDs will
+; be injected:
+geniePlusUniqueIdOutputField = 999
+geniePlusUniqueIdOutputSubfield = c
+url = "[api_url]"
+batchSize = 100
+institution = GeniePlusLib
+format = marc
+dedup = false

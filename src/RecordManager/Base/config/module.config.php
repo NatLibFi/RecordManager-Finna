@@ -66,6 +66,8 @@ return [
                 'factories' => [
                     \RecordManager\Base\Enrichment\AuthEnrichment::class => \RecordManager\Base\Enrichment\AuthEnrichmentFactory::class,
                     \RecordManager\Base\Enrichment\EadOnkiLightEnrichment::class => \RecordManager\Base\Enrichment\AbstractEnrichmentFactory::class,
+                    \RecordManager\Base\Enrichment\Ead3OnkiLightEnrichment::class => \RecordManager\Base\Enrichment\AbstractEnrichmentFactory::class,
+                    \RecordManager\Base\Enrichment\LidoOnkiLightEnrichment::class => \RecordManager\Base\Enrichment\AbstractEnrichmentFactory::class,
                     \RecordManager\Base\Enrichment\LrmiOnkiLightEnrichment::class => \RecordManager\Base\Enrichment\AbstractEnrichmentFactory::class,
                     \RecordManager\Base\Enrichment\MarcAuthEnrichment::class => \RecordManager\Base\Enrichment\AuthEnrichmentFactory::class,
                     \RecordManager\Base\Enrichment\MarcAuthOnkiLightEnrichment::class => \RecordManager\Base\Enrichment\AbstractEnrichmentFactory::class,
@@ -77,6 +79,8 @@ return [
                 'aliases' => [
                     'AuthEnrichment' => \RecordManager\Base\Enrichment\AuthEnrichment::class,
                     'EadOnkiLightEnrichment' => \RecordManager\Base\Enrichment\EadOnkiLightEnrichment::class,
+                    'Ead3OnkiLightEnrichment' => \RecordManager\Base\Enrichment\Ead3OnkiLightEnrichment::class,
+                    'LidoOnkiLightEnrichment' => \RecordManager\Base\Enrichment\LidoOnkiLightEnrichment::class,
                     'LrmiOnkiLightEnrichment' => \RecordManager\Base\Enrichment\LrmiOnkiLightEnrichment::class,
                     'MarcAuthEnrichment' => \RecordManager\Base\Enrichment\MarcAuthEnrichment::class,
                     'MarcAuthOnkiLightEnrichment' => \RecordManager\Base\Enrichment\MarcAuthOnkiLightEnrichment::class,
@@ -88,12 +92,14 @@ return [
             ],
             'harvest' => [
                 'factories' => [
+                    \RecordManager\Base\Harvest\GeniePlus::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
                     \RecordManager\Base\Harvest\HTTPFiles::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
                     \RecordManager\Base\Harvest\OaiPmh::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
                     \RecordManager\Base\Harvest\Sfx::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
                     \RecordManager\Base\Harvest\SierraApi::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
                 ],
                 'aliases' => [
+                    'GeniePlus' => \RecordManager\Base\Harvest\GeniePlus::class,
                     'OAI-PMH' => \RecordManager\Base\Harvest\OaiPmh::class,
                     'SFX' => \RecordManager\Base\Harvest\Sfx::class,
                     // Legacy alias:
@@ -165,6 +171,7 @@ return [
             \RecordManager\Base\Solr\SolrUpdater::class => \RecordManager\Base\Solr\SolrUpdaterFactory::class,
             \RecordManager\Base\Splitter\PluginManager::class => \RecordManager\Base\ServiceManager\AbstractPluginManagerFactory::class,
             \RecordManager\Base\Utils\FieldMapper::class => \RecordManager\Base\Utils\FieldMapperFactory::class,
+            \RecordManager\Base\Utils\LineBasedMarcFormatter::class => InvokableFactory::class,
             \RecordManager\Base\Utils\Logger::class => \RecordManager\Base\Utils\LoggerFactory::class,
             \RecordManager\Base\Utils\MetadataUtils::class => \RecordManager\Base\Utils\MetadataUtilsFactory::class,
             \RecordManager\Base\Utils\WorkerPoolManager::class => \RecordManager\Base\Utils\WorkerPoolManagerFactory::class,
