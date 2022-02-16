@@ -441,9 +441,7 @@ class Forward extends \RecordManager\Base\Record\Forward
     protected function getUrls()
     {
         $results = [];
-        $records = $this->doc->children();
-        $records = reset($records);
-        foreach (is_array($records) ? $records : [$records] as $record) {
+        foreach ($this->doc->children() as $record) {
             foreach ($record->ProductionEvent as $event) {
                 $attrs = [
                     'elokuva-elonet-url', 'elokuva-elonet-materiaali-video-url'
@@ -467,10 +465,7 @@ class Forward extends \RecordManager\Base\Record\Forward
     protected function getOnlineUrls()
     {
         $results = [];
-        $records = $this->doc->children();
-        $records = reset($records);
-
-        foreach (is_array($records) ? $records : [$records] as $record) {
+        foreach ($this->doc->children() as $record) {
             $videoMatch = false;
             $videoType = 'elokuva';
             $description = '';

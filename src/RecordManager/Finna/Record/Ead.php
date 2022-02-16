@@ -135,8 +135,7 @@ class Ead extends \RecordManager\Base\Record\Ead
         }
 
         if (!empty($data['online_boolean'])) {
-            $data['free_online_boolean']
-                = $this->getUsageRights() !== ['restricted'];
+            $data['free_online_boolean'] = $this->isFreeOnline();
             if ($data['free_online_boolean']) {
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
@@ -216,7 +215,22 @@ class Ead extends \RecordManager\Base\Record\Ead
             }
         }
 
-        return ['restricted'];
+        return [];
+    }
+
+    /**
+     * Check if the record is freely available
+     *
+     * @return bool
+     */
+    protected function isFreeOnline()
+    {
+        foreach ($this->doc->accessrestrict->p ?? [] as $restrict) {
+            if (trim((string)$restrict) !== '') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -48,15 +48,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
 
+    // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
     public const SUBJECT_RELATORS = ['aihe', 'asiasana'];
 
     public const RELATOR_TIME_INTERVAL = 'suhteen ajallinen kattavuus';
 
-    public const NAME_TYPE_VARIANT = 'Varianttinimi';
-    public const NAME_TYPE_ALTERNATIVE = 'Vaihtehtoinen nimi';
-    public const NAME_TYPE_PRIMARY = 'Ensisijainen nimi';
-    public const NAME_TYPE_OUTDATED = 'Vanhentunut nimi';
+    public const NAME_TYPE_VARIANT = 'varianttinimi';
+    public const NAME_TYPE_ALTERNATIVE = 'vaihtehtoinen nimi';
+    public const NAME_TYPE_PRIMARY = 'ensisijainen nimi';
+    public const NAME_TYPE_OUTDATED = 'vanhentunut nimi';
 
     /**
      * Archive fonds format
@@ -160,8 +161,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             }
         }
         if (!empty($data['online_boolean'])) {
-            $data['free_online_boolean']
-                = $this->getUsageRights() !== ['restricted'];
+            $data['free_online_boolean'] = $this->isFreeOnline();
             if ($data['free_online_boolean']) {
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
@@ -224,7 +224,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                         $id = (string)$name->attributes()->identifier;
                     }
 
-                    switch ($part->attributes()->localtype) {
+                    $localtype = mb_strtolower(
+                        $part->attributes()->localtype ?? '',
+                        'UTF-8'
+                    );
+                    switch ($localtype) {
                     case self::NAME_TYPE_PRIMARY:
                         $data['author'][] = (string)$part;
                         if (! isset($part->attributes()->lang)
@@ -526,6 +530,21 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Check if the record is freely available
+     *
+     * @return bool
+     */
+    protected function isFreeOnline()
+    {
+        foreach ($this->doc->accessrestrict->p ?? [] as $restrict) {
+            if (trim((string)$restrict) !== '') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Return subtitle
      *
      * @return string
@@ -566,7 +585,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 if (isset($range->fromdate) && isset($range->todate)) {
                     // Some data sources have multiple ranges in one daterange
                     // (non-standard presentation), try to handle the case sensibly:
-                    $toDate = (string)end($range->todate);
+                    foreach ($range->todate as $to) {
+                        $toDate = (string)$to;
+                    }
                     $result[] = $this->parseDateRange(
                         (string)$range->fromdate . '/' . $toDate
                     );
@@ -769,7 +790,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
 
         foreach ($this->doc->controlaccess->{$nodeName} as $node) {
-            if (!$node['relator'] || in_array((string)$node['relator'], $relators)) {
+            $relator = mb_strtolower(
+                trim((string)($node['relator'] ?? '')),
+                'UTF-8'
+            );
+            if (!$relator || in_array($relator, $relators)) {
                 if ($identifiers) {
                     if ($id = $node['identifier']) {
                         $result[] = (string)$id;
@@ -963,7 +988,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function isTimeIntervalNode(\SimpleXMLElement $node) : bool
     {
-        return (string)$node->attributes()->localtype
+        return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;
     }
 }

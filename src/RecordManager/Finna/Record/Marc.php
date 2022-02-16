@@ -1370,6 +1370,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 case 'S':
                     return 'i' === $typeOfRecord
                         ? 'NonmusicalCassette' : 'SoundCassette';
+                case 'R':
+                    return 'i' === $typeOfRecord
+                        ? 'NonmusicalRecordingOnline' : 'SoundRecordingOnline';
                 default:
                     if ('i' === $typeOfRecord) {
                         return 'NonmusicalRecording';
@@ -1377,7 +1380,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     if ('j' === $typeOfRecord) {
                         return 'MusicRecording';
                     }
-                    return 'SoundRecording';
+                    return $online ? 'SoundRecordingOnline' : 'SoundRecording';
                 }
                 break;
             case 'V':

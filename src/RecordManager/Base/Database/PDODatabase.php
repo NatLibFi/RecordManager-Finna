@@ -1218,6 +1218,7 @@ class PDOResultIterator extends \IteratorIterator
      *
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         $result = parent::current();

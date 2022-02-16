@@ -38,10 +38,8 @@ use RecordManager\Finna\Record\Ead3;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class Ead3RecordDriverTest extends \RecordManagerTest\Base\Record\RecordTest
+class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
 {
-    protected $driver = '\RecordManager\Finna\Record\Ead3';
-
     /**
      * Test AHAA EAD3 record handling
      *
@@ -280,6 +278,163 @@ class Ead3RecordDriverTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains(
             '[1931-01-01 TO 1931-12-31]',
             $fields['search_daterange_mv']
+        );
+    }
+
+    /**
+     * Test SKS EAD3 record handling
+     *
+     * @return void
+     */
+    public function testSKS()
+    {
+        $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
+            ->toSolrArray();
+        unset($fields['fullrecord']);
+
+        $expected = [
+            'record_format' => 'ead3',
+            'ctrlnum' => '',
+            'allfields' => [
+                'Gustaf Edvard Sundvallin kokoelma',
+            ],
+            'description' => 'G. E. Sundvallin tallentama murresatu Luvialta.',
+            'author' => [
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Ingman, Anders Wilhelm',
+                'Sundvall, Gustaf Edvard',
+            ],
+            'author_sort' => false,
+            'author_corporate' => [],
+            'geographic_facet' => [
+                'Luvia',
+                'Luvia',
+                'Luvia',
+            ],
+            'geographic' => [
+                'Luvia',
+                'Luvia',
+                'Luvia',
+            ],
+            'topic_facet' => [
+                'folk tales',
+                'kansansadut',
+                'folksagor',
+                'fairy tales',
+                'sadut',
+                'sagor',
+                'folklore collectors',
+                'perinteenkerääjät',
+                'traditionsinsamlare',
+            ],
+            'topic' => [
+                'folk tales',
+                'kansansadut',
+                'folksagor',
+                'fairy tales',
+                'sadut',
+                'sagor',
+                'folklore collectors',
+                'perinteenkerääjät',
+                'traditionsinsamlare',
+            ],
+            'format' => 'Teksti',
+            'institution' => '102268433',
+            'series' => 'Tekstit/Gustaf Edvard Sundvallin kokoelma',
+            'title_sub' => '1',
+            'title_short' => 'Sundvall Gustaf Edvard S 1:a) 1 (1881)',
+            'title' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
+            'title_sort' => '1 sundvall gustaf edvard s 1:a) 1 (1881)',
+            'title_full' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
+            'language' => [
+                'fin',
+            ],
+            'physical' => [],
+            'thumbnail' => '',
+            'hierarchytype' => 'Default',
+            'hierarchy_top_id' => '237990354',
+            'hierarchy_top_title' => 'Gustaf Edvard Sundvallin kokoelma',
+            'hierarchy_sequence' => '0000003',
+            'hierarchy_parent_id' => '237990354_238008149',
+            'hierarchy_parent_title' => 'Tekstit/Gustaf Edvard Sundvallin kokoelma',
+            'unit_daterange' => '[1881-01-01 TO 1881-12-31]',
+            'search_daterange_mv' => [
+                '[1881-01-01 TO 1881-12-31]',
+            ],
+            'era_facet' => '1881',
+            'main_date_str' => '1881',
+            'main_date' => '1881-01-01T00:00:00Z',
+            'hierarchy_sequence_str' => '0000003',
+            'source_str_mv' => '102268433',
+            'datasource_str_mv' => '__unit_test_no_source__',
+            'online_boolean' => true,
+            'online_str_mv' => '102268433',
+            'free_online_boolean' => true,
+            'free_online_str_mv' => '102268433',
+            'identifier' => '238612737',
+            'material' => [
+                'Aineistotyyppi: Text 5 Styck',
+                'Aineistotyyppi: Text 5 Pieces',
+                'Aineistotyyppi: Teksti, järjestetty 5 Kappaletta',
+            ],
+            'usage_rights_str_mv' => [
+                'restricted',
+            ],
+            'author_role' => [],
+            'author_variant' => [
+                'Sundwall, Gustaf Edvard',
+                'Sundwall, Gustaf Edvard',
+                'Sundwall, Gustaf Edvard',
+                'Ingman, A.W.',
+                'Sundwall, Gustaf Edvard',
+            ],
+            'author_facet' => [
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Ingman, Anders Wilhelm',
+                'Sundvall, Gustaf Edvard',
+            ],
+            'author2_id_str_mv' => [
+                'EAC_228204328',
+                'EAC_228598319',
+            ],
+            'author2_id_role_str_mv' => [
+                'EAC_228204328###Luovuttaja',
+                'EAC_228204328###Luovuttaja',
+                'EAC_228204328###Kirjoittaja',
+                'EAC_228204328###Kirjoittaja',
+                'EAC_228204328###Kerääjä',
+                'EAC_228204328###Kerääjä',
+                'EAC_228598319###Luovuttaja',
+                'EAC_228598319###Luovuttaja',
+                'EAC_228204328###Kokoelmanmuodostaja',
+                'EAC_228204328###Kokoelmanmuodostaja',
+            ],
+            'format_ext_str_mv' => 'Teksti',
+            'topic_id_str_mv' => [
+                'http://www.yso.fi/onto/koko/p9995',
+                'http://www.yso.fi/onto/koko/p9995',
+                'http://www.yso.fi/onto/koko/p9995',
+                'http://www.yso.fi/onto/koko/p16542',
+                'http://www.yso.fi/onto/koko/p16542',
+                'http://www.yso.fi/onto/koko/p16542',
+                'http://www.yso.fi/onto/koko/p74073',
+                'http://www.yso.fi/onto/koko/p74073',
+                'http://www.yso.fi/onto/koko/p74073',
+            ],
+            'geographic_id_str_mv' => [
+                'http://www.yso.fi/onto/yso/p105341',
+                'http://www.yso.fi/onto/yso/p105341',
+                'http://www.yso.fi/onto/yso/p105341',
+            ],
+        ];
+
+        $this->assertEquals(
+            $expected,
+            $fields
         );
     }
 
