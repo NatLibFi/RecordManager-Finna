@@ -146,6 +146,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'topic_id_str_mv' => [],
             'material' => [
             ],
+            'material_str_mv' => [
+            ],
             'era_facet' => [
                 '1897', '1898'
             ],

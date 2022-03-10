@@ -104,6 +104,9 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         $data['identifier'] = $this->getIdentifier();
 
+        // Back-compatibility:
+        $data['material'] = $data['material_str_mv'];
+
         // This is just the display measurements! There's also the more granular
         // form, which could be useful for some interesting things eg. sorting by
         // size

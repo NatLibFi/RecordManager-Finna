@@ -286,7 +286,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                             'p' => 1, 'r' => 1, 's' => 1
                         ]],
                         [self::GET_BOTH, '246', [
-                            'a' => 1, 'b' => 1, 'g' => 1
+                            'a' => 1, 'b' => 1, 'n' => 1, 'p' => 1
                         ]],
                         // Use only 700 fields that contain subfield 't'
                         [self::GET_BOTH, '700', [
