@@ -243,6 +243,10 @@ class NominatimGeocoder extends AbstractEnrichment
     protected function enrichLocations($locations, &$solrArray)
     {
         $result = false;
+        $center = !empty($solrArray[$this->solrCenterField]) ?
+            \geoPHP::load('POINT(' . $solrArray[$this->solrCenterField] .')', 'wkt')
+            : null;
+
         foreach ($locations as $location) {
             if ($this->blocklist) {
                 foreach ($this->blocklist as $entry) {
@@ -255,15 +259,19 @@ class NominatimGeocoder extends AbstractEnrichment
                 $geocoded = $this->geocode($location);
                 if ($geocoded) {
                     $wkts = array_column($geocoded, 'wkt');
-                    if (!isset($solrArray[$this->solrField])) {
-                        $solrArray[$this->solrField] = $wkts;
-                    } else {
-                        $solrArray[$this->solrField] = array_merge(
-                            $solrArray[$this->solrField],
-                            $wkts
-                        );
+                    $poly = \geoPHP::load($wkts[0], 'wkt');
+
+                    if (null === $center || $poly->contains($center)) {
+                        if (!isset($solrArray[$this->solrField])) {
+                            $solrArray[$this->solrField] = $wkts;
+                        } else {
+                            $solrArray[$this->solrField] = array_merge(
+                                $solrArray[$this->solrField],
+                                $wkts
+                            );
+                        }
                     }
-                    if (!empty($this->solrCenterField)) {
+                    if (null === $center) {
                         $solrArray[$this->solrCenterField]
                             = $geocoded[0]['lon'] . ' ' . $geocoded[0]['lat'];
                     }

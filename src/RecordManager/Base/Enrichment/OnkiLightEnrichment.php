@@ -69,6 +69,20 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
     protected $uriPrefixExactMatches;
 
     /**
+     * Solr field to use for the location data
+     *
+     * @var string
+     */
+    protected $solrLocationField = 'location_geo';
+
+    /**
+     * Solr field to use for the center coordinates of locations
+     *
+     * @var string
+     */
+    protected $solrCenterField = 'center_coords';
+
+    /**
      * Initialize settings
      *
      * @return void
@@ -88,6 +102,13 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
 
         $this->uriPrefixExactMatches
             = $this->config['OnkiLightEnrichment']['uri_prefix_exact_matches'] ?? [];
+
+        if (isset($settings['solr_location_field'])) {
+            $this->solrLocationField = $settings['solr_location_field'];
+        }
+        if (isset($settings['solr_center_field'])) {
+            $this->solrCenterField = $settings['solr_center_field'];
+        }
     }
 
     /**
@@ -187,6 +208,22 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
                         = array_merge($solrArray['allfields'], $values);
                 }
             }
+            $wktLocationStr = $localData['geoLocation'] ?? null;
+            if (!empty($wktLocationStr)
+                && preg_match('/^POINT\s*\(/', $wktLocationStr)
+            ) {
+                $wktLocationStr = preg_replace('/\s+/', ' ', $wktLocationStr);
+                $coords = explode(
+                    ' ',
+                    substr(explode("(", $wktLocationStr)[1], 0, -1)
+                );
+                $wktItem = [
+                    'lat' => $coords[1],
+                    'lon' => $coords[0],
+                    'wkt' => $wktLocationStr
+                ];
+                $this->processLocationItem($wktItem, $solrArray);
+            }
             return;
         }
 
@@ -234,6 +271,11 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
                 if ($val = $item['hiddenLabel']['value'] ?? null) {
                     $vals[] = $val;
                 }
+
+                if ($item['uri'] == $id) {
+                    $this->processItemWgs84Data($item, $solrArray);
+                }
+
                 if ($item['uri'] == $id && $vals) {
                     foreach ($this->filterDuplicates($vals, $checkFieldContents)
                         as $val
@@ -300,6 +342,8 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
                                 continue;
                             }
 
+                            $this->processItemWgs84Data($matchItem, $solrArray);
+
                             foreach ((array)($matchItem['altLabel'] ?? [])
                                 as $label
                             ) {
@@ -348,6 +392,54 @@ abstract class OnkiLightEnrichment extends AbstractEnrichment
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Process item WGS 84 location data and add that information to solrArray
+     *
+     * @param array $item      Decoded JSON array item from which to extract loc data
+     * @param array $solrArray Metadata to be sent to Solr
+     *
+     * @return void
+     */
+    protected function processItemWgs84Data($item, &$solrArray) : void
+    {
+        $wktItem = [
+            'lat' => $item['http://www.w3.org/2003/01/geo/wgs84_pos#lat'] ?? null,
+            'lon' => $item['http://www.w3.org/2003/01/geo/wgs84_pos#long'] ?? null
+        ];
+
+        if (!empty($wktItem['lat']) && !empty($wktItem['lon'])) {
+            $wktItem['wkt']
+                = 'POINT (' . $wktItem['lon'] . ' ' . $wktItem['lat'] . ')';
+            $this->processLocationItem($wktItem, $solrArray);
+        }
+    }
+
+    /**
+     * Add location information to solrArray
+     *
+     * @param array $locItem   Keyed array with keys wkt, lat and lon for each loc
+     * @param array $solrArray Metadata to be sent to Solr
+     *
+     * @return void
+     */
+    protected function processLocationItem($locItem, &$solrArray) : void
+    {
+        if (!isset($solrArray[$this->solrCenterField])) {
+            $coords = $locItem['lon'] . ' ' . $locItem['lat'];
+            $solrArray[$this->solrCenterField] = $coords;
+        }
+        if (!in_array($locItem['wkt'], $solrArray[$this->solrLocationField] ?? [])) {
+            if (!isset($solrArray[$this->solrLocationField])) {
+                $solrArray[$this->solrLocationField] = [$locItem['wkt']];
+            } else {
+                $solrArray[$this->solrLocationField] = array_merge(
+                    $solrArray[$this->solrLocationField],
+                    [$locItem['wkt']]
+                );
             }
         }
     }
