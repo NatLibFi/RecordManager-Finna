@@ -93,7 +93,7 @@ class HTTPFiles extends AbstractBase
     {
         $this->initHarvest($callback);
 
-        if (isset($this->startDate)) {
+        if (null !== $this->startDate) {
             $this->infoMsg('Incremental harvest from timestamp ' . $this->startDate);
         } else {
             $this->infoMsg('Initial harvest for all records');
@@ -368,6 +368,20 @@ class HTTPFiles extends AbstractBase
             // deleted.
             $this->unchangedRecords++;
         }
+    }
+
+    /**
+     * Check if the record is deleted.
+     * This implementation works for MARC records.
+     *
+     * @param \SimpleXMLElement $record Record
+     *
+     * @return bool
+     */
+    protected function isDeleted($record)
+    {
+        $status = substr($record->leader, 5, 1);
+        return $status == 'd';
     }
 
     /**

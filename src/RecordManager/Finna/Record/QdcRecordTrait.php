@@ -41,6 +41,8 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 trait QdcRecordTrait
 {
+    use DateSupportTrait;
+
     /**
      * Rights statements indicating open access
      *
@@ -83,7 +85,7 @@ trait QdcRecordTrait
 
         if ($range = $this->getPublicationDateRange()) {
             $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->metadataUtils->dateRangeToStr($range);
+                = $this->dateRangeToStr($range);
         }
 
         foreach ($this->doc->relation as $relation) {
@@ -205,7 +207,7 @@ trait QdcRecordTrait
     {
         return array_merge(
             parent::getSecondaryAuthors(),
-            $this->getValues('author') ?? []
+            $this->getValues('author')
         );
     }
 

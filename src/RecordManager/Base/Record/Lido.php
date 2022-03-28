@@ -42,33 +42,46 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class Lido extends AbstractRecord
 {
-    /**
-     * The XML document
-     *
-     * @var \SimpleXMLElement
-     */
-    protected $doc = null;
+    use XmlRecordTrait;
 
     /**
-     * Main event name reflecting the terminology in the particular LIDO records.
+     * Main event names reflecting the terminology in the particular LIDO records.
      *
-     * @var string
+     * Key is event type, value is priority (smaller more important).
+     *
+     * @var array
      */
-    protected $mainEvent = 'creation';
+    protected $mainEvents = [
+        'design' => 0,
+        'creation' => 1,
+    ];
 
     /**
-     * Usage place event name reflecting the terminology in the particular LIDO
-     * records.
+     * Place event names reflecting the terminology in the particular LIDO records.
      *
-     * @var string
+     * Key is event type, value is priority (smaller more important).
+     *
+     * @var array
      */
-    protected $usagePlaceEvent = 'usage';
+    protected $placeEvents = [
+        'usage' => 0,
+    ];
+
+    /**
+     * Event names reflecting the terminology in the particular LIDO records to use
+     * for retrieving secondary authors.
+     *
+     * Key is event type, value is priority (smaller more important).
+     *
+     * @var array
+     */
+    protected $secondaryAuthorEvents = [];
 
     /**
      * Related work relation types reflecting the terminology in the particular LIDO
      * records.
      *
-     * @var string
+     * @var array
      */
     protected $relatedWorkRelationTypes = [
         'Collection', 'belongs to collection', 'collection'
@@ -89,23 +102,6 @@ class Lido extends AbstractRecord
     protected $subjectConceptIDTypes = ['uri', 'url'];
 
     /**
-     * Set record data
-     *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
-     *
-     * @return void
-     */
-    public function setData($source, $oaiID, $data)
-    {
-        parent::setData($source, $oaiID, $data);
-
-        $this->doc = $this->parseXMLRecord($data);
-    }
-
-    /**
      * Return record ID (local)
      *
      * @return string
@@ -113,26 +109,6 @@ class Lido extends AbstractRecord
     public function getID()
     {
         return (string)$this->doc->lido->lidoRecID;
-    }
-
-    /**
-     * Serialize the record for storing in the database
-     *
-     * @return string
-     */
-    public function serialize()
-    {
-        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
-    }
-
-    /**
-     * Serialize the record into XML for export
-     *
-     * @return string
-     */
-    public function toXML()
-    {
-        return $this->doc->asXML();
     }
 
     /**
@@ -180,37 +156,26 @@ class Lido extends AbstractRecord
 
         $data['institution'] = $this->getLegalBodyName();
 
-        $data['author'] = $this->getActors($this->mainEvent);
+        $data['author'] = $this->getAuthors();
         if (!empty($data['author'])) {
             $data['author_sort'] = $data['author'][0];
         }
+        if ($this->secondaryAuthorEvents) {
+            $data['author2'] = $this->getSecondaryAuthors();
+        }
 
         $data['topic'] = $data['topic_facet'] = $this->getSubjectTerms();
-        $data['material_str_mv'] = $this->getEventMaterials($this->mainEvent);
+        $data['material_str_mv'] = $this->getMaterials();
 
-        if ($dates = $this->getSubjectDisplayDates()) {
-            $data['era'] = $data['era_facet'] = $dates;
-        } elseif ($date = $this->getEventDisplayDate($this->mainEvent)) {
-            $data['era'] = $data['era_facet'] = $date;
-        }
+        $data['era'] = $data['era_facet'] = $this->getDisplayDates();
 
-        $data['geographic_facet'] = [];
-        $eventPlace = $this->getEventDisplayPlace($this->usagePlaceEvent);
-        if ($eventPlace) {
-            $data['geographic_facet'][] = $eventPlace;
-        }
-        $data['geographic_facet'] = array_merge(
-            $data['geographic_facet'],
-            $this->getSubjectDisplayPlaces()
-        );
-        $data['geographic'] = $data['geographic_facet'];
-        // Index the other place forms only to facets
+        $data['geographic'] = $data['geographic_facet'] = $this->getDisplayPlaces();
+        // Index the other place forms only to facets:
         $data['geographic_facet'] = array_merge(
             $data['geographic_facet'],
             $this->getSubjectPlaces()
         );
-        $data['collection']
-            = $this->getRelatedWorkDisplayObject($this->relatedWorkRelationTypes);
+        $data['collection'] = $this->getCollection();
 
         $urls = $this->getURLs();
         if (count($urls)) {
@@ -255,7 +220,7 @@ class Lido extends AbstractRecord
     public function getLocations()
     {
         $locations = [];
-        foreach ([$this->mainEvent, $this->usagePlaceEvent] as $event) {
+        foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
                 // If there is already gml in the record, don't return anything for
                 // geocoding
@@ -304,7 +269,7 @@ class Lido extends AbstractRecord
      */
     public function getMainAuthor()
     {
-        $authors = $this->getActors($this->mainEvent);
+        $authors = $this->getAuthors();
         return $authors ? $authors[0] : '';
     }
 
@@ -356,7 +321,7 @@ class Lido extends AbstractRecord
         }
 
         $authors = [];
-        if ($author = $this->getMainAuthor()) {
+        foreach ($this->getActors($this->getMainEvents(), null, false) as $author) {
             $authors[] = ['type' => 'author', 'value' => $author];
         }
         $titlesAltScript = [];
@@ -564,6 +529,8 @@ class Lido extends AbstractRecord
      * @param int               $levels    How many levels up to traverse
      *
      * @return string
+     *
+     * @psalm-suppress RedundantCondition
      */
     protected function getInheritedXmlAttribute(
         \SimpleXMLElement $node,
@@ -582,7 +549,7 @@ class Lido extends AbstractRecord
                 break;
             }
         }
-        return null === $value ? $default : (string)$value;
+        return null === $value ? $default : $value;
     }
 
     /**
@@ -743,12 +710,14 @@ class Lido extends AbstractRecord
     /**
      * Return names of actors associated with specified event
      *
-     * @param string|array $event Which events to use (omit to scan all events)
-     * @param string|array $role  Which roles to use (omit to scan all roles)
+     * @param string|array $event        Event type(s) allowed (null = all types)
+     * @param string|array $role         Roles allowed (null = all roles)
+     * @param bool         $includeRoles Whether to include actor roles in the
+     *                                   results
      *
      * @return array
      */
-    protected function getActors($event = null, $role = null)
+    protected function getActors($event = null, $role = null, $includeRoles = false)
     {
         $result = [];
         foreach ($this->getEventNodes($event) as $eventNode) {
@@ -759,8 +728,15 @@ class Lido extends AbstractRecord
                             (string)$roleNode->roleActor->term
                         );
                         if (empty($role) || in_array($actorRole, (array)$role)) {
-                            $result[] = (string)$roleNode->actor->nameActorSet
+                            $value = (string)$roleNode->actor->nameActorSet
                                 ->appellationValue[0];
+                            $value = trim($value);
+                            if ($includeRoles && $actorRole) {
+                                $value .= ", $actorRole";
+                            }
+                            if ($value) {
+                                $result[] = $value;
+                            }
                         }
                     }
                 }
@@ -773,7 +749,7 @@ class Lido extends AbstractRecord
     /**
      * Return the place associated with specified event
      *
-     * @param string $event Which event to use (omit to scan all events)
+     * @param string|array $event Event type(s) allowed (null = all types)
      *
      * @return string
      */
@@ -798,7 +774,7 @@ class Lido extends AbstractRecord
     /**
      * Return the date range associated with specified event
      *
-     * @param string $event Which event to use (omit to scan all events)
+     * @param string|array $event Event type(s) allowed (null = all types)
      *
      * @return string
      */
@@ -966,7 +942,7 @@ class Lido extends AbstractRecord
      * Return materials associated with a specified event type. Materials are
      * contained inside events. The individual materials are retrieved.
      *
-     * @param string $eventType Which event to use
+     * @param string|array $eventType Event(s) to use
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #materialsTechSetComplexType
@@ -1049,11 +1025,12 @@ class Lido extends AbstractRecord
      *
      * @param string $input Date range
      *
-     * @return string Two ISO 8601 dates separated with a comma on success, and null
-     * on failure
+     * @return string|null Two ISO 8601 dates separated with a comma on success, or
+     * null on failure
      */
     protected function parseDateRange($input)
     {
+        static $dmyRe = '/(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)/';
         $input = trim(strtolower($input));
 
         if (preg_match('/(\d\d\d\d) ?- (\d\d\d\d)/', $input, $matches) > 0) {
@@ -1066,13 +1043,7 @@ class Lido extends AbstractRecord
             $startDate = $year . '-' . $month . '-' . $day . 'T00:00:00Z';
             $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
             $noprocess = true;
-        } elseif (true
-            && preg_match(
-                '/(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)/',
-                $input,
-                $matches
-            ) > 0
-        ) {
+        } elseif (preg_match($dmyRe, $input, $matches) > 0) {
             $year = $matches[3];
             $month = sprintf('%02d', $matches[2]);
             $day = sprintf('%02d', $matches[1]);
@@ -1080,7 +1051,7 @@ class Lido extends AbstractRecord
             $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
             $noprocess = true;
         } elseif (preg_match('/(\d?\d?\d\d) ?\?/', $input, $matches) > 0) {
-            $year = $matches[1];
+            $year = (int)$matches[1];
 
             $startDate = $year - 3;
             $endDate = $year + 3;
@@ -1093,11 +1064,11 @@ class Lido extends AbstractRecord
             return null;
         }
 
-        if (strlen($startDate) == 2) {
+        if (strlen((string)$startDate) == 2) {
             $startDate = 1900 + (int)$startDate;
         }
-        if (strlen($endDate) == 2) {
-            $century = substr($startDate, 0, 2) . '00';
+        if (strlen((string)$endDate) == 2) {
+            $century = substr((string)$startDate, 0, 2) . '00';
             $endDate = (int)$century + (int)$endDate;
         }
 
@@ -1112,8 +1083,8 @@ class Lido extends AbstractRecord
             return null;
         }
 
-        if ($this->metadataUtils->validateISO8601Date($startDate) === false
-            || $this->metadataUtils->validateISO8601Date($endDate) === false
+        if ($this->metadataUtils->validateISO8601Date((string)$startDate) === false
+            || $this->metadataUtils->validateISO8601Date((string)$endDate) === false
         ) {
             return null;
         }
@@ -1124,46 +1095,55 @@ class Lido extends AbstractRecord
     /**
      * Get all events
      *
-     * @param string|string[] $event Which events to use (omit to scan all events)
+     * @param string|array $events Event type(s) allowed (null = all types)
      *
      * @return \simpleXMLElement[] Array of event nodes
      */
-    protected function getEventNodes($event = null)
+    protected function getEventNodes($events = null)
     {
         if (empty($this->doc->lido->descriptiveMetadata->eventWrap->eventSet)) {
             return [];
         }
+        if (is_string($events)) {
+            $events = [$events => 0];
+        }
         $eventList = [];
+        $index = 0;
         foreach ($this->doc->lido->descriptiveMetadata->eventWrap->eventSet
             as $eventSetNode
         ) {
             foreach ($eventSetNode->event as $eventNode) {
-                if (!empty($event)) {
+                if (null !== $events) {
                     $eventTypes = [];
                     if (!empty($eventNode->eventType->term)) {
                         foreach ($eventNode->eventType->term as $term) {
                             $eventTypes[] = mb_strtolower((string)$term, 'UTF-8');
                         }
                     }
-                    if (true
-                        && !array_intersect(
-                            $eventTypes,
-                            is_array($event) ? $event : [$event]
-                        )
-                    ) {
-                        continue;
+                    $priority = null;
+                    foreach ($eventTypes as $eventType) {
+                        if (isset($events[$eventType])) {
+                            $priority = $events[$eventType];
+                            break;
+                        }
                     }
+                    if (null !== $priority) {
+                        ++$index;
+                        $eventList["$priority/$index"] = $eventNode;
+                    }
+                } else {
+                    $eventList[] = $eventNode;
                 }
-                $eventList[] = $eventNode;
             }
         }
-        return $eventList;
+        ksort($eventList);
+        return array_values($eventList);
     }
 
     /**
      * Get all subject sets
      *
-     * @return \simpleXMLElement[] Array of subjectSet nodes
+     * @return array Array of subjectSet nodes
      */
     protected function getSubjectSetNodes()
     {
@@ -1188,7 +1168,7 @@ class Lido extends AbstractRecord
      *
      * @param string|string[] $exclude Which subject types to exclude
      *
-     * @return \simpleXMLElement[] Array of subject nodes
+     * @return array Array of subjectSet nodes
      */
     protected function getSubjectNodes($exclude = [])
     {
@@ -1214,7 +1194,7 @@ class Lido extends AbstractRecord
      *
      * @param string|string[] $exclude Which description types to exclude
      *
-     * @return \simpleXMLElement[] Array of objectDescriptionSet nodes
+     * @return array Array of objectDescriptionSet nodes
      */
     protected function getObjectDescriptionSetNodes($exclude = [])
     {
@@ -1247,7 +1227,7 @@ class Lido extends AbstractRecord
      *
      * @param string[] $relatedWorkRelType Which relation types to include
      *
-     * @return \simpleXMLElement[] Array of relatedWorkSet nodes
+     * @return array Array of relatedWorkSet nodes
      */
     protected function getRelatedWorkSetNodes($relatedWorkRelType = [])
     {
@@ -1364,5 +1344,109 @@ class Lido extends AbstractRecord
             }
         }
         return $result;
+    }
+
+    /**
+     * Get main event types
+     *
+     * @return array
+     */
+    protected function getMainEvents(): array
+    {
+        return $this->mainEvents;
+    }
+
+    /**
+     * Get secondary author event types
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthorEvents(): array
+    {
+        return $this->secondaryAuthorEvents;
+    }
+
+    /**
+     * Get place event types
+     *
+     * @return array
+     */
+    protected function getPlaceEvents(): array
+    {
+        return $this->placeEvents;
+    }
+
+    /**
+     * Get authors
+     *
+     * @return array
+     */
+    protected function getAuthors(): array
+    {
+        return $this->getActors($this->getMainEvents());
+    }
+
+    /**
+     * Get secondary authors
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthors(): array
+    {
+        return $this->getActors($this->getSecondaryAuthorEvents());
+    }
+
+    /**
+     * Get materials
+     *
+     * @return array
+     */
+    protected function getMaterials(): array
+    {
+        return $this->getEventMaterials($this->getMainEvents());
+    }
+
+    /**
+     * Get Display dates
+     *
+     * @return array
+     */
+    protected function getDisplayDates(): array
+    {
+        $result = $this->getSubjectDisplayDates();
+        if (!$result && $date = $this->getEventDisplayDate($this->getMainEvents())) {
+            $result = (array)$date;
+        }
+        return $result;
+    }
+
+    /**
+     * Get Display places
+     *
+     * @return array
+     */
+    protected function getDisplayPlaces(): array
+    {
+        $result = [];
+        if ($place = $this->getEventDisplayPlace($this->getPlaceEvents())) {
+            $result[] = $place;
+        }
+        if ($places = $this->getSubjectDisplayPlaces()) {
+            $result = array_merge(
+                $result,
+                $places
+            );
+        }
+        return $result;
+    }
+
+    /**
+     * Get collection
+     *
+     * @return string
+     */
+    protected function getCollection(): string
+    {
+        return $this->getRelatedWorkDisplayObject($this->relatedWorkRelationTypes);
     }
 }

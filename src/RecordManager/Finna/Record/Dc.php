@@ -42,6 +42,8 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class Dc extends \RecordManager\Base\Record\Dc
 {
+    use DateSupportTrait;
+
     /**
      * Return fields to be indexed in Solr
      *
@@ -64,7 +66,7 @@ class Dc extends \RecordManager\Base\Record\Dc
 
         if ($range = $this->getPublicationDateRange()) {
             $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->metadataUtils->dateRangeToStr($range);
+                = $this->dateRangeToStr($range);
         }
 
         // language, take only first

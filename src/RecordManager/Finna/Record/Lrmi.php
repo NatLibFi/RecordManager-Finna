@@ -81,10 +81,10 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $data['free_online_str_mv'] = $this->source;
 
             foreach ($doc->material as $material) {
-                if ($url = (string)$material->url ?? '') {
+                if ($url = (string)($material->url ?? '')) {
                     $link = [
                         'url' => $url,
-                        'text' => trim((string)$material->name ?? $url),
+                        'text' => trim((string)($material->name ?? $url)),
                         'source' => $this->source
                     ];
                     $data['online_urls_str_mv'][] = json_encode($link);

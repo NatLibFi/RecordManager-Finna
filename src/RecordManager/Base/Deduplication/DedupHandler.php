@@ -100,7 +100,7 @@ class DedupHandler implements DedupHandlerInterface
     /**
      * Metadata utilities
      *
-     * @var MetadataUtils;
+     * @var MetadataUtils
      */
     protected $metadataUtils;
 
@@ -231,7 +231,7 @@ class DedupHandler implements DedupHandlerInterface
                 . " $id (dedup record does not exist)";
         }
 
-        if (!in_array($id, ((array)$dedupRecord['ids'] ?? []))) {
+        if (!in_array($id, (array)($dedupRecord['ids'] ?? []))) {
             $this->db->updateRecords(
                 ['_id' => $id, 'deleted' => false],
                 ['update_needed' => true],
@@ -400,9 +400,7 @@ class DedupHandler implements DedupHandlerInterface
                 'suppressed' => ['$in' => [null, false]],
                 'source_id' => ['$ne' => $record['source_id']],
             ];
-            if (!empty($rule['filters'])) {
-                $params += $rule['filters'];
-            }
+            $params += $rule['filters'];
             $candidates = $this->db->findRecords(
                 $params,
                 [
@@ -902,8 +900,8 @@ class DedupHandler implements DedupHandlerInterface
     /**
      * Mark two records as duplicates
      *
-     * @param array $id1 Database record id for which a duplicate was searched
-     * @param array $id2 Database record id for the found duplicate
+     * @param string $id1 Database record id for which a duplicate was searched
+     * @param string $id2 Database record id for the found duplicate
      *
      * @return void
      */

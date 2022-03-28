@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <psalm
     cacheDirectory=".psalm_cache"
-    errorLevel="7"
+    errorLevel="4"
     resolveFromConfigFile="true"
     allowStringToStandInForClass="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -12,5 +12,8 @@
     <projectFiles>
         <file name="*.php" />
         <directory name="src" />
+        <ignoreFiles>
+            <file name="src/RecordManager/Base/Database/MongoDatabase.php" />
+        </ignoreFiles>
     </projectFiles>
 </psalm>

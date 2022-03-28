@@ -46,6 +46,7 @@ class Forward extends \RecordManager\Base\Record\Forward
 {
     use AuthoritySupportTrait;
     use ForwardRecordTrait;
+    use DateSupportTrait;
 
     /**
      * Default primary author relator codes, may be overridden in configuration.
@@ -116,7 +117,7 @@ class Forward extends \RecordManager\Base\Record\Forward
             $data['main_date_str'] = $year;
             $data['main_date'] = $this->validateDate("$year-01-01T00:00:00Z");
             $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->metadataUtils->dateRangeToStr(
+                = $this->dateRangeToStr(
                     ["$year-01-01T00:00:00Z", "$year-12-31T23:59:59Z"]
                 );
         }
@@ -399,7 +400,7 @@ class Forward extends \RecordManager\Base\Record\Forward
                 }
             }
         }
-        return $relator;
+        return $relator ?? '';
     }
 
     /**
@@ -424,7 +425,7 @@ class Forward extends \RecordManager\Base\Record\Forward
     /**
      * Get all metadata elements
      *
-     * @return \SimpleXMLElement
+     * @return array Array of \SimpleXMLElement objects
      */
     protected function getAllMainElements()
     {

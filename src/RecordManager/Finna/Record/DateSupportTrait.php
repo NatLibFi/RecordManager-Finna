@@ -1,10 +1,10 @@
 <?php
 /**
- * Call number base class
+ * Date handling support trait.
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2015-2021.
+ * Copyright (C) The National Library of Finland 2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,10 +25,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-namespace RecordManager\Base\Utils;
+namespace RecordManager\Finna\Record;
 
 /**
- * Call number base class
+ * Date handling support trait.
  *
  * @category DataManagement
  * @package  RecordManager
@@ -36,45 +36,33 @@ namespace RecordManager\Base\Utils;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-abstract class AbstractCallNumber
+trait DateSupportTrait
 {
     /**
-     * Constructor
+     * Convert a date range to a Solr date range string,
+     * e.g. [1970-01-01 TO 1981-01-01]
      *
-     * @param string $callnumber Call Number
+     * @param array|null $range Start and end date
+     *
+     * @return string|null Start and end date in Solr format
+     * @throws \Exception
      */
-    abstract public function __construct($callnumber);
-
-    /**
-     * Check if the call number is valid
-     *
-     * @return bool
-     */
-    abstract public function isValid();
-
-    /**
-     * Create a sort key
-     *
-     * @return string
-     */
-    abstract public function getSortKey();
-
-    /**
-     * Make a string numerically sortable
-     *
-     * @param string $str String
-     *
-     * @return string
-     */
-    protected function createSortableString($str)
+    public function dateRangeToStr($range)
     {
-        $str = preg_replace_callback(
-            '/(\d+)/',
-            function ($matches) {
-                return strlen((string)(intval($matches[1]))) . $matches[1];
-            },
-            strtoupper($str)
-        );
-        return preg_replace('/\s{2,}/', ' ', $str);
+        if (!$range) {
+            return null;
+        }
+        $oldTZ = date_default_timezone_get();
+        try {
+            date_default_timezone_set('UTC');
+            $start = date('Y-m-d', strtotime($range[0]));
+            $end = date('Y-m-d', strtotime($range[1]));
+        } catch (\Exception $e) {
+            date_default_timezone_set($oldTZ);
+            throw $e;
+        }
+        date_default_timezone_set($oldTZ);
+
+        return $start === $end ? $start : "[$start TO $end]";
     }
 }

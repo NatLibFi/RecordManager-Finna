@@ -43,6 +43,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
+    use DateSupportTrait;
 
     /**
      * Field for geographic data
@@ -73,7 +74,7 @@ class Ead extends \RecordManager\Base\Record\Ead
 
         $unitDateRange = $this->parseDateRange((string)$doc->did->unitdate);
         $data['search_daterange_mv'] = $data['unit_daterange']
-            = $this->metadataUtils->dateRangeToStr($unitDateRange);
+            = $this->dateRangeToStr($unitDateRange);
         if ($unitDateRange) {
             $data['main_date_str'] = $this->metadataUtils
                 ->extractYear($unitDateRange[0]);
@@ -197,7 +198,7 @@ class Ead extends \RecordManager\Base\Record\Ead
                 || strncasecmp($restrict, 'Public', 6) === 0
                 || strncasecmp($restrict, 'Julkinen', 8) === 0
             ) {
-                return [(string)$restrict];
+                return [$restrict];
             }
             return null;
         };
@@ -246,13 +247,14 @@ class Ead extends \RecordManager\Base\Record\Ead
             return null;
         }
 
-        if (true
-            && preg_match(
-                '/(\d\d?).(\d\d?).(\d\d\d\d) ?- ?(\d\d?).(\d\d?).(\d\d\d\d)/',
-                $input,
-                $matches
-            ) > 0
-        ) {
+        $dateRangeRe = '/(\d\d?).(\d\d\d\d) ?- ?(\d\d?).(\d\d\d\d)/';
+
+        $found = preg_match(
+            '/(\d\d?).(\d\d?).(\d\d\d\d) ?- ?(\d\d?).(\d\d?).(\d\d\d\d)/',
+            $input,
+            $matches
+        );
+        if ($found > 0) {
             $startYear = $matches[3];
             $startMonth = sprintf('%02d', $matches[2]);
             $startDay = sprintf('%02d', $matches[1]);
@@ -262,13 +264,7 @@ class Ead extends \RecordManager\Base\Record\Ead
             $endMonth = sprintf('%02d', $matches[5]);
             $endDay = sprintf('%02d', $matches[4]);
             $endDate = $endYear . '-' . $endMonth . '-' . $endDay . 'T23:59:59Z';
-        } elseif (true
-            && preg_match(
-                '/(\d\d?).(\d\d\d\d) ?- ?(\d\d?).(\d\d\d\d)/',
-                $input,
-                $matches
-            ) > 0
-        ) {
+        } elseif (preg_match($dateRangeRe, $input, $matches) > 0) {
             $startYear = $matches[2];
             $startMonth = sprintf('%02d', $matches[1]);
             $startDay = '01';

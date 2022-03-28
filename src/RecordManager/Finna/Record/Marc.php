@@ -49,6 +49,7 @@ class Marc extends \RecordManager\Base\Record\Marc
 {
     use AuthoritySupportTrait;
     use CreateRecordTrait;
+    use DateSupportTrait;
 
     /**
      * Record plugin manager
@@ -60,7 +61,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Strings in field 300 that signify that the work is illustrated.
      *
-     * @var string
+     * @var array
      */
     protected $illustrationStrings = [
         'ill.', 'illus.', 'kuv.', 'kuvitettu', 'illustrated'
@@ -125,10 +126,10 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Set record data
      *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
+     * @param string       $source Source ID
+     * @param string       $oaiID  Record ID received from OAI-PMH (or empty string
+     *                             for file import)
+     * @param string|array $data   Metadata
      *
      * @return void
      */
@@ -211,7 +212,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         if ($range = $this->getPublicationDateRange()) {
             $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->metadataUtils->dateRangeToStr($range);
+                = $this->dateRangeToStr($range);
         }
         $data['publication_place_txt_mv'] = $this->metadataUtils->arrayTrim(
             $this->getFieldsSubfields(
@@ -812,7 +813,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         // Make sure center_coords is single-valued
-        if (!empty($data['center_coords'])) {
+        if (!empty($data['center_coords']) && is_array($data['center_coords'])) {
             $data['center_coords'] = $data['center_coords'][0];
         }
 
@@ -884,15 +885,15 @@ class Marc extends \RecordManager\Base\Record\Marc
     protected function getThesaurusId(array $field): string
     {
         $map = [
-            '0' => 'LCSH',
-            '1' => 'LCCSH',
-            '2' => 'MSH',
-            '3' => 'NAL',
-            '5' => 'CanSH',
-            '6' => 'RVM'
+            't0' => 'LCSH',
+            't1' => 'LCCSH',
+            't2' => 'MSH',
+            't3' => 'NAL',
+            't5' => 'CanSH',
+            't6' => 'RVM'
         ];
         $ind2 = $this->getIndicator($field, 2);
-        if ($src = ($map[$ind2] ?? '')) {
+        if ($src = ($map["t$ind2"] ?? '')) {
             return $src;
         }
         if ('7' === $ind2) {
@@ -1271,6 +1272,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 default:
                     return 'Map';
                 }
+                // @phpstan-ignore-next-line
                 break;
             case 'C':
                 switch ($formatCode2) {
@@ -1312,6 +1314,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 default:
                     return 'Slide';
                 }
+                // @phpstan-ignore-next-line
                 break;
             case 'H':
                 return 'Microfilm';
@@ -1338,6 +1341,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 default:
                     return 'Photo';
                 }
+                // @phpstan-ignore-next-line
                 break;
             case 'M':
                 switch ($formatCode2) {
@@ -1348,6 +1352,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 default:
                     return 'MotionPicture';
                 }
+                // @phpstan-ignore-next-line
                 break;
             case 'O':
                 return 'Kit';
@@ -1382,6 +1387,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     }
                     return $online ? 'SoundRecordingOnline' : 'SoundRecording';
                 }
+                // @phpstan-ignore-next-line
                 break;
             case 'V':
                 $videoFormat = strtoupper(substr($contents, 4, 1));
@@ -1409,6 +1415,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 default:
                     return 'Video';
                 }
+                // @phpstan-ignore-next-line
                 break;
             }
         }
@@ -1428,7 +1435,6 @@ class Marc extends \RecordManager\Base\Record\Marc
             return 'MusicRecording';
         case 'K':
             return 'Photo';
-            break;
         case 'M':
             return 'Electronic';
         case 'O':
@@ -1452,6 +1458,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             } else {
                 return 'Book';
             }
+            // @phpstan-ignore-next-line
             break;
         // Serial
         case 'S':
@@ -1465,6 +1472,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             default:
                 return $online ? 'eSerial' : 'Serial';
             }
+            // @phpstan-ignore-next-line
             break;
 
         case 'A':
@@ -1714,7 +1722,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             return [$startDate, $endDate];
         }
 
-        return '';
+        return [];
     }
 
     /**

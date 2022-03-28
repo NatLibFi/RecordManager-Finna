@@ -101,6 +101,28 @@
                         </eventPlace>
                     </event>
                 </eventSet>
+                <eventSet>
+                    <event>
+                        <eventType>
+                            <term>suunnittelu</term>
+                        </eventType>
+                        <eventName>
+                            <appellationValue>suunnittelu</appellationValue>
+                        </eventName>
+                        <eventActor>
+                            <actorInRole>
+                                <actor>
+                                    <nameActorSet>
+                                        <appellationValue>Testaaja, Taavi</appellationValue>
+                                    </nameActorSet>
+                                </actor>
+                                <roleActor>
+                                    <term>suunnittelija</term>
+                                </roleActor>
+                            </actorInRole>
+                        </eventActor>
+                    </event>
+                </eventSet>
             </eventWrap>
             <objectRelationWrap>
                 <subjectWrap>

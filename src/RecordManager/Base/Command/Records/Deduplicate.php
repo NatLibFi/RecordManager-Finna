@@ -97,6 +97,8 @@ class Deduplicate extends AbstractBase
      * @param OutputInterface $output Console output
      *
      * @return int 0 if everything went fine, or an exit code
+     *
+     * @psalm-suppress TypeDoesNotContainType
      */
     protected function doExecute(InputInterface $input, OutputInterface $output)
     {
@@ -172,6 +174,7 @@ class Deduplicate extends AbstractBase
                         return true;
                     }
                 );
+                // @phpstan-ignore-next-line
                 if ($this->terminate) {
                     $this->logger
                         ->logInfo('deduplicate', 'Termination upon request');
@@ -268,6 +271,7 @@ class Deduplicate extends AbstractBase
                         return true;
                     }
                 );
+                // @phpstan-ignore-next-line
                 if ($this->terminate) {
                     $this->logger
                         ->logInfo('deduplicate', 'Termination upon request');

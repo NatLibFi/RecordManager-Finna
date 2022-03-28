@@ -73,6 +73,7 @@ class Eaccpf extends \RecordManager\Base\Record\Eaccpf
         if (!isset($this->doc->cpfDescription->identity->nameEntryParallel)) {
             return [];
         }
+        $result = [];
         foreach ($this->doc->cpfDescription->identity->nameEntryParallel as $entry) {
             if (!isset($entry->nameEntry->part)) {
                 continue;

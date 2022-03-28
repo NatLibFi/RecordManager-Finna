@@ -77,7 +77,7 @@ abstract class AbstractEnrichment
     /**
      * HTTP Request
      *
-     * @var \HTTP_Request2
+     * @var ?\HTTP_Request2
      */
     protected $request = null;
 
@@ -135,7 +135,7 @@ abstract class AbstractEnrichment
     /**
      * Metadata utilities
      *
-     * @var MetadataUtils;
+     * @var MetadataUtils
      */
     protected $metadataUtils;
 

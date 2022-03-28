@@ -168,7 +168,20 @@ abstract class AbstractRecord
      *
      * @return string
      */
-    abstract public function toXML();
+    public function toXML()
+    {
+        if (!isset($this->doc)) {
+            throw new \Exception('Document not set');
+        }
+        $xml = $this->doc->asXML();
+        if (false === $xml) {
+            throw new \Exception(
+                "Could not serialize record '{$this->source}."
+                . $this->getId() . "' to XML"
+            );
+        }
+        return $xml;
+    }
 
     /**
      * Normalize the record (optional)
@@ -219,10 +232,11 @@ abstract class AbstractRecord
      * @param mixed        $changeDate     Latest database timestamp for the
      *                                     component part set
      *
-     * @return void
+     * @return int
      */
     public function mergeComponentParts($componentParts, &$changeDate)
     {
+        return 0;
     }
 
     /**
@@ -576,39 +590,5 @@ abstract class AbstractRecord
             return $dateString;
         }
         return '';
-    }
-
-    /**
-     * Parse an XML record from string to a SimpleXML object
-     *
-     * @param string $xml XML string
-     *
-     * @return \SimpleXMLElement
-     * @throws \Exception
-     */
-    protected function parseXMLRecord($xml)
-    {
-        $saveUseErrors = libxml_use_internal_errors(true);
-        try {
-            libxml_clear_errors();
-            if (empty($xml)) {
-                throw new \Exception('Tried to parse empty XML string');
-            }
-            $doc = $this->metadataUtils->loadXML($xml);
-            if (false === $doc) {
-                $errors = libxml_get_errors();
-                $messageParts = [];
-                foreach ($errors as $error) {
-                    $messageParts[] = '[' . $error->line . ':' . $error->column
-                        . '] Error ' . $error->code . ': ' . $error->message;
-                }
-                throw new \Exception(implode("\n", $messageParts));
-            }
-            libxml_use_internal_errors($saveUseErrors);
-            return $doc;
-        } catch (\Exception $e) {
-            libxml_use_internal_errors($saveUseErrors);
-            throw $e;
-        }
     }
 }

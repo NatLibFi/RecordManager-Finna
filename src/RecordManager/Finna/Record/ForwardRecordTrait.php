@@ -97,7 +97,7 @@ trait ForwardRecordTrait
             $data = str_replace('&', '&amp;', $data);
             $xml = $simplexml->addChild($name, $data);
             foreach ($append->attributes() as $key => $value) {
-                $xml->addAttribute($key, $value);
+                $xml->addAttribute($key, (string)$value);
             }
             foreach ($append->children() as $child) {
                 $this->appendXML($xml, $child);

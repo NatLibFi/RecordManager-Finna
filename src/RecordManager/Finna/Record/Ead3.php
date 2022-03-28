@@ -47,6 +47,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
+    use DateSupportTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -99,7 +100,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $unitDateRange = $unitDateRange['date'];
 
             $data['search_daterange_mv'][] = $data['unit_daterange']
-                = $this->metadataUtils->dateRangeToStr($unitDateRange);
+                = $this->dateRangeToStr($unitDateRange);
 
             if ($first) {
                 $data['main_date_str'] = $data['era_facet']
@@ -585,6 +586,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 if (isset($range->fromdate) && isset($range->todate)) {
                     // Some data sources have multiple ranges in one daterange
                     // (non-standard presentation), try to handle the case sensibly:
+                    $toDate = (string)$range->fromdate;
                     foreach ($range->todate as $to) {
                         $toDate = (string)$to;
                     }
@@ -920,7 +922,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
 
         if (null === $level1) {
-            $level1 = $defaultFormat;
+            $level1 = $defaultFormat ?? '';
         }
 
         return $level2 ? "$level1/$level2" : $level1;

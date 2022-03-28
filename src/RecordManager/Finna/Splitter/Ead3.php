@@ -79,7 +79,7 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
             if ('' === $defaultId) {
                 $defaultId = (string)$unitId;
             }
-            if ($unitId->attributes()->label === 'Analoginen') {
+            if ((string)$unitId->attributes()->label === 'Analoginen') {
                 $ids[] = (string)$unitId;
             }
         }

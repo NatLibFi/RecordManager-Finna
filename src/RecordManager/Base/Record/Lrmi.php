@@ -224,14 +224,11 @@ class Lrmi extends Qdc
         $iterator = new \RecursiveIteratorIterator(
             new \SimpleXMLIterator($this->doc->asXML())
         );
-        $iterator->rewind();
-        $iterator->next();
 
-        while ($node = $iterator->current()) {
+        foreach ($iterator as $node) {
             $tag = $node->getName();
             $field = trim((string)$node);
-            $iterator->next();
-            if (in_array($tag, $this->ignoredAllfields) || !$field) {
+            if (!$field || in_array($tag, $this->ignoredAllfields)) {
                 continue;
             }
             $allFields[] = $field;
@@ -259,7 +256,7 @@ class Lrmi extends Qdc
     {
         $languages = [];
         foreach ($this->doc->material ?? [] as $material) {
-            $languages[] = (string)$material->inLanguage ?? '';
+            $languages[] = (string)($material->inLanguage ?? '');
         }
         foreach ($this->doc->inLanguage ?? [] as $language) {
             $languages[] = (string)$language;

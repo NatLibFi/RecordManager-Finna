@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2013-2021.
+ * Copyright (C) The National Library of Finland 2013-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -64,30 +64,23 @@ class NominatimGeocoder extends AbstractEnrichment
     /**
      * Delay between requests
      *
-     * @var int
+     * @var float
      */
     protected $delay = 1500;
 
     /**
      * Last request time
      *
-     * @var int
+     * @var float
      */
     protected $lastRequestTime = null;
 
     /**
      * Tolerance in the polygon simplification
      *
-     * @var int
+     * @var float
      */
-    protected $simplificationTolerance = 0;
-
-    /**
-     * Maximum simplified polygon length
-     *
-     * @var int
-     */
-    protected $simplificationMaxLength = 0;
+    protected $simplificationTolerance = 0.01;
 
     /**
      * Solr field to use for the location data
@@ -159,21 +152,10 @@ class NominatimGeocoder extends AbstractEnrichment
             $this->preferredArea = $settings['preferred_area'];
         }
         if (isset($settings['delay'])) {
-            $this->delay = $settings['delay'];
-        }
-        if (isset($settings['delay'])) {
-            $this->delay = $settings['delay'];
+            $this->delay = floatval($settings['delay']);
         }
         if (isset($settings['simplification_tolerance'])) {
-            if (!\geoPHP::geosInstalled()) {
-                throw new \Exception(
-                    'PHP GEOS extension is required for simplification_tolerance'
-                );
-            }
             $this->simplificationTolerance = $settings['simplification_tolerance'];
-        }
-        if (isset($settings['simplification_max_length'])) {
-            $this->simplificationMaxLength = $settings['simplification_max_length'];
         }
         if (isset($settings['solr_field'])) {
             $this->solrField = $settings['solr_field'];
@@ -243,6 +225,26 @@ class NominatimGeocoder extends AbstractEnrichment
     protected function enrichLocations($locations, &$solrArray)
     {
         $result = false;
+        $cf = $this->solrCenterField;
+        try {
+            $center = null;
+            if ($cf && !empty($solrArray[$cf])) {
+                $latLon = is_array($solrArray[$cf])
+                    ? reset($solrArray[$cf]) : $solrArray[$cf];
+                $latLon = str_replace([',', '  '], ' ', $latLon);
+                [$lat, $lon] = explode(' ', $latLon, 2);
+                $center = \geoPHP::load("POINT($lon $lat)", 'wkt');
+            }
+        } catch (\Exception $e) {
+            $id = $solrArray['id'] ?? '-';
+            $this->logger->logError(
+                'NominatimGeocoder',
+                "Could not decode center point '{$solrArray[$cf]}' (record $id): "
+                    . $e->getMessage()
+            );
+            return false;
+        }
+
         foreach ($locations as $location) {
             if ($this->blocklist) {
                 foreach ($this->blocklist as $entry) {
@@ -252,19 +254,41 @@ class NominatimGeocoder extends AbstractEnrichment
                 }
             }
             for ($i = 0; $i < 10; $i++) {
+                $words = explode(' ', $location);
+                if (count($words) > 10) {
+                    $location = implode(' ', array_slice($words, 0, 10));
+                }
                 $geocoded = $this->geocode($location);
                 if ($geocoded) {
                     $wkts = array_column($geocoded, 'wkt');
-                    if (!isset($solrArray[$this->solrField])) {
-                        $solrArray[$this->solrField] = $wkts;
-                    } else {
-                        $solrArray[$this->solrField] = array_merge(
-                            $solrArray[$this->solrField],
-                            $wkts
+                    try {
+                        $poly = \geoPHP::load($wkts[0], 'wkt');
+                    } catch (\Exception $e) {
+                        $id = $solrArray['id'] ?? '-';
+                        $this->logger->logError(
+                            'NominatimGeocoder',
+                            "Could not decode WKT '{$wkts[0]}' (record $id): "
+                                . $e->getMessage()
                         );
+                        return false;
                     }
-                    if (!empty($this->solrCenterField)) {
-                        $solrArray[$this->solrCenterField]
+
+                    if (null === $center || null === $poly->isClosed()
+                        || $poly->contains($center)
+                    ) {
+                        if (!isset($solrArray[$this->solrField])) {
+                            $solrArray[$this->solrField] = $wkts;
+                        } else {
+                            $solrArray[$this->solrField] = array_merge(
+                                $solrArray[$this->solrField],
+                                $wkts
+                            );
+                        }
+                    }
+                    // Set new center coordinates only if the field is in use and has
+                    // no previous value
+                    if ($cf && !isset($solrArray[$cf])) {
+                        $solrArray[$cf]
                             = $geocoded[0]['lon'] . ' ' . $geocoded[0]['lat'];
                     }
                     $result = true;
@@ -321,7 +345,7 @@ class NominatimGeocoder extends AbstractEnrichment
         if (null !== $this->lastRequestTime) {
             $sinceLast = microtime(true) - $this->lastRequestTime;
             if ($sinceLast < $this->delay) {
-                usleep($this->delay - $sinceLast);
+                usleep((int)round(($this->delay - $sinceLast) * 1000));
             }
         }
         $this->lastRequestTime = microtime(true);
@@ -335,6 +359,9 @@ class NominatimGeocoder extends AbstractEnrichment
 
         if ($this->preferredArea) {
             $params['viewbox'] = $this->preferredArea;
+        }
+        if ($this->simplificationTolerance) {
+            $params['polygon_threshold'] = $this->simplificationTolerance;
         }
 
         $url = $this->baseUrl . '?' . http_build_query($params);
@@ -369,18 +396,8 @@ class NominatimGeocoder extends AbstractEnrichment
             } elseif ($importance < $highestImportance) {
                 continue;
             }
-            $wkt = $place['geotext'];
-            if ($this->simplificationTolerance) {
-                if (strcasecmp(substr($wkt, 0, 7), 'POLYGON') == 0
-                    || strcasecmp(substr($wkt, 0, 12), 'MULTIPOLYGON') == 0
-                    || strcasecmp(substr($wkt, 0, 10), 'LINESTRING') == 0
-                    || strcasecmp(substr($wkt, 0, 15), 'MULTILINESTRING') == 0
-                ) {
-                    $wkt = $this->simplify($wkt);
-                }
-            }
             $items[] = [
-                'wkt' => $wkt,
+                'wkt' => $place['geotext'],
                 'lat' => $place['lat'],
                 'lon' => $place['lon'],
                 'importance' => $importance
@@ -396,52 +413,6 @@ class NominatimGeocoder extends AbstractEnrichment
         }
         $results = $this->mergeLineStrings($results);
         return $results;
-    }
-
-    /**
-     * Simplify a shape
-     *
-     * @param string $location WKT shape
-     *
-     * @return string Simplified WKT shape
-     */
-    protected function simplify($location)
-    {
-        $origPointCount = substr_count($location, ',') + 1;
-        if ($origPointCount <= $this->simplificationMaxLength) {
-            return $location;
-        }
-        $polygon = \geoPHP::load($location, 'wkt');
-        $tolerance = $this->simplificationTolerance;
-        $simplifiedWKT = '';
-        $pointCount = null;
-        for ($try = 1; $try < 100; $try++) {
-            $simplified = $polygon->simplify($tolerance);
-            if (null === $simplified) {
-                throw new \Exception('Shape simplification failed');
-            }
-            $simplifiedWKT = $simplified->out('wkt');
-            if (strstr($simplifiedWKT, 'EMPTY') !== false) {
-                // Got empty shape as result, return bounding box
-                $bbox = $polygon->getBBox();
-                return "ENVELOPE({$bbox['minx']}, {$bbox['maxx']}, {$bbox['maxy']}, "
-                    . "{$bbox['miny']})";
-            }
-            $pointCount = substr_count($simplifiedWKT, ',') + 1;
-            if (!$this->simplificationMaxLength
-                || $pointCount <= $this->simplificationMaxLength
-            ) {
-                break;
-            }
-            $tolerance *= 2;
-        }
-        if (null !== $pointCount && $origPointCount > $pointCount) {
-            return $simplifiedWKT;
-        }
-        // Simplification failed, return bounding box
-        $bbox = $polygon->getBBox();
-        return "ENVELOPE({$bbox['minx']}, {$bbox['maxx']}, {$bbox['maxy']}, "
-            . "{$bbox['miny']})";
     }
 
     /**

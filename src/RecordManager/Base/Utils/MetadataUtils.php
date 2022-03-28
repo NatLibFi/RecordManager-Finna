@@ -70,7 +70,7 @@ class MetadataUtils
      *
      * @var array
      */
-    protected $fullTitlePrefixes = null;
+    protected $fullTitlePrefixes = [];
 
     /**
      * Abbreviations that require the following period to be retained.
@@ -226,7 +226,7 @@ class MetadataUtils
      *
      * @param string $isbn ISBN without dashes
      *
-     * @return bool|string Resulting ISBN or false for invalid ISBN
+     * @return false|string Resulting ISBN or false for invalid ISBN
      */
     public function isbn10to13($isbn)
     {
@@ -261,7 +261,7 @@ class MetadataUtils
     {
         $value = str_replace(' ', '', $value);
         if ($value === '') {
-            return (float)NAN;
+            return NAN;
         }
         $match = preg_match(
             '/^([eEwWnNsS])(\d{3})(\d{2})((\d{2})(\.(\d{3}))?)/',
@@ -269,7 +269,8 @@ class MetadataUtils
             $matches
         );
         if ($match) {
-            $dec = $matches[2] + $matches[3] / 60 + $matches[4] / 3600;
+            $dec = (float)$matches[2] + (float)$matches[3] / 60
+                + (float)$matches[4] / 3600;
             if (in_array($matches[1], ['w', 'W', 's', 'S'])) {
                 return -$dec;
             }
@@ -284,7 +285,7 @@ class MetadataUtils
         }
         if (preg_match('/^([eEwWnNsS])?(\d{3})(\d{2}\.\d+)/', $value, $matches)
         ) {
-            $dec = (float)$matches[2] + $matches[3] / 60;
+            $dec = (float)$matches[2] + (float)$matches[3] / 60;
             if (in_array($matches[1], ['w', 'W', 's', 'S'])) {
                 return -$dec;
             }
@@ -306,7 +307,8 @@ class MetadataUtils
             $matches
         );
         if ($match) {
-            $dec = $matches[2] + $matches[3] / 60 + $matches[4] / 3600;
+            $dec = (float)$matches[2] + (float)$matches[3] / 60
+                + (float)$matches[4] / 3600;
             if (in_array($matches[1], ['w', 'W', 's', 'S'])) {
                 return -$dec;
             }
@@ -326,7 +328,7 @@ class MetadataUtils
     public function createTitleKey($title, $form)
     {
         $full = false;
-        if (isset($this->fullTitlePrefixes)) {
+        if ($this->fullTitlePrefixes) {
             $normalTitle = $this->normalizeKey($title);
             foreach ($this->fullTitlePrefixes as $prefix) {
                 if ($prefix
@@ -454,6 +456,8 @@ class MetadataUtils
      * @param string $str String to check
      *
      * @return boolean
+     *
+     * @psalm-suppress InvalidLiteralArgument
      */
     public function hasTrailingPunctuation($str)
     {
@@ -465,7 +469,7 @@ class MetadataUtils
             --$i;
         }
         $c = $str[$i];
-        $punctuation = strstr('/:;,=([', $c) !== false;
+        $punctuation = strpos('/:;,=([', $c) !== false;
         if (!$punctuation) {
             $punctuation = substr($str, -1) == '.' && !substr($str, -3, 1) != ' ';
         }
@@ -609,25 +613,24 @@ class MetadataUtils
      */
     public function validateDate($date)
     {
-        if (true
-            && preg_match(
-                '/^(\-?\d{4})-(\d{2})-(\d{2})$/',
-                $date,
-                $parts
-            )
-        ) {
-            if ($parts[2] < 1 || $parts[2] > 12
-                || $parts[3] < 1 || $parts[3] > 31
-            ) {
-                return false;
-            }
-            // Since strtotime is quite clever in interpreting bad dates too, convert
-            // back to make sure the interpretation was correct.
-            $resultDate = strtotime($date);
-            $convertedDate = date('Y-m-d', $resultDate);
-            return $convertedDate == $date ? $resultDate : false;
+        $found = preg_match(
+            '/^(\-?\d{4})-(\d{2})-(\d{2})$/',
+            $date,
+            $parts
+        );
+        if (!$found) {
+            return false;
         }
-        return false;
+        if ($parts[2] < 1 || $parts[2] > 12
+            || $parts[3] < 1 || $parts[3] > 31
+        ) {
+            return false;
+        }
+        // Since strtotime is quite clever in interpreting bad dates too, convert
+        // back to make sure the interpretation was correct.
+        $resultDate = strtotime($date);
+        $convertedDate = date('Y-m-d', $resultDate);
+        return $convertedDate == $date ? $resultDate : false;
     }
 
     /**
@@ -639,56 +642,27 @@ class MetadataUtils
      */
     public function validateISO8601Date($date)
     {
-        if (true
-            && preg_match(
-                '/^(\-?\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',
-                $date,
-                $parts
-            )
+        $found = preg_match(
+            '/^(\-?\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',
+            $date,
+            $parts
+        );
+        if (!$found) {
+            return false;
+        }
+        if ($parts[2] < 1 || $parts[2] > 12
+            || $parts[3] < 1 || $parts[3] > 31
+            || $parts[4] < 0 || $parts[4] > 23
+            || $parts[5] < 0 || $parts[5] > 59
+            || $parts[6] < 0 || $parts[6] > 59
         ) {
-            if ($parts[2] < 1 || $parts[2] > 12
-                || $parts[3] < 1 || $parts[3] > 31
-                || $parts[4] < 0 || $parts[4] > 23
-                || $parts[5] < 0 || $parts[5] > 59
-                || $parts[6] < 0 || $parts[6] > 59
-            ) {
-                return false;
-            }
-            // Since strtotime is quite clever in interpreting bad dates too, convert
-            // back to make sure the interpretation was correct.
-            $resultDate = strtotime($date);
-            return gmdate('Y-m-d\TH:i:s\Z', $resultDate) == $date
-                ? $resultDate : false;
+            return false;
         }
-        return false;
-    }
-
-    /**
-     * Convert a date range to a Solr date range string,
-     * e.g. [1970-01-01 TO 1981-01-01]
-     *
-     * @param array $range Start and end date
-     *
-     * @return string Start and end date in Solr format
-     * @throws \Exception
-     */
-    public function dateRangeToStr($range)
-    {
-        if (!isset($range)) {
-            return null;
-        }
-        $oldTZ = date_default_timezone_get();
-        try {
-            date_default_timezone_set('UTC');
-            $start = date('Y-m-d', strtotime($range[0]));
-            $end = date('Y-m-d', strtotime($range[1]));
-        } catch (\Exception $e) {
-            date_default_timezone_set($oldTZ);
-            throw $e;
-        }
-        date_default_timezone_set($oldTZ);
-
-        return $start === $end ? $start : "[$start TO $end]";
+        // Since strtotime is quite clever in interpreting bad dates too, convert
+        // back to make sure the interpretation was correct.
+        $resultDate = strtotime($date);
+        return gmdate('Y-m-d\TH:i:s\Z', $resultDate) == $date
+            ? $resultDate : false;
     }
 
     /**
@@ -727,7 +701,7 @@ class MetadataUtils
     /**
      * Create a timestamp string from the given unix timestamp
      *
-     * @param int $timestamp Unix timestamp
+     * @param ?int $timestamp Unix timestamp
      *
      * @return string Formatted string
      */
@@ -779,6 +753,8 @@ class MetadataUtils
      * @param string $form Normalization form
      *
      * @return string Normalized string
+     *
+     * @psalm-suppress TypeDoesNotContainType, RedundantCondition
      */
     public function normalizeUnicode($str, $form)
     {
@@ -792,8 +768,8 @@ class MetadataUtils
         if (empty($str)) {
             return $str;
         }
-        $str = \Normalizer::normalize($str, $forms[$form] ?? \Normalizer::FORM_C);
-        return $str === false ? '' : $str;
+        $result = \Normalizer::normalize($str, $forms[$form] ?? \Normalizer::FORM_C);
+        return $result === false ? '' : $result;
     }
 
     /**
@@ -931,8 +907,8 @@ class MetadataUtils
             $expr = '/ENVELOPE\s*\((-?[\d\.]+),\s*(-?[\d\.]+),\s*(-?[\d\.]+),'
                 . '\s*(-?[\d\.]+)\)/i';
             if (preg_match($expr, $wkt, $matches)) {
-                return (($matches[1] + $matches[2]) / 2) . ' '
-                    . (($matches[3] + $matches[4]) / 2);
+                return (((float)$matches[1] + (float)$matches[2]) / 2) . ' '
+                    . (((float)$matches[3] + (float)$matches[4]) / 2);
             }
             try {
                 $item = \geoPHP::load($wkt, 'wkt');
@@ -943,7 +919,7 @@ class MetadataUtils
                         "Could not parse WKT '$wkt': " . $e->getMessage()
                     );
                 }
-                return [];
+                return '';
             }
             $centroid = $item ? $item->centroid() : null;
             return $centroid ? $centroid->getX() . ' ' . $centroid->getY() : '';
@@ -977,7 +953,7 @@ class MetadataUtils
                         "Could not parse WKT '$wkt': " . $e->getMessage()
                     );
                 }
-                return [];
+                return '';
             }
             $centroid = $item ? $item->centroid() : null;
             return $centroid ? $centroid->getX() . ' ' . $centroid->getY() : '';
@@ -1034,6 +1010,26 @@ class MetadataUtils
     {
         $parts = explode('.', $id, 2);
         return $parts[0];
+    }
+
+    /**
+     * Load XML into SimpleXMLElement
+     *
+     * @param string $xml     XML
+     * @param int    $options Additional libxml options (LIBXML_PARSEHUGE and
+     *                        LIBXML_COMPACT are set by default)
+     * @param string $errors  Any errors encountered
+     *
+     * @return \SimpleXMLElement
+     */
+    public function loadSimpleXML(
+        $xml,
+        $options = 0,
+        &$errors = null
+    ) {
+        $xml = $this->loadXML($xml, null, $options, $errors);
+        assert($xml instanceof \SimpleXMLElement);
+        return $xml;
     }
 
     /**
@@ -1127,7 +1123,7 @@ class MetadataUtils
     {
         $sum = 0;
         for ($pos = 0, $mul = 10; $pos < 9; $pos++, $mul--) {
-            $sum += $mul * $isbn[$pos];
+            $sum += $mul * (int)$isbn[$pos];
         }
         $checkChar = (11 - ($sum) % 11) % 11;
         if ($checkChar === 10) {
@@ -1145,9 +1141,10 @@ class MetadataUtils
      */
     protected function calculateIsbn13CheckDigit(string $isbn): string
     {
-        $sum = 38 + 3 * ($isbn[0] + $isbn[2] + $isbn[4] + $isbn[6]
-            + $isbn[8])
-            + $isbn[1] + $isbn[3] + $isbn[5] + $isbn[7];
+        $sum = 38 + 3 * ((int)$isbn[0] + (int)$isbn[2] + (int)$isbn[4]
+            + (int)$isbn[6]
+            + (int)$isbn[8])
+            + (int)$isbn[1] + (int)$isbn[3] + (int)$isbn[5] + (int)$isbn[7];
         return (string)((10 - ($sum % 10)) % 10);
     }
 }

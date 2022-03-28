@@ -181,7 +181,7 @@ class PDODatabase extends AbstractDatabase
      * @param array $filter  Search filter
      * @param array $options Options such as sorting
      *
-     * @return int
+     * @return int|string
      */
     public function countRecords($filter, $options = [])
     {
@@ -326,7 +326,7 @@ class PDODatabase extends AbstractDatabase
      * @param array $filter  Search filter
      * @param array $options Options such as sorting
      *
-     * @return int
+     * @return int|string
      */
     public function countDedups($filter, $options = [])
     {
@@ -372,7 +372,7 @@ class PDODatabase extends AbstractDatabase
 
         $res = $this->dbQuery("show tables like 'tracking_%'");
         while ($collection = $res->fetchColumn()) {
-            $nameParts = explode('_', $collection);
+            $nameParts = explode('_', (string)$collection);
             $collTime = $nameParts[2] ?? null;
             if (is_numeric($collTime)
                 && $collTime != time() - $minAge * 60 * 60 * 24
@@ -682,7 +682,7 @@ class PDODatabase extends AbstractDatabase
         if ($sqlOptions) {
             $sql .= " $sqlOptions";
         }
-        return $this->dbQuery($sql, $params)->fetchColumn();
+        return intval($this->dbQuery($sql, $params)->fetchColumn() ?: 0);
     }
 
     /**
@@ -781,7 +781,7 @@ class PDODatabase extends AbstractDatabase
                     }
                 }
                 foreach ($deleteAttrs as $key => $values) {
-                    foreach ((array)$values as $value) {
+                    foreach ($values as $value) {
                         $this->dbQuery(
                             "DELETE FROM {$collection}_attrs WHERE parent_id=?"
                             . ' AND attr=? AND value=?',
@@ -794,7 +794,7 @@ class PDODatabase extends AbstractDatabase
                     }
                 }
                 foreach ($insertAttrs as $key => $values) {
-                    foreach ((array)$values as $value) {
+                    foreach ($values as $value) {
                         $this->dbQuery(
                             "INSERT INTO {$collection}_attrs"
                             . ' (parent_id, attr, value) VALUES (?, ?, ?)',
@@ -809,7 +809,13 @@ class PDODatabase extends AbstractDatabase
             }
             $db->commit();
         } catch (\Exception $e) {
-            $db->rollback();
+            // Try to roll back, but make sure not to mask any issue that could have
+            // been caused during commit:
+            try {
+                $db->rollback();
+            } catch (\Exception $e) {
+                // Do nothing
+            }
             throw $e;
         }
         return $record;
@@ -896,8 +902,10 @@ class PDODatabase extends AbstractDatabase
     {
         $stmt = $this->getDb()->prepare($sql);
         if (false === $stmt) {
+            $errorInfo = $this->getDb()->errorInfo();
+            $error = implode('; ', $errorInfo);
             throw new \Exception(
-                "Prepare failed for '$sql': " . $this->getDb()->error
+                "Prepare failed for '$sql': $error"
             );
         }
         foreach ($params as &$param) {
@@ -1081,13 +1089,12 @@ class PDODatabase extends AbstractDatabase
         if (in_array($field, $mainFields)) {
             return "$field$operator";
         }
-        $result = "EXISTS (SELECT * FROM {$collection}_attrs ca WHERE"
-            . " ca.parent_id={$collection}._id AND ca.attr='$field'"
-            . " AND ca.value$operator)";
+        $result = "_id IN (SELECT parent_id FROM {$collection}_attrs ca WHERE"
+            . " ca.attr='$field' AND ca.value$operator)";
 
         if (' IS NULL' === $operator) {
-            $result = "($result OR NOT EXISTS (SELECT * FROM {$collection}_attrs"
-                . " ca WHERE ca.parent_id={$collection}._id AND ca.attr='$field'))";
+            $result = "($result OR _id NOT IN (SELECT parent_id FROM"
+                . " {$collection}_attrs ca WHERE ca.attr='$field'))";
         }
 
         return $result;

@@ -45,17 +45,13 @@ use RecordManager\Base\Utils\MetadataUtils;
  */
 class Qdc extends AbstractRecord
 {
+    use XmlRecordTrait {
+        XmlRecordTrait::setData as XmlTraitSetData;
+    }
     use FullTextTrait;
 
     /**
-     * Document
-     *
-     * @var \SimpleXMLElement
-     */
-    protected $doc = null;
-
-    /**
-     * HTTP client manager
+     * HTTP client manager for FullTextTrait
      *
      * @var HttpClientManager
      */
@@ -93,9 +89,8 @@ class Qdc extends AbstractRecord
      */
     public function setData($source, $oaiID, $data)
     {
-        parent::setData($source, $oaiID, $data);
+        $this->XmlTraitSetData($source, $oaiID, $data);
 
-        $this->doc = $this->parseXMLRecord($data);
         if (empty($this->doc->recordID)) {
             $p = strpos($oaiID, ':');
             $p = strpos($oaiID, ':', $p + 1);
@@ -111,26 +106,6 @@ class Qdc extends AbstractRecord
     public function getID()
     {
         return trim((string)$this->doc->recordID[0]);
-    }
-
-    /**
-     * Serialize the record for storing in the database
-     *
-     * @return string
-     */
-    public function serialize()
-    {
-        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
-    }
-
-    /**
-     * Serialize the record into XML for export
-     *
-     * @return string
-     */
-    public function toXML()
-    {
-        return $this->doc->asXML();
     }
 
     /**
@@ -167,11 +142,9 @@ class Qdc extends AbstractRecord
             ) {
                 $data['title'] = $data['title_full'] = trim((string)$title);
                 $titleParts = explode(' : ', $data['title']);
-                if (!empty($titleParts)) {
-                    $data['title_short'] = $titleParts[0];
-                    if (isset($titleParts[1])) {
-                        $data['title_sub'] = $titleParts[1];
-                    }
+                $data['title_short'] = $titleParts[0];
+                if (isset($titleParts[1])) {
+                    $data['title_sub'] = $titleParts[1];
                 }
             } else {
                 $data['title_alt'][] = trim((string)$title);
@@ -331,8 +304,8 @@ class Qdc extends AbstractRecord
     public function getISSNs()
     {
         $result = [];
-        foreach ([$this->doc->relation, $this->doc->identifier] as $field) {
-            foreach ($field ?? [] as $current) {
+        foreach ([$this->doc->relation, $this->doc->identifier] as $fields) {
+            foreach ($fields as $current) {
                 if ((string)$current->attributes()->{'type'} === 'issn') {
                     $result[] = trim((string)$current);
                 }
@@ -381,17 +354,17 @@ class Qdc extends AbstractRecord
         foreach ($this->doc->date as $date) {
             $date = trim($date);
             if (preg_match('{^(\d{4})$}', $date)) {
-                return (string)$date;
+                return $date;
             } elseif (preg_match('{^(\d{4})-}', $date, $matches)) {
-                return (string)$matches[1];
+                return $matches[1];
             }
         }
         foreach ($this->doc->issued as $date) {
             $date = trim($date);
             if (preg_match('{^(\d{4})$}', $date)) {
-                return (string)$date;
+                return $date;
             } elseif (preg_match('{^(\d{4})-}', $date, $matches)) {
-                return (string)$matches[1];
+                return $matches[1];
             }
         }
         return '';
@@ -486,7 +459,7 @@ class Qdc extends AbstractRecord
         foreach ($this->doc->description as $description) {
             $trimmed = trim((string)$description);
             if (!preg_match('/(^https?)|(^\d+\.\d+$)/', $trimmed)) {
-                $all[] = $description;
+                $all[] = (string)$description;
                 if (!$primary) {
                     $descLang = (string)$description->attributes()->{'lang'};
                     if ($descLang === $lang) {

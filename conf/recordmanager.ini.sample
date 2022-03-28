@@ -254,15 +254,21 @@ dewey-ones = dewey_ones.map
 ;delay = 1500
 ; A preferred area for the results may be defined but is not mandatory.
 ;preferred_area = "-2.75,70.42,36.63,55.21"
-; Polygon simplification tolerance
+; Polygon simplification tolerance in degrees with which the geometry may differ from
+; the original geometry. A higher tolerance means simpler and less accurate polygons.
+; Suitable values depend on the use case, but values from 0.001 to 0.01 can be used
+; as a starting point. This parameter is passed to Nominatim as polygon_threshold.
+; Note that simplification may result in invalid polygons, so the Solr field must use
+; a repairing validation rule, e.g.
+;   <fieldType name="geo" class="solr.SpatialRecursivePrefixTreeFieldType"
+;    spatialContextFactory="JTS" geo="true" distErrPct="0.25" maxDistErr="1"
+;    autoIndex="true" uninvertible="false" validationRule="repairBuffer0" />
 ;simplification_tolerance = 0.001
-; Maximum number of polygon elements
-;simplification_max_length = 1000
 ; Solr field that contains the location data
-;solr_field = location_geo
+;solr_field = location_geo_mv
 ; Solr field that contains centroids for the locations. Set to empty if no suitable
-; field is available.
-;solr_center_field = center_coords
+; field is available. The field should be a LatLonPointSpatialField.
+;solr_center_field = center_coords_mv
 ; Ignored OSM Classes overriding the default list
 ;ignored_classes[] = 'amenity'
 ;ignored_classes[] = 'office'
@@ -283,6 +289,11 @@ replace[] = '\1 street'
 ;url_prefix_allowed_list[] = "http://somewhere/"
 ; URI prefixes where exact matches in other vocabularies are also retrieved
 ;uri_prefix_exact_matches[] = "http://somewhere/vocab/"
+; Solr field that contains the location data
+;solr_location_field = location_geo_mv
+; Solr field that contains centroids for the locations. Set to empty if no suitable
+; field is available. The field should be a LatLonPointSpatialField.
+;solr_center_field = center_coords_mv
 
 [MusicBrainzEnrichment]
 ; Note that you need to add the following line to any data source in datasources.ini
