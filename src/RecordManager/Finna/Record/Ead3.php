@@ -659,14 +659,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $defaultDay = '01',
             $hour = '00:00:00'
         ) {
-            $unknownDate = false;
-
+            $unknown = false;
             // Set year/month/day to defaults
             $year = str_repeat($defaultYear, 4);
             $month = $defaultMonth;
             $day = $defaultDay;
             if (!in_array($date, ['open', 'unknown'])) {
                 $parts = explode('-', trim($date));
+                if ('uuuu' === $parts[0]) {
+                    $unknown = true;
+                }
                 $year = str_replace('u', $defaultYear, $parts[0]);
 
                 if (isset($parts[1]) && $parts[1] !== 'uu') {
@@ -677,7 +679,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     $day = $parts[2];
                 }
             } else {
-                $unknownDate = true;
+                $unknown = true;
             }
 
             if (null === $day) {
@@ -706,7 +708,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 return null;
             }
 
-            return ['date' => $date, 'unknown' => $unknownDate];
+            return compact('date', 'unknown');
         };
 
         if (null === ($startDate = $parseDate($start))) {
