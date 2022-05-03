@@ -46,6 +46,8 @@ trait QdcRecordTrait
     /**
      * Rights statements indicating open access
      *
+     * Matched with fnmatch, so * or ? can be used.
+     *
      * @var array
      */
     protected $openAccessRights = [
@@ -56,11 +58,17 @@ trait QdcRecordTrait
     /**
      * Rights statements indicating restricted access
      *
+     * Matched with fnmatch, so * or ? can be used.
+     *
      * @var array
      */
     protected $restrictedAccessRights = [
         'closedAccess',
         'info:eu-repo/semantics/restrictedAccess',
+        'restrictedAccess',
+        '*Restricted access*',
+        '*Rajattu käyttöoikeus*',
+        '*Tillgången är begränsad*',
     ];
 
     /**
@@ -138,13 +146,14 @@ trait QdcRecordTrait
         // Check rights for open access or restricted access indicators that will
         // override any existing values:
         foreach ($this->doc->rights as $rights) {
-            if (in_array(trim((string)$rights), $this->openAccessRights)) {
+            $rights = trim((string)$rights);
+            if ($this->inArrayFnMatch($rights, $this->openAccessRights)) {
                 if (empty($data['free_online_boolean'])) {
                     $data['free_online_boolean'] = true;
                     $data['free_online_str_mv'] = $this->source;
                 }
                 break;
-            } elseif (in_array(trim((string)$rights), $this->restrictedAccessRights)
+            } elseif ($this->inArrayFnMatch($rights, $this->restrictedAccessRights)
             ) {
                 if (!empty($data['free_online_boolean'])) {
                     unset($data['free_online_boolean']);
@@ -196,6 +205,24 @@ trait QdcRecordTrait
         $data['format_ext_str_mv'] = $data['format'];
 
         return $data;
+    }
+
+    /**
+     * Check if the needle is found in the haystack using fnmatch for comparison
+     *
+     * @param string $needle   String to look for
+     * @param array  $haystack Values to compare with
+     *
+     * @return bool
+     */
+    protected function inArrayFnMatch(string $needle, array $haystack): bool
+    {
+        foreach ($haystack as $pattern) {
+            if (fnmatch($pattern, $needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
