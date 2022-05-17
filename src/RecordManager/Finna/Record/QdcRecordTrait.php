@@ -116,7 +116,7 @@ trait QdcRecordTrait
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source,
-                'mimetype' => $mimeType,
+                'mimeType' => $mimeType,
                 'format' => $extension
             ];
             $data['online_boolean'] = true;
@@ -141,7 +141,7 @@ trait QdcRecordTrait
                 'url' => $url,
                 'text' => trim((string)$bundle->name),
                 'source' => $this->source,
-                'mimetype' => $mimeType,
+                'mimeType' => $mimeType,
                 'format' => $extension
             ];
             $data['online_boolean'] = true;
