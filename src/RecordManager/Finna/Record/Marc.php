@@ -50,6 +50,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
+    use FileHelperTrait;
 
     /**
      * Record plugin manager

@@ -1,0 +1,5 @@
+{
+    "require": {
+        "league/mime-type-detection": "1.9.0"
+    }
+}

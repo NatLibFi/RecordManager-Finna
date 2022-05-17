@@ -42,6 +42,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
+    use FileHelperTrait;
 
     /**
      * Rights statements indicating open access
@@ -106,10 +107,17 @@ trait QdcRecordTrait
             ) {
                 continue;
             }
+            $extension = $this->getURLExtension($url);
+            $mimeType = trim((string)$relation->attributes()->mimetype);
+            if (!$mimeType && $extension) {
+                $mimeType = $this->getMimeTypeWithExtension($url);
+            }
             $link = [
                 'url' => $url,
                 'text' => '',
-                'source' => $this->source
+                'source' => $this->source,
+                'mimetype' => $mimeType,
+                'format' => $extension
             ];
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
@@ -121,13 +129,20 @@ trait QdcRecordTrait
         }
 
         foreach ($this->doc->file as $file) {
-            $url = (string)$file->attributes()->href
-                ? trim((string)$file->attributes()->href)
-                : trim((string)$file);
+            $attrs = $file->attributes();
+            $bundle = $attrs->bundle;
+            $url = trim((string)$attrs->href) ?: trim((string)$file);
+            $extension = $this->getURLExtension($url);
+            $mimeType = trim((string)$attrs->mimetype);
+            if (!$mimeType && $extension) {
+                $mimeType = $this->getMimeTypeWithExtension($url);
+            }
             $link = [
                 'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
-                'source' => $this->source
+                'text' => trim((string)$bundle->name),
+                'source' => $this->source,
+                'mimetype' => $mimeType,
+                'format' => $extension
             ];
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;

@@ -82,10 +82,17 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
             foreach ($doc->material as $material) {
                 if ($url = (string)($material->url ?? '')) {
+                    $mimeType = trim((string)($material->format ?? ''));
+                    $extension = $this->getURLExtension($url);
+                    if (!$mimeType && $extension) {
+                        $mimeType = $this->getMimeTypeWithExtension($extension);
+                    }
                     $link = [
                         'url' => $url,
                         'text' => trim((string)($material->name ?? $url)),
-                        'source' => $this->source
+                        'source' => $this->source,
+                        'mimeType' => $mimeType,
+                        'format' => $extension
                     ];
                     $data['online_urls_str_mv'][] = json_encode($link);
                 }
