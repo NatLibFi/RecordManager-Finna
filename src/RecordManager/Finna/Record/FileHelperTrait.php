@@ -61,7 +61,7 @@ trait FileHelperTrait
         if (!isset($this->mimetypeDetector)) {
             $this->mimetypeDetector = new MimeTypeDetector();
         }
-        return $this->mimetypeDetector->detectMimeTypeFromPath($path);
+        return $this->mimetypeDetector->detectMimeTypeFromPath($path) ?? '';
     }
 
     /**
