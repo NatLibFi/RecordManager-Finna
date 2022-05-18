@@ -116,7 +116,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             foreach ($doc->material as $material) {
                 if ($url = (string)($material->url ?? '')) {
                     $mimeType = trim((string)($material->format ?? ''));
-                    $additional = $this->getAdditionalFileData(
+                    $additional = $this->getAdditionalFileInfo(
                         $url,
                         $mimeType,
                         ''

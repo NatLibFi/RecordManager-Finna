@@ -117,7 +117,7 @@ trait FileHelperTrait
      *
      * @return array [type, mimeType, extension]
      */
-    public function getAdditionalFileData(
+    public function getAdditionalFileInfo(
         string $url,
         string $mimeType = '',
         string $identifier = ''
