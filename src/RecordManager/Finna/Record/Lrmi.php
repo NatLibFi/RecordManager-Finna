@@ -29,6 +29,9 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Lrmi record class
@@ -86,7 +89,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $db
         );
         $this->mimetypeDetector
-            = new League\MimeTypeDetection\ExtensionMimeTypeDetector();
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
     }
 
     /**
@@ -113,18 +116,17 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             foreach ($doc->material as $material) {
                 if ($url = (string)($material->url ?? '')) {
                     $mimeType = trim((string)($material->format ?? ''));
-                    [$type, $mimeType, $extension] = $this->getAdditionalFileData(
+                    $additional = $this->getAdditionalFileData(
                         $url,
-                        $mimeType
+                        $mimeType,
+                        ''
                     );
                     $link = [
                         'url' => $url,
                         'text' => trim((string)($material->name ?? $url)),
-                        'source' => $this->source,
-                        'type' => $type,
-                        'mimeType' => $mimeType,
-                        'format' => $extension
+                        'source' => $this->source
                     ];
+                    $link += $additional;
                     $data['online_urls_str_mv'][] = json_encode($link);
                 }
             }

@@ -46,6 +46,20 @@ trait FileHelperTrait
     protected $mimetypeDetector;
 
     /**
+     * Link attribute to type mappings
+     *
+     * @var array
+     */
+    protected $attributeToTypeMappings = [
+        'THUMBNAIL' => 'image',
+        'square' => 'image',
+        'small' => 'image',
+        'medium' => 'image',
+        'large' => 'image',
+        'original' => 'image',
+    ];
+
+    /**
      * Return mimetype given only the extension of a file.
      *
      * @param string $extension to look for.
@@ -89,24 +103,30 @@ trait FileHelperTrait
     protected function getTypeFromMime(string $mimeType): string
     {
         $exploded = explode('/', $mimeType, 2);
-        return !empty($exploded[1]) ? $exploded[0] : '';
+        return !empty($exploded[1]) ? mb_strtolower($exploded[0], 'UTF-8') : '';
     }
 
     /**
      * Get additional data for a file
      *
-     * @param string $url      File url
-     * @param string $mimeType Mime type found from record
+     * @param string $url        File url
+     * @param string $mimeType   Mime type found from record
+     * @param string $identifier Identifier used to identify images from metadata
      *
      * @return array [type, mimeType, extension]
      */
-    public function getAdditionalFileData(string $url, string $mimeType = ''): array
-    {
+    public function getAdditionalFileData(
+        string $url,
+        string $mimeType = '',
+        string $identifier = ''
+    ): array {
         $extension = $this->getURLExtension($url);
         if (!$mimeType && $extension) {
             $mimeType = $this->getMimeTypeWithExtension($extension);
         }
-        $type = $this->getTypeFromMime($mimeType);
+        if (!($type = $this->getTypeFromMime($mimeType)) && $identifier) {
+            $type = $this->attributeToTypeMappings[$identifier] ?? '';
+        }
         return compact('type', 'mimeType', 'extension');
     }
 }

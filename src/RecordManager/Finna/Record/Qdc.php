@@ -27,6 +27,11 @@
  */
 namespace RecordManager\Finna\Record;
 
+use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
 /**
  * Qdc record class
  *
@@ -69,7 +74,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $db
         );
         $this->mimetypeDetector
-            = new League\MimeTypeDetection\ExtensionMimeTypeDetector();
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
     }
 
     /**

@@ -135,18 +135,17 @@ trait QdcRecordTrait
             $bundle = $attrs->bundle;
             $url = trim((string)$attrs->href) ?: trim((string)$file);
             $mimeType = trim((string)$attrs->mimetype);
-            [$type, $mimeType, $extension] = $this->getAdditionalFileData(
+            $additional = $this->getAdditionalFileData(
                 $url,
-                $mimeType
+                $mimeType,
+                trim((string)$bundle)
             );
             $link = [
                 'url' => $url,
                 'text' => trim((string)$bundle->name),
-                'source' => $this->source,
-                'type' => $type,
-                'mimeType' => $mimeType,
-                'format' => $extension
+                'source' => $this->source
             ];
+            $link += $additional;
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better. This may get overridden
