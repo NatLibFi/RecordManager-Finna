@@ -1,6 +1,6 @@
 <?php
 /**
- * File helper trait.
+ * File helper trait
  *
  * PHP version 7
  *
@@ -30,7 +30,7 @@ namespace RecordManager\Finna\Record;
 use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 
 /**
- * File helper trait.
+ * File helper trait
  *
  * @category DataManagement
  * @package  RecordManager
@@ -62,9 +62,9 @@ trait FileHelperTrait
     ];
 
     /**
-     * Return mimetype given only the extension of a file.
+     * Return mimetype given only the extension of a file
      *
-     * @param string $extension to look for.
+     * @param string $extension to look for
      *
      * @return string found mimetype
      */
@@ -76,7 +76,7 @@ trait FileHelperTrait
     }
 
     /**
-     * Figure file extension from given url.
+     * Figure file extension from given url
      *
      * @param string $url Url to check
      *
@@ -96,11 +96,11 @@ trait FileHelperTrait
     }
 
     /**
-     * Get type from the mime or empty.
+     * Get type from the mime or empty
      *
-     * @param string $mimeType Mime type to check.
+     * @param string $mimeType Mime type to check
      *
-     * @return string Found type or empty.
+     * @return string Found type or empty
      */
     protected function getTypeFromMime(string $mimeType): string
     {
@@ -109,7 +109,7 @@ trait FileHelperTrait
     }
 
     /**
-     * Get additional data for a file
+     * Get additional info of a file
      *
      * @param string $url        File url
      * @param string $mimeType   Mime type found from record
