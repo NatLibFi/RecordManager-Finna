@@ -32,6 +32,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Http\ClientManager as HttpClientManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 
 /**
  * Lrmi record class
@@ -88,8 +89,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $httpManager,
             $db
         );
-        $this->mimetypeDetector
-            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->mimetypeDetector = new MimeTypeDetector();
     }
 
     /**

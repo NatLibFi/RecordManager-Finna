@@ -27,6 +27,8 @@
  */
 namespace RecordManager\Finna\Record;
 
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
+
 /**
  * File helper trait.
  *
@@ -41,12 +43,12 @@ trait FileHelperTrait
     /**
      * Mime type detector
      *
-     * @var League\MimeTypeDetection\ExtensionMimeTypeDetector
+     * @var MimeTypeDetector
      */
     protected $mimetypeDetector;
 
     /**
-     * Link attribute to type mappings
+     * Attribute to type mappings
      *
      * @var array
      */

@@ -31,6 +31,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Http\ClientManager as HttpClientManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 
 /**
  * Qdc record class
@@ -73,8 +74,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $httpManager,
             $db
         );
-        $this->mimetypeDetector
-            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->mimetypeDetector = new MimeTypeDetector();
     }
 
     /**
