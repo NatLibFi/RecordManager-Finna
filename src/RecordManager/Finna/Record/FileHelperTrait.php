@@ -27,8 +27,6 @@
  */
 namespace RecordManager\Finna\Record;
 
-use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
-
 /**
  * File helper trait.
  *
@@ -43,7 +41,7 @@ trait FileHelperTrait
     /**
      * Mime type detector
      *
-     * @var MimeTypeDetector
+     * @var League\MimeTypeDetection\ExtensionMimeTypeDetector
      */
     protected $mimetypeDetector;
 
@@ -54,13 +52,10 @@ trait FileHelperTrait
      *
      * @return string found mimetype
      */
-    public function getMimeTypeWithExtension(string $extension): string
+    protected function getMimeTypeWithExtension(string $extension): string
     {
         $trimmed = trim($extension, ' .');
-        $path = "detect/dummyfile.{$trimmed}";
-        if (!isset($this->mimetypeDetector)) {
-            $this->mimetypeDetector = new MimeTypeDetector();
-        }
+        $path = "detect/file.{$trimmed}";
         return $this->mimetypeDetector->detectMimeTypeFromPath($path) ?? '';
     }
 
@@ -71,7 +66,7 @@ trait FileHelperTrait
      *
      * @return string found extension or empty
      */
-    public function getURLExtension(string $url): string
+    protected function getURLExtension(string $url): string
     {
         if (preg_match(
             '/^http(s)?:\/\/.*\.([a-zA-Z0-9]{3,4})$/',
@@ -82,5 +77,36 @@ trait FileHelperTrait
             return $match[2];
         }
         return '';
+    }
+
+    /**
+     * Get type from the mime or empty.
+     *
+     * @param string $mimeType Mime type to check.
+     *
+     * @return string Found type or empty.
+     */
+    protected function getTypeFromMime(string $mimeType): string
+    {
+        $exploded = explode('/', $mimeType, 2);
+        return !empty($exploded[1]) ? $exploded[0] : '';
+    }
+
+    /**
+     * Get additional data for a file
+     *
+     * @param string $url      File url
+     * @param string $mimeType Mime type found from record
+     *
+     * @return array [type, mimeType, extension]
+     */
+    public function getAdditionalFileData(string $url, string $mimeType = ''): array
+    {
+        $extension = $this->getURLExtension($url);
+        if (!$mimeType && $extension) {
+            $mimeType = $this->getMimeTypeWithExtension($extension);
+        }
+        $type = $this->getTypeFromMime($mimeType);
+        return compact('type', 'mimeType', 'extension');
     }
 }

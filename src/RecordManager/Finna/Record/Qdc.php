@@ -43,6 +43,36 @@ class Qdc extends \RecordManager\Base\Record\Qdc
     use QdcRecordTrait;
 
     /**
+     * Constructor
+     *
+     * @param array             $config           Main configuration
+     * @param array             $dataSourceConfig Data source settings
+     * @param Logger            $logger           Logger
+     * @param MetadataUtils     $metadataUtils    Metadata utilities
+     * @param HttpClientManager $httpManager      HTTP client manager
+     * @param ?Database         $db               Database
+     */
+    public function __construct(
+        $config,
+        $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        HttpClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->mimetypeDetector
+            = new League\MimeTypeDetection\ExtensionMimeTypeDetector();
+    }
+
+    /**
      * Get primary authors
      *
      * @return array

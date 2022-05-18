@@ -109,13 +109,15 @@ trait QdcRecordTrait
             }
             $extension = $this->getURLExtension($url);
             $mimeType = trim((string)$relation->attributes()->mimetype);
-            if (!$mimeType && $extension) {
-                $mimeType = $this->getMimeTypeWithExtension($url);
-            }
+            [$type, $mimeType, $extension] = $this->getAdditionalFileData(
+                $url,
+                $mimeType
+            );
             $link = [
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source,
+                'type' => $type,
                 'mimeType' => $mimeType,
                 'format' => $extension
             ];
@@ -132,15 +134,16 @@ trait QdcRecordTrait
             $attrs = $file->attributes();
             $bundle = $attrs->bundle;
             $url = trim((string)$attrs->href) ?: trim((string)$file);
-            $extension = $this->getURLExtension($url);
             $mimeType = trim((string)$attrs->mimetype);
-            if (!$mimeType && $extension) {
-                $mimeType = $this->getMimeTypeWithExtension($url);
-            }
+            [$type, $mimeType, $extension] = $this->getAdditionalFileData(
+                $url,
+                $mimeType
+            );
             $link = [
                 'url' => $url,
                 'text' => trim((string)$bundle->name),
                 'source' => $this->source,
+                'type' => $type,
                 'mimeType' => $mimeType,
                 'format' => $extension
             ];
