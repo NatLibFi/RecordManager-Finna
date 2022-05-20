@@ -65,7 +65,7 @@ class PDODatabase extends AbstractDatabase
     /**
      * Database
      *
-     * @var \PDO
+     * @var ?\PDO
      */
     protected $db = null;
 
@@ -550,6 +550,16 @@ class PDODatabase extends AbstractDatabase
     public function deleteLogMessage($id): void
     {
         $this->deletePDORecord($this->logMessageCollection, $id);
+    }
+
+    /**
+     * Reset the database connection if it's open
+     *
+     * @return void
+     */
+    public function resetConnection(): void
+    {
+        $this->db = null;
     }
 
     /**

@@ -57,9 +57,9 @@ class MongoDatabase extends AbstractDatabase
     /**
      * Mongo database
      *
-     * @var \MongoDB\Database
+     * @var ?\MongoDB\Database
      */
-    protected $db;
+    protected $db = null;
 
     /**
      * Database name
@@ -571,6 +571,16 @@ class MongoDatabase extends AbstractDatabase
     public function deleteLogMessage($id): void
     {
         $this->deleteMongoRecord($this->logMessageCollection, $id);
+    }
+
+    /**
+     * Reset the database connection if it's open
+     *
+     * @return void
+     */
+    public function resetConnection(): void
+    {
+        $this->db = null;
     }
 
     /**
