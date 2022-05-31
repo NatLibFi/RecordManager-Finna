@@ -1502,6 +1502,11 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function getAccessRestrictions()
     {
+        // Is the restriction set in datasources extrafields?
+        $extraFields = $this->getExtraFields();
+        if (!empty($extraFields['restricted_str'])) {
+            return $extraFields['restricted_str'];
+        }
         // Access restrictions based on location
         $restricted = $this->getDriverParam('restrictedLocations', '');
         if ($restricted) {
