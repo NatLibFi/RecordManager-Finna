@@ -27,6 +27,7 @@
  */
 namespace RecordManager\Finna\Record;
 
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
@@ -50,6 +51,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
+    use FileHelperTrait;
 
     /**
      * Record plugin manager
@@ -121,6 +123,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils);
 
         $this->recordPluginManager = $recordPluginManager;
+        $this->mimeTypeDetector = new MimeTypeDetector();
     }
 
     /**
@@ -454,11 +457,13 @@ class Marc extends \RecordManager\Base\Record\Marc
                 if (!$linkText) {
                     $linkText = $this->getSubfield($field, 'z');
                 }
+                $url = $this->getSubfield($field, 'u');
                 $link = [
-                    'url' => $this->getSubfield($field, 'u'),
+                    'url' => $url,
                     'text' => $linkText,
                     'source' => $this->source
                 ];
+                $link += $this->getAdditionalFileInfo($url);
                 $data['online_urls_str_mv'][] = json_encode($link);
             }
         }

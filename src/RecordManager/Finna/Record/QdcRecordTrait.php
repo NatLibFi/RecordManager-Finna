@@ -107,18 +107,16 @@ trait QdcRecordTrait
             ) {
                 continue;
             }
-            $extension = $this->getURLExtension($url);
             $mimeType = trim((string)$relation->attributes()->mimetype);
-            $additional = $this->getAdditionalFileInfo(
-                $url,
-                $mimeType
-            );
             $link = [
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source
             ];
-            $link += $additional;
+            $link += $this->getAdditionalFileInfo(
+                $url,
+                $mimeType
+            );
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better. This may get overridden
@@ -133,17 +131,16 @@ trait QdcRecordTrait
             $bundle = $attrs->bundle;
             $url = trim((string)$attrs->href) ?: trim((string)$file);
             $mimeType = trim((string)$attrs->mimetype);
-            $additional = $this->getAdditionalFileInfo(
-                $url,
-                $mimeType,
-                trim((string)$bundle)
-            );
             $link = [
                 'url' => $url,
                 'text' => trim((string)$bundle->name),
                 'source' => $this->source
             ];
-            $link += $additional;
+            $link += $this->getAdditionalFileInfo(
+                $url,
+                $mimeType,
+                trim((string)$bundle)
+            );
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better. This may get overridden

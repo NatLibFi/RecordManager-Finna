@@ -27,7 +27,10 @@
  */
 namespace RecordManager\Finna\Record;
 
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Lido record class
@@ -44,6 +47,9 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use FileHelperTrait;
+
+    public const HAS_HIGH_RESOLUTION_IMAGES = 'hasHiResImages';
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -99,6 +105,29 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @var array
      */
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->mimeTypeDetector = new MimeTypeDetector();
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -223,16 +252,20 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        if ($this->getURLs()) {
+        if ($urls = $this->getOnlineUrls()) {
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better
             $data['free_online_boolean'] = true;
             $data['free_online_str_mv'] = $this->source;
-            if ($this->hasHiResImages()) {
+            if ($this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES] ?? false) {
                 $data['hires_image_boolean'] = true;
                 $data['hires_image_str_mv'] = $this->source;
             }
+            foreach ($urls as $url) {
+                $data['online_urls_str_mv'][] = json_encode($url);
+            }
+            $data['mime_type_str_mv'] = $this->foundMimeTypes;
         }
 
         $data['location_geo'] = $this->getEventPlaceLocations();
@@ -1819,5 +1852,63 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getSecondaryAuthors(): array
     {
         return $this->getActors($this->getSecondaryAuthorEvents(), null, true);
+    }
+
+    /**
+     * Return urls with more details
+     *
+     * @return array
+     */
+    protected function getOnlineUrls(): array
+    {
+        $results = [];
+        foreach ($this->getResourceSetNodes() as $set) {
+            $description = '';
+            foreach ($set->resourceDescription as $desc) {
+                if ($description = trim((string)$desc)) {
+                    break;
+                }
+            }
+            foreach ($set->resourceRepresentation as $node) {
+                $result = [];
+                if ($link = $node->linkResource ?? '') {
+                    if (!($url = trim((string)$link))) {
+                        continue;
+                    }
+                    $extension = '';
+                    if ($mimeType = trim((string)($link['formatResource'] ?? ''))) {
+                        // Check if it is a mimetype or an extension
+                        $exploded = explode('/', $mimeType, 2);
+                        if (count($exploded) === 1) {
+                            $extension = $exploded[0];
+                            $mimeType
+                                = $this->getMimeTypeFromExtension($exploded[0]);
+                        }
+                    }
+                    $type = trim((string)$node->attributes()->type ?? '');
+                    if (!isset($this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES])
+                        && in_array($type, ['image_master', 'image_original'])
+                    ) {
+                        $this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES] = true;
+                    }
+                    $additional = $this->getAdditionalFileInfo(
+                        $url,
+                        $mimeType,
+                        $type
+                    );
+                    if (empty($additional['extension']) && $extension) {
+                        $additional['extension'] = $extension;
+                    }
+                    $result = [
+                        'url' => $url,
+                        'text' => $description,
+                        'source' => $this->source
+                    ];
+                    $result += $additional;
+                    $results[] = $result;
+                }
+            }
+        }
+        return $results;
     }
 }

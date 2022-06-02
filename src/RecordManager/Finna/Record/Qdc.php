@@ -74,7 +74,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $httpManager,
             $db
         );
-        $this->mimetypeDetector = new MimeTypeDetector();
+        $this->mimeTypeDetector = new MimeTypeDetector();
     }
 
     /**

@@ -45,7 +45,14 @@ trait FileHelperTrait
      *
      * @var MimeTypeDetector
      */
-    protected $mimetypeDetector;
+    protected $mimeTypeDetector;
+
+    /**
+     * Found mime types
+     *
+     * @var array
+     */
+    protected $foundMimeTypes = [];
 
     /**
      * Attribute to type mappings
@@ -59,6 +66,18 @@ trait FileHelperTrait
         'medium' => 'image',
         'large' => 'image',
         'original' => 'image',
+        'image_thumb' => 'image',
+        'thumb' => 'image',
+        'image_large' => 'image',
+        'zoomview' => 'image',
+        'image_master' => 'image',
+        'image_original' => 'image',
+        'preview_3D' => 'model',
+        'provided_3D' => 'model',
+        'preview_audio' => 'audio',
+        'preview_video' => 'video',
+        'preview_text' => 'application',
+        'provided_text' => 'application'
     ];
 
     /**
@@ -68,41 +87,46 @@ trait FileHelperTrait
      *
      * @return string found mimetype
      */
-    protected function getMimeTypeWithExtension(string $extension): string
+    public function getMimeTypeFromExtension(string $extension): string
     {
         $trimmed = trim($extension, ' .');
         $path = "detect/file.{$trimmed}";
-        return $this->mimetypeDetector->detectMimeTypeFromPath($path) ?? '';
+        if (!isset($this->mimeTypeDetector)) {
+            throw new \Exception('Mime type detector not set in FileHelperTrait');
+        }
+        return $this->mimeTypeDetector->detectMimeTypeFromPath($path) ?? '';
     }
 
     /**
-     * Figure file extension from given url
+     * Figure file mime type and extension from url
      *
      * @param string $url Url to check
      *
-     * @return string found extension or empty
+     * @return array [extension, mimeType]
      */
-    protected function getURLExtension(string $url): string
+    protected function getMimeTypeAndExtensionFromUrl(string $url): array
     {
-        if (preg_match(
-            '/^http(s)?:\/\/.*\.([a-zA-Z0-9]{3,4})$/',
-            $url,
-            $match
-        )
-        ) {
-            return $match[2];
+        // Check if url returns a proper mimetype then there is an extension
+        if (!isset($this->mimeTypeDetector)) {
+            throw new \Exception('Mime type detector not set in FileHelperTrait');
         }
-        return '';
+
+        $extension = '';
+        if ($mimeType = $this->mimeTypeDetector->detectMimeTypeFromPath($url) ?? '') {
+            $extension = explode('.', $url);
+            $extension = end($extension);
+        }
+        return [$extension, $mimeType];
     }
 
     /**
-     * Get type from the mime or empty
+     * Get content type from MIME type
      *
      * @param string $mimeType Mime type to check
      *
      * @return string Found type or empty
      */
-    protected function getTypeFromMime(string $mimeType): string
+    protected function getContentTypeFromMimeType(string $mimeType): string
     {
         $exploded = explode('/', $mimeType, 2);
         return !empty($exploded[1]) ? mb_strtolower($exploded[0], 'UTF-8') : '';
@@ -113,7 +137,7 @@ trait FileHelperTrait
      *
      * @param string $url        File url
      * @param string $mimeType   Mime type found from record
-     * @param string $identifier Identifier used to identify images from metadata
+     * @param string $identifier Identifier used to identify resources in metadata
      *
      * @return array [type, mimeType, extension]
      */
@@ -122,12 +146,12 @@ trait FileHelperTrait
         string $mimeType = '',
         string $identifier = ''
     ): array {
-        $extension = $this->getURLExtension($url);
-        if (!$mimeType && $extension) {
-            $mimeType = $this->getMimeTypeWithExtension($extension);
-        }
-        if (!($type = $this->getTypeFromMime($mimeType)) && $identifier) {
+        [$extension, $mimeType] = $this->getMimeTypeAndExtensionFromUrl($url);
+        if (!($type = $this->getContentTypeFromMimeType($mimeType)) && $identifier) {
             $type = $this->attributeToTypeMappings[$identifier] ?? '';
+        }
+        if ($mimeType && !in_array($mimeType, $this->foundMimeTypes)) {
+            $this->foundMimeTypes[] = mb_strtolower($mimeType, 'UTF-8');
         }
         return compact('type', 'mimeType', 'extension');
     }

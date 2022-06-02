@@ -89,7 +89,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $httpManager,
             $db
         );
-        $this->mimetypeDetector = new MimeTypeDetector();
+        $this->mimeTypeDetector = new MimeTypeDetector();
     }
 
     /**
@@ -116,17 +116,15 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             foreach ($doc->material as $material) {
                 if ($url = (string)($material->url ?? '')) {
                     $mimeType = trim((string)($material->format ?? ''));
-                    $additional = $this->getAdditionalFileInfo(
-                        $url,
-                        $mimeType,
-                        ''
-                    );
                     $link = [
                         'url' => $url,
                         'text' => trim((string)($material->name ?? $url)),
                         'source' => $this->source
                     ];
-                    $link += $additional;
+                    $link += $this->getAdditionalFileInfo(
+                        $url,
+                        $mimeType
+                    );
                     $data['online_urls_str_mv'][] = json_encode($link);
                 }
             }
