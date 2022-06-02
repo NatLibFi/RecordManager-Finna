@@ -1502,9 +1502,8 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function getAccessRestrictions()
     {
-        // Is the restriction set in datasources driver parameters?
-        if ($overrideRestriction = $this->getDriverParam('accessRestrictions', '')) {
-            return $overrideRestriction;
+        if ($restrictions = parent::getAccessRestrictions()) {
+            return $restrictions;
         }
         // Access restrictions based on location
         $restricted = $this->getDriverParam('restrictedLocations', '');
