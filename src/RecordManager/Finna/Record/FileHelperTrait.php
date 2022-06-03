@@ -41,14 +41,14 @@ use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 trait FileHelperTrait
 {
     /**
-     * Mime type detector
+     * MIME type detector
      *
      * @var MimeTypeDetector
      */
     protected $mimeTypeDetector;
 
     /**
-     * Found mime types
+     * Found MIME types
      *
      * @var array
      */
@@ -81,7 +81,7 @@ trait FileHelperTrait
     ];
 
     /**
-     * Return mimetype from the extension of a file
+     * Return MIME type from the extension of a file
      *
      * @param string $extension to look for
      *
@@ -101,7 +101,7 @@ trait FileHelperTrait
     }
 
     /**
-     * Figure file mime type and extension from url
+     * Figure file MIME type and extension from url
      *
      * @param string $url Url to check
      *
@@ -126,7 +126,7 @@ trait FileHelperTrait
     /**
      * Get content type from MIME type
      *
-     * @param string $mimeType Mime type to check
+     * @param string $mimeType MIME type to check
      *
      * @return string Found type or empty
      */
@@ -140,7 +140,7 @@ trait FileHelperTrait
      * Get additional info of a file
      *
      * @param string $url        File url
-     * @param string $mimeType   Mime type found from record
+     * @param string $mimeType   MIME type found from record
      * @param string $identifier Identifier used to identify resources in metadata
      *
      * @return array [type, mimeType, extension]
