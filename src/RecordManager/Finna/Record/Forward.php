@@ -28,8 +28,10 @@
  */
 namespace RecordManager\Finna\Record;
 
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 use RecordManager\Base\Database\DatabaseInterface as Database;
-
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 /**
  * Forward record class
  *
@@ -45,8 +47,9 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 class Forward extends \RecordManager\Base\Record\Forward
 {
     use AuthoritySupportTrait;
-    use ForwardRecordTrait;
     use DateSupportTrait;
+    use FileHelperTrait;
+    use ForwardRecordTrait;
 
     /**
      * Default primary author relator codes, may be overridden in configuration.
@@ -99,6 +102,24 @@ class Forward extends \RecordManager\Base\Record\Forward
      * @var string
      */
     protected $primaryLanguage = 'fi';
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils);
+        $this->mimeTypeDetector = new MimeTypeDetector();
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -488,11 +509,13 @@ class Forward extends \RecordManager\Base\Record\Forward
                 $attributes = $event->ProductionEventType->attributes();
                 $url = (string)$attributes
                     ->{'elokuva-elonet-materiaali-video-url'};
-                $results[] = [
+                $result = [
                     'url' => $url,
                     'text' => $description ? $description : $videoType,
                     'source' => $this->source
                 ];
+                $result += $this->getAdditionalFileInfo($url);
+                $results[] = $result;
             }
         }
         return $results;

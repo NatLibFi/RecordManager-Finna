@@ -81,14 +81,17 @@ trait FileHelperTrait
     ];
 
     /**
-     * Return mimetype given only the extension of a file
+     * Return mimetype from the extension of a file
      *
      * @param string $extension to look for
      *
-     * @return string found mimetype
+     * @return string found mime type
      */
     public function getMimeTypeFromExtension(string $extension): string
     {
+        if (false !== strpos($extension, '/')) {
+            return $extension;
+        } 
         $trimmed = trim($extension, ' .');
         $path = "detect/file.{$trimmed}";
         if (!isset($this->mimeTypeDetector)) {
@@ -112,7 +115,8 @@ trait FileHelperTrait
         }
 
         $extension = '';
-        if ($mimeType = $this->mimeTypeDetector->detectMimeTypeFromPath($url) ?? '') {
+        if ($mimeType = $this->mimeTypeDetector->detectMimeTypeFromPath($url) ?? ''
+        ) {
             $extension = explode('.', $url);
             $extension = end($extension);
         }
@@ -146,7 +150,9 @@ trait FileHelperTrait
         string $mimeType = '',
         string $identifier = ''
     ): array {
-        [$extension, $mimeType] = $this->getMimeTypeAndExtensionFromUrl($url);
+        [$extension, $foundMimeType]
+            = $this->getMimeTypeAndExtensionFromUrl($url);
+        $mimeType = $mimeType ?: $foundMimeType;
         if (!($type = $this->getContentTypeFromMimeType($mimeType)) && $identifier) {
             $type = $this->attributeToTypeMappings[$identifier] ?? '';
         }

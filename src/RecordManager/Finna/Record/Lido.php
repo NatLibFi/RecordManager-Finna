@@ -1876,14 +1876,14 @@ class Lido extends \RecordManager\Base\Record\Lido
                         continue;
                     }
                     $extension = '';
-                    if ($mimeType = trim((string)($link['formatResource'] ?? ''))) {
-                        // Check if it is a mimetype or an extension
+                    if ($mimeType = trim((string)($link['formatResource']))) {
                         $exploded = explode('/', $mimeType, 2);
                         if (count($exploded) === 1) {
                             $extension = $exploded[0];
-                            $mimeType
-                                = $this->getMimeTypeFromExtension($exploded[0]);
                         }
+                        $mimeType
+                            = $this->getMimeTypeFromExtension($mimeType);
+                        // Check if it is a mime type or an extension
                     }
                     $type = trim((string)$node->attributes()->type ?? '');
                     if (!isset($this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES])
