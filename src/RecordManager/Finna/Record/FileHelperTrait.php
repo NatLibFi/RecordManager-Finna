@@ -91,7 +91,7 @@ trait FileHelperTrait
     {
         if (false !== strpos($extension, '/')) {
             return $extension;
-        } 
+        }
         $trimmed = trim($extension, ' .');
         $path = "detect/file.{$trimmed}";
         if (!isset($this->mimeTypeDetector)) {

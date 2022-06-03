@@ -32,6 +32,7 @@ use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
 /**
  * Forward record class
  *
