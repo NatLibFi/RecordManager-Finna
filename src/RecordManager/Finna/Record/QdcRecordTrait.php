@@ -148,7 +148,7 @@ trait QdcRecordTrait
             $data['free_online_boolean'] = true;
             $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
-            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
+            if (strcasecmp($bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])
             ) {
                 $data['thumbnail'] = $url;
