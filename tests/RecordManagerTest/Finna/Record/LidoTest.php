@@ -240,6 +240,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'datasource_str_mv' => '__unit_test_no_source__',
             'online_boolean' => true,
             'online_str_mv' => '__unit_test_no_source__',
+            'online_urls_str_mv' => [
+                '{"url":"http:\\/\\/muisti.nba.fi\\/m\\/4878_1\\/00013199.jpg"'
+                . ',"text":"","source":"__unit_test_no_source__","type":"image"'
+                . ',"mimeType":"image\\/jpeg","extension":"jpg"}'
+            ],
             'free_online_boolean' => true,
             'free_online_str_mv' => '__unit_test_no_source__',
             'location_geo' => [

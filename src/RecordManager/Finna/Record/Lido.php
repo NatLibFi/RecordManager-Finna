@@ -265,7 +265,6 @@ class Lido extends \RecordManager\Base\Record\Lido
             foreach ($urls as $url) {
                 $data['online_urls_str_mv'][] = json_encode($url);
             }
-            $data['mime_type_str_mv'] = $this->foundMimeTypes;
         }
 
         $data['location_geo'] = $this->getEventPlaceLocations();
