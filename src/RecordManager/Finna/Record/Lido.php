@@ -1772,32 +1772,6 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Check if the record has links to high resolution images
-     *
-     * @return bool
-     */
-    protected function hasHiResImages()
-    {
-        foreach ($this->getResourceSetNodes() as $set) {
-            foreach ($set->resourceRepresentation as $node) {
-                if (!empty($node->linkResource)) {
-                    $link = trim((string)$node->linkResource);
-                    if (!empty($link)) {
-                        $attributes = $node->attributes();
-                        $type = (string)$attributes->type;
-                        if ('image_original' === $type || 'image_master' === $type
-                        ) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Get categories
      *
      * @return array
@@ -1865,6 +1839,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->getResourceSetNodes() as $set) {
             $description = '';
             foreach ($set->resourceDescription as $desc) {
+                // Save first as the description
                 if ($description = trim((string)$desc)) {
                     break;
                 }
@@ -1876,14 +1851,14 @@ class Lido extends \RecordManager\Base\Record\Lido
                         continue;
                     }
                     $extension = '';
-                    if ($mimeType = trim((string)($link['formatResource']))) {
+                    if ($mimeType = trim((string)($link['formatResource'] ?? ''))) {
+                        // Check if it is a mime type or an extension
                         $exploded = explode('/', $mimeType, 2);
                         if (count($exploded) === 1) {
                             $extension = $exploded[0];
                         }
                         $mimeType
                             = $this->getMimeTypeFromExtension($mimeType);
-                        // Check if it is a mime type or an extension
                     }
                     $type = trim((string)$node->attributes()->type ?? '');
                     if (!isset($this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES])
