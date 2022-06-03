@@ -94,9 +94,6 @@ trait FileHelperTrait
         }
         $trimmed = trim($extension, ' .');
         $path = "detect/file.{$trimmed}";
-        if (!isset($this->mimeTypeDetector)) {
-            throw new \Exception('Mime type detector not set in FileHelperTrait');
-        }
         return $this->mimeTypeDetector->detectMimeTypeFromPath($path) ?? '';
     }
 
@@ -109,11 +106,6 @@ trait FileHelperTrait
      */
     protected function getMimeTypeAndExtensionFromUrl(string $url): array
     {
-        // Check if url returns a proper mimetype then there is an extension
-        if (!isset($this->mimeTypeDetector)) {
-            throw new \Exception('Mime type detector not set in FileHelperTrait');
-        }
-
         $extension = '';
         if ($mimeType = $this->mimeTypeDetector->detectMimeTypeFromPath($url) ?? ''
         ) {
