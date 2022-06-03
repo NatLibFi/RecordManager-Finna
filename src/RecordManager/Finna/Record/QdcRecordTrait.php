@@ -133,7 +133,7 @@ trait QdcRecordTrait
             $mimeType = trim((string)$attrs->mimetype);
             $link = [
                 'url' => $url,
-                'text' => trim((string)$bundle->name),
+                'text' => trim((string)$attrs->name),
                 'source' => $this->source
             ];
             $link += $this->getAdditionalFileInfo(
