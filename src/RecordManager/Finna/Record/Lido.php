@@ -1859,7 +1859,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                         $mimeType
                             = $this->getMimeTypeFromExtension($mimeType);
                     }
-                    $type = trim((string)$node->attributes()->type ?? '');
+                    $type = trim((string)$node->attributes()->type);
                     if (!isset($this->resultCache[self::HAS_HIGH_RESOLUTION_IMAGES])
                         && in_array($type, ['image_master', 'image_original'])
                     ) {
