@@ -42,6 +42,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
+    use FileHelperTrait;
 
     /**
      * Rights statements indicating open access
@@ -106,11 +107,16 @@ trait QdcRecordTrait
             ) {
                 continue;
             }
+            $mimeType = trim((string)$relation->attributes()->mimetype);
             $link = [
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source
             ];
+            $link += $this->getAdditionalFileInfo(
+                $url,
+                $mimeType
+            );
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better. This may get overridden
@@ -121,14 +127,20 @@ trait QdcRecordTrait
         }
 
         foreach ($this->doc->file as $file) {
-            $url = (string)$file->attributes()->href
-                ? trim((string)$file->attributes()->href)
-                : trim((string)$file);
+            $attrs = $file->attributes();
+            $bundle = $attrs->bundle;
+            $url = trim((string)$attrs->href) ?: trim((string)$file);
+            $mimeType = trim((string)$attrs->mimetype);
             $link = [
                 'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
+                'text' => trim((string)$attrs->name),
                 'source' => $this->source
             ];
+            $link += $this->getAdditionalFileInfo(
+                $url,
+                $mimeType,
+                trim((string)$bundle)
+            );
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
             // Mark everything free until we know better. This may get overridden
@@ -136,7 +148,7 @@ trait QdcRecordTrait
             $data['free_online_boolean'] = true;
             $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
-            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
+            if (strcasecmp($bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])
             ) {
                 $data['thumbnail'] = $url;

@@ -28,7 +28,11 @@
  */
 namespace RecordManager\Finna\Record;
 
+use League\MimeTypeDetection\ExtensionMimeTypeDetector as MimeTypeDetector;
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Lrmi record class
@@ -60,6 +64,35 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
     }
 
     /**
+     * Constructor
+     *
+     * @param array             $config           Main configuration
+     * @param array             $dataSourceConfig Data source settings
+     * @param Logger            $logger           Logger
+     * @param MetadataUtils     $metadataUtils    Metadata utilities
+     * @param HttpClientManager $httpManager      HTTP client manager
+     * @param ?Database         $db               Database
+     */
+    public function __construct(
+        $config,
+        $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        HttpClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->mimeTypeDetector = new MimeTypeDetector();
+    }
+
+    /**
      * Return fields to be indexed in Solr
      *
      * @param Database $db Database connection. Omit to avoid database lookups for
@@ -82,11 +115,16 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
             foreach ($doc->material as $material) {
                 if ($url = (string)($material->url ?? '')) {
+                    $mimeType = trim((string)($material->format ?? ''));
                     $link = [
                         'url' => $url,
                         'text' => trim((string)($material->name ?? $url)),
                         'source' => $this->source
                     ];
+                    $link += $this->getAdditionalFileInfo(
+                        $url,
+                        $mimeType
+                    );
                     $data['online_urls_str_mv'][] = json_encode($link);
                 }
             }
