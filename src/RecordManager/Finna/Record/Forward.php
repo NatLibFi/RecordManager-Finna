@@ -164,7 +164,10 @@ class Forward extends \RecordManager\Base\Record\Forward
         $subtitles = $this->getSubtitleLanguages();
         $data['subtitle_lng_str_mv']
             = $this->metadataUtils->normalizeLanguageStrings($subtitles);
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 

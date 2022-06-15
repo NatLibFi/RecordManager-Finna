@@ -59,7 +59,10 @@ class Eaccpf extends \RecordManager\Base\Record\Eaccpf
         $data['agency_str_mv'] = $this->getAgencyName();
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 

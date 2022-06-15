@@ -177,7 +177,10 @@ class Ead extends \RecordManager\Base\Record\Ead
         if ($this->hasImages()) {
             $data['format_ext_str_mv'][] = 'Image';
         }
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 

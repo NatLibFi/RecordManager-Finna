@@ -316,7 +316,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 

@@ -81,6 +81,11 @@ class Dc extends \RecordManager\Base\Record\Dc
             isset($data['author_corporate']) ? (array)$data['author_corporate'] : []
         );
 
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
+
         $data['format_ext_str_mv'] = $data['format'];
 
         return $data;

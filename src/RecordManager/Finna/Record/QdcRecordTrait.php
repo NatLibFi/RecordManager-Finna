@@ -203,7 +203,10 @@ trait QdcRecordTrait
         );
 
         $data['format_ext_str_mv'] = $data['format'];
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 

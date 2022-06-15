@@ -1502,6 +1502,9 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function getAccessRestrictions()
     {
+        if ($restrictions = parent::getAccessRestrictions()) {
+            return $restrictions;
+        }
         // Access restrictions based on location
         $restricted = $this->getDriverParam('restrictedLocations', '');
         if ($restricted) {

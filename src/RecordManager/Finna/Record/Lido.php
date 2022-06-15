@@ -252,7 +252,10 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         $data['hierarchy_parent_title']
             = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
-
+        // Access restrictions
+        if ($restrictions = $this->getAccessRestrictions()) {
+            $data['restricted_str'] = $restrictions;
+        }
         return $data;
     }
 
