@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<lidoWrap>
+  <lido>
+    <lidoRecID type="ITEM">M123</lidoRecID>
+    <descriptiveMetadata lang="fi">
+      <objectIdentificationWrap>
+        <titleWrap>
+          <titleSet>
+            <appellationValue label="yleisnimi" lang="fi">lierihattu</appellationValue>
+          </titleSet>
+        </titleWrap>
+        <objectMeasurementsWrap>
+          <objectMeasurementsSet>
+            <objectMeasurements/>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>korkeus</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>8.50</measurementValue>
+              </measurementsSet>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>korkeus</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>8.50</measurementValue>
+              </measurementsSet>
+              <extentMeasurements>kuvun pystysuora osa edest&#xE4; ja takaa</extentMeasurements>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <displayObjectMeasurements>korkeus 9 cm</displayObjectMeasurements>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>korkeus</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>9.00</measurementValue>
+              </measurementsSet>
+              <extentMeasurements>kuvun pystysuora osa sivulta</extentMeasurements>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>halkaisija, suurin</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>18.50</measurementValue>
+              </measurementsSet>
+              <measurementsSet>
+                <measurementType>halkaisija, pienin</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>15.00</measurementValue>
+              </measurementsSet>
+              <extentMeasurements>kuvun p&#xE4;&#xE4;llys</extentMeasurements>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>leveys</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>5.50</measurementValue>
+              </measurementsSet>
+              <measurementsSet>
+                <measurementType>leveys</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>5.70</measurementValue>
+              </measurementsSet>
+              <extentMeasurements>lieri</extentMeasurements>
+              <extentMeasurements>lierin reuna</extentMeasurements>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+          <objectMeasurementsSet>
+            <displayObjectMeasurements>korkeus 9 cm, kuvun pystysuora osa sivulta</displayObjectMeasurements>
+            <objectMeasurements>
+              <measurementsSet>
+                <measurementType>korkeus</measurementType>
+                <measurementUnit>cm</measurementUnit>
+                <measurementValue>9.00</measurementValue>
+              </measurementsSet>
+              <extentMeasurements>kuvun pystysuora osa sivulta</extentMeasurements>
+            </objectMeasurements>
+          </objectMeasurementsSet>
+        </objectMeasurementsWrap>
+      </objectIdentificationWrap>
+    </descriptiveMetadata>
+  </lido>
+</lidoWrap>

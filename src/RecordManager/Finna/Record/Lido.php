@@ -1686,12 +1686,56 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->doc->lido->descriptiveMetadata->objectIdentificationWrap
             ->objectMeasurementsWrap->objectMeasurementsSet ?? [] as $set
         ) {
-            foreach ($set->displayObjectMeasurements as $measurements
-            ) {
-                $value = trim((string)$measurements);
-                if ($value) {
-                    $results[] = $value;
+            $setResults = [];
+            foreach ($set->displayObjectMeasurements as $measurements) {
+                if ($value = trim((string)$measurements)) {
+                    $setResults[] = $value;
                 }
+            }
+            // Use measurementsSet if there's no displayMeasurements:
+            if (!$setResults) {
+                foreach ($set->objectMeasurements->measurementsSet ?? []
+                    as $measurements
+                ) {
+                    $parts = [];
+                    if ($type = trim((string)($measurements->measurementType ?? ''))
+                    ) {
+                        $parts[] = $type;
+                    }
+                    if ($val = trim((string)($measurements->measurementValue ?? ''))
+                    ) {
+                        $parts[] = $val;
+                    }
+                    if ($unit = trim((string)($measurements->measurementUnit ?? ''))
+                    ) {
+                        $parts[] = $unit;
+                    }
+                    if ($parts) {
+                        $setResults[] = implode(' ', $parts);
+                    }
+                }
+            }
+            if ($setResults) {
+                // Add extents:
+                $extents = [];
+                foreach ($set->objectMeasurements->extentMeasurements ?? []
+                    as $extent
+                ) {
+                    if ($value = trim((string)$extent)) {
+                        $extents[] = $value;
+                    }
+                }
+                if ($extents) {
+                    $extents = implode(', ', $extents);
+                    foreach ($setResults as &$current) {
+                        if (strpos($current, $extents) === false) {
+                            $current .= " ($extents)";
+                        }
+                    }
+                    unset($current);
+                }
+
+                $results = [...$results, ...$setResults];
             }
         }
         return $results;

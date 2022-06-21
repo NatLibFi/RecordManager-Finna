@@ -471,4 +471,50 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'getWorkIdentificationData'
         );
     }
+
+    /**
+     * Test measurements
+     *
+     * @return void
+     */
+    public function testMeasurements()
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_measurements.xml',
+            [],
+            'Finna'
+        );
+
+        $expected = [
+            'record_format' => 'lido',
+            'title_full' => 'lierihattu',
+            'title_short' => 'lierihattu',
+            'title' => 'lierihattu',
+            'title_sort' => 'lierihattu',
+            'allfields' => [
+                'M123',
+                'lierihattu',
+                ''
+            ],
+            'measurements' => [
+                'korkeus 8.50 cm',
+                'korkeus 8.50 cm (kuvun pystysuora osa edestä ja takaa)',
+                'korkeus 9 cm (kuvun pystysuora osa sivulta)',
+                'halkaisija, suurin 18.50 cm (kuvun päällys)',
+                'halkaisija, pienin 15.00 cm (kuvun päällys)',
+                'leveys 5.50 cm (lieri, lierin reuna)',
+                'leveys 5.70 cm (lieri, lierin reuna)',
+                'korkeus 9 cm, kuvun pystysuora osa sivulta',
+            ],
+            'source_str_mv' => '__unit_test_no_source__',
+            'datasource_str_mv' => '__unit_test_no_source__',
+            'format_ext_str_mv' => [
+                ''
+            ]
+        ];
+
+        $result = array_filter($record->toSolrArray());
+        $this->compareArray($expected, $result, 'Measurements');
+    }
 }
