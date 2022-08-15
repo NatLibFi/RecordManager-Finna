@@ -432,34 +432,17 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // URLs
-        $fields = $this->getFields('856');
-        foreach ($fields as $field) {
-            $ind2 = $this->getIndicator($field, 2);
-            $sub3 = $this->getSubfield($field, '3');
-            if (($ind2 == '0' || $ind2 == '1') && !$sub3) {
-                $url = trim($this->getSubfield($field, 'u'));
-                if (!$url) {
-                    continue;
-                }
-                // Require at least one dot surrounded by valid characters or a
-                // familiar scheme
-                if (!preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
-                    && !preg_match('/^(http|ftp)s?:\/\//', $url)
-                ) {
-                    continue;
-                }
-                $data['online_boolean'] = true;
-                $data['online_str_mv'] = $this->source;
-                $linkText = $this->getSubfield($field, 'y');
-                if (!$linkText) {
-                    $linkText = $this->getSubfield($field, 'z');
-                }
-                $link = [
-                    'url' => $this->getSubfield($field, 'u'),
-                    'text' => $linkText,
-                    'source' => $this->source
-                ];
-                $data['online_urls_str_mv'][] = json_encode($link);
+        foreach ($this->getLinkData() as $link) {
+            $link['source'] = $this->source;
+            $data['online_urls_str_mv'][] = json_encode($link);
+        }
+
+        if ($this->isOnline()) {
+            $data['online_boolean'] = true;
+            $data['online_str_mv'] = $this->source;
+            if ($this->isFreeOnline()) {
+                $data['free_online_boolean'] = true;
+                $data['free_online_str_mv'] = $this->source;
             }
         }
 
@@ -739,29 +722,6 @@ class Marc extends \RecordManager\Base\Record\Marc
 
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
-        }
-
-        if (!empty($data['online_str_mv'])) {
-            $access = $this->metadataUtils->normalizeKey(
-                $this->getFieldSubfields('506', ['f' => 1]),
-                'NFKC'
-            );
-            if ($access !== 'onlineaccesswithauthorization') {
-                $data['free_online_str_mv'] = $data['online_str_mv'];
-                $data['free_online_boolean'] = true;
-            }
-        } else {
-            // Check online availability from carrier type. This is intentionally
-            // done after the free check above, since these records seem to often not
-            // have the 506 field.
-            $fields = $this->getFields('338');
-            foreach ($fields as $field) {
-                $b = $this->getSubfield($field, 'b');
-                if ('cr' === $b) {
-                    $data['online_boolean'] = true;
-                    $data['online_str_mv'] = $this->source;
-                }
-            }
         }
 
         // Author facet
@@ -1502,6 +1462,9 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function getAccessRestrictions()
     {
+        if ($result = parent::getAccessRestrictions()) {
+            return $result;
+        }
         // Access restrictions based on location
         $restricted = $this->getDriverParam('restrictedLocations', '');
         if ($restricted) {
@@ -2320,5 +2283,91 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [self::GET_BOTH, '830', ['a' => 1, 'v' => 1, 'n' => 1, 'p' => 1]]
             ]
         );
+    }
+
+    /**
+     * Get link data (url and link text)
+     *
+     * @return array
+     */
+    protected function getLinkData(): array
+    {
+        if (isset($this->resultCache[__FUNCTION__])) {
+            return $this->resultCache[__FUNCTION__];
+        }
+
+        $result = [];
+        $fields = $this->getFields('856');
+        foreach ($fields as $field) {
+            if ($this->getSubfield($field, '3')) {
+                continue;
+            }
+            $ind2 = $this->getIndicator($field, 2);
+            if (($ind2 != '0' && $ind2 != '1')) {
+                continue;
+            }
+            $url = trim($this->getSubfield($field, 'u'));
+            if (!$url) {
+                continue;
+            }
+            // Require at least one dot surrounded by valid characters or a
+            // familiar scheme
+            if (!preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
+                && !preg_match('/^https?:\/\//', $url)
+            ) {
+                continue;
+            }
+            $text = $this->getSubfield($field, 'y');
+            if (!$text) {
+                $text = $this->getSubfield($field, 'z');
+            }
+            $result[] = compact('url', 'text');
+        }
+
+        $this->resultCache[__FUNCTION__] = $result;
+        return $result;
+    }
+
+    /**
+     * Check if the record is available online
+     *
+     * @return bool
+     */
+    protected function isOnline(): bool
+    {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+
+        if (!empty($this->getLinkData())) {
+            return true;
+        }
+
+        // Check online availability from carrier type.
+        foreach ($this->getFields('338') as $field) {
+            if ('cr' === $this->getSubfield($field, 'b')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the record is freely available online
+     *
+     * @return bool
+     */
+    protected function isFreeOnline(): bool
+    {
+        if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
+            return boolval($free);
+        }
+
+        $access = $this->metadataUtils->normalizeKey(
+            $this->getFieldSubfields('506', ['f' => 1]),
+            'NFKC'
+        );
+        return $access !== 'onlineaccesswithauthorization';
     }
 }

@@ -125,13 +125,14 @@ class Forward extends \RecordManager\Base\Record\Forward
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        if ($urls = $this->getOnlineUrls()) {
+        if ($this->isOnline()) {
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
-            // Mark everything free until we know better
-            $data['free_online_boolean'] = true;
-            $data['free_online_str_mv'] = $this->source;
-            foreach ($urls as $url) {
+            if ($this->isFreeOnline()) {
+                $data['free_online_boolean'] = true;
+                $data['free_online_str_mv'] = $this->source;
+            }
+            foreach ($this->getOnlineUrls() as $url) {
                 $data['online_urls_str_mv'][] = json_encode($url);
             }
         }
@@ -456,6 +457,33 @@ class Forward extends \RecordManager\Base\Record\Forward
             }
         }
         return $results;
+    }
+
+    /**
+     * Check if the record is available online
+     *
+     * @return bool
+     */
+    protected function isOnline(): bool
+    {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+
+        return !empty($this->getOnlineUrls());
+    }
+
+    /**
+     * Check if the record is freely available online
+     *
+     * @return bool
+     */
+    protected function isFreeOnline(): bool
+    {
+        if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
+            return boolval($free);
+        }
+        return $this->getDriverParam('freeOnlineDefault', true);
     }
 
     /**

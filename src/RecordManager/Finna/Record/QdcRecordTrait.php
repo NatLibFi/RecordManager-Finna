@@ -96,27 +96,12 @@ trait QdcRecordTrait
                 = $this->dateRangeToStr($range);
         }
 
-        foreach ($this->doc->relation as $relation) {
-            $url = trim((string)$relation);
-            // Ignore too long fields. Require at least one dot surrounded by valid
-            // characters or a familiar scheme
-            if (strlen($url) > 4096
-                || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
-                && !preg_match('/^(http|ftp)s?:\/\//', $url))
-            ) {
-                continue;
-            }
+        foreach ($this->getRelationUrls() as $url) {
             $link = [
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source
             ];
-            $data['online_boolean'] = true;
-            $data['online_str_mv'] = $this->source;
-            // Mark everything free until we know better. This may get overridden
-            // below.
-            $data['free_online_boolean'] = true;
-            $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
 
@@ -129,12 +114,6 @@ trait QdcRecordTrait
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source
             ];
-            $data['online_boolean'] = true;
-            $data['online_str_mv'] = $this->source;
-            // Mark everything free until we know better. This may get overridden
-            // below.
-            $data['free_online_boolean'] = true;
-            $data['free_online_str_mv'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
             if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])
@@ -143,23 +122,13 @@ trait QdcRecordTrait
             }
         }
 
-        // Check rights for open access or restricted access indicators that will
-        // override any existing values:
-        foreach ($this->doc->rights as $rights) {
-            $rights = trim((string)$rights);
-            if ($this->inArrayFnMatch($rights, $this->openAccessRights)) {
-                if (empty($data['free_online_boolean'])) {
-                    $data['free_online_boolean'] = true;
-                    $data['free_online_str_mv'] = $this->source;
-                }
-                break;
-            } elseif ($this->inArrayFnMatch($rights, $this->restrictedAccessRights)
-            ) {
-                if (!empty($data['free_online_boolean'])) {
-                    unset($data['free_online_boolean']);
-                    unset($data['free_online_str_mv']);
-                }
-                break;
+        if ($this->isOnline()) {
+            // This may get overridden below...
+            $data['online_boolean'] = true;
+            $data['online_str_mv'] = $this->source;
+            if ($this->isFreeOnline()) {
+                $data['free_online_boolean'] = true;
+                $data['free_online_str_mv'] = $this->source;
             }
         }
 
@@ -217,12 +186,40 @@ trait QdcRecordTrait
      */
     protected function inArrayFnMatch(string $needle, array $haystack): bool
     {
+        // Check for an excessively long string that would cause a warning with
+        // fnmatch:
+        if (strlen($needle) > 1024) {
+            return false;
+        }
         foreach ($haystack as $pattern) {
             if (fnmatch($pattern, $needle)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Get URLs from the relation field
+     *
+     * @return array
+     */
+    protected function getRelationUrls(): array
+    {
+        $result = [];
+        foreach ($this->doc->relation as $relation) {
+            $url = trim((string)$relation);
+            // Ignore too long fields. Require at least one dot surrounded by valid
+            // characters or a familiar scheme
+            if (strlen($url) > 4096
+                || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
+                && !preg_match('/^https?:\/\//', $url))
+            ) {
+                continue;
+            }
+            $result[] = $url;
+        }
+        return $result;
     }
 
     /**
@@ -330,5 +327,46 @@ trait QdcRecordTrait
         }
 
         return $urls;
+    }
+
+    /**
+     * Check if the record is available online
+     *
+     * @return bool
+     */
+    protected function isOnline(): bool
+    {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+        if (!empty($this->getRelationUrls()) || !empty($this->doc->file)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if the record is freely available online
+     *
+     * @return bool
+     */
+    protected function isFreeOnline(): bool
+    {
+        if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
+            return boolval($free);
+        }
+
+        // Check rights for open access or restricted access indicators:
+        foreach ($this->doc->rights as $rights) {
+            $rights = trim((string)$rights);
+            if ($this->inArrayFnMatch($rights, $this->openAccessRights)) {
+                return true;
+            }
+            if ($this->inArrayFnMatch($rights, $this->restrictedAccessRights)) {
+                return false;
+            }
+        }
+
+        return $this->getDriverParam('freeOnlineDefault', true);
     }
 }

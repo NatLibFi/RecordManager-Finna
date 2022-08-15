@@ -74,21 +74,14 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         $doc = $this->doc;
 
         // Materials
-        if (isset($doc->material)) {
-            $data['online_boolean'] = true;
-            $data['online_str_mv'] = $this->source;
-            $data['free_online_boolean'] = true;
-            $data['free_online_str_mv'] = $this->source;
-
-            foreach ($doc->material as $material) {
-                if ($url = (string)($material->url ?? '')) {
-                    $link = [
-                        'url' => $url,
-                        'text' => trim((string)($material->name ?? $url)),
-                        'source' => $this->source
-                    ];
-                    $data['online_urls_str_mv'][] = json_encode($link);
-                }
+        foreach ($doc->material ?? [] as $material) {
+            if ($url = (string)($material->url ?? '')) {
+                $link = [
+                    'url' => $url,
+                    'text' => trim((string)($material->name ?? $url)),
+                    'source' => $this->source
+                ];
+                $data['online_urls_str_mv'][] = json_encode($link);
             }
         }
 
@@ -165,5 +158,19 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
     protected function getUrls()
     {
         return [];
+    }
+
+    /**
+     * Check if the record is available online
+     *
+     * @return bool
+     */
+    protected function isOnline(): bool
+    {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+
+        return !empty($this->doc->material);
     }
 }

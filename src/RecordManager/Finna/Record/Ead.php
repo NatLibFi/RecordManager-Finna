@@ -121,23 +121,16 @@ class Ead extends \RecordManager\Base\Record\Ead
             ) {
                 $data['format'] = 'digitized_' . $data['format'];
             }
-
-            if ($this->doc->did->daogrp->daoloc) {
-                foreach ($this->doc->did->daogrp->daoloc as $daoloc) {
-                    if ($daoloc->attributes()->{'href'}) {
-                        $data['online_boolean'] = true;
-                        // This is sort of special. Make sure to use source instead
-                        // of datasource.
-                        $data['online_str_mv'] = $data['source_str_mv'];
-                        break;
-                    }
-                }
-            }
         }
 
-        if (!empty($data['online_boolean'])) {
-            $data['free_online_boolean'] = $this->isFreeOnline();
-            if ($data['free_online_boolean']) {
+        if ($this->isOnline()) {
+            $data['online_boolean'] = true;
+            // This is sort of special. Make sure to use source instead
+            // of datasource.
+            $data['online_str_mv'] = $data['source_str_mv'];
+
+            if ($this->isFreeOnline()) {
+                $data['free_online_boolean'] = true;
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
                 $data['free_online_str_mv'] = $data['source_str_mv'];
@@ -220,18 +213,39 @@ class Ead extends \RecordManager\Base\Record\Ead
     }
 
     /**
-     * Check if the record is freely available
+     * Check if the record is available online
      *
      * @return bool
      */
-    protected function isFreeOnline()
+    protected function isOnline(): bool
     {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+        foreach ($this->doc->did->daogrp->daoloc ?? [] as $daoloc) {
+            if ($daoloc->attributes()->{'href'}) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if the record is freely available online
+     *
+     * @return bool
+     */
+    protected function isFreeOnline(): bool
+    {
+        if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
+            return boolval($free);
+        }
         foreach ($this->doc->accessrestrict->p ?? [] as $restrict) {
             if (trim((string)$restrict) !== '') {
                 return false;
             }
         }
-        return true;
+        return $this->getDriverParam('freeOnlineDefault', true);
     }
 
     /**

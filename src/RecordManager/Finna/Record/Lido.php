@@ -114,8 +114,6 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         $data['allfields'][] = $this->getRecordSourceOrganization();
 
-        $data['identifier'] = $this->getIdentifier();
-
         // Author facets without roles:
         $data['author_facet']
             = $this->getActors($this->getMainEvents(), null, false);
@@ -223,12 +221,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        if ($this->getURLs()) {
+        if ($this->isOnline()) {
             $data['online_boolean'] = true;
             $data['online_str_mv'] = $this->source;
-            // Mark everything free until we know better
-            $data['free_online_boolean'] = true;
-            $data['free_online_str_mv'] = $this->source;
+            if ($this->isFreeOnline()) {
+                $data['free_online_boolean'] = true;
+                $data['free_online_str_mv'] = $this->source;
+            }
             if ($this->hasHiResImages()) {
                 $data['hires_image_boolean'] = true;
                 $data['hires_image_str_mv'] = $this->source;
@@ -249,9 +248,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
-
-        $data['hierarchy_parent_title']
-            = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
 
         return $data;
     }
@@ -979,7 +975,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $this->logger->logDebug(
                         'Lido',
                         "Empty pos in GML point, record "
-                            . "{$this->source}." . $this->getID()
+                            . "{$this->source}." . $this->getID(),
+                        true
                     );
                     $this->storeWarning('empty gml pos in point');
                 }
@@ -994,7 +991,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $this->logger->logDebug(
                         'Lido',
                         "Empty coordinates in GML point, record "
-                            . "{$this->source}." . $this->getID()
+                            . "{$this->source}." . $this->getID(),
+                        true
                     );
                     $this->storeWarning('empty gml coordinates in point');
                     return '';
@@ -1009,7 +1007,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->logger->logDebug(
                     'Lido',
                     "GML Point does not contain pos or coordinates, record "
-                        . "{$this->source}." . $this->getID()
+                        . "{$this->source}." . $this->getID(),
+                    true
                 );
                 $this->storeWarning('gml point missing data');
                 return '';
@@ -1645,34 +1644,6 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Return the object identifier. This is "an unambiguous numeric or alphanumeric
-     * identification number, assigned to the object by the institution of custody."
-     * (usually differs from a technical database id)
-     *
-     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
-     * #repositorySetComplexType
-     * @return string
-     */
-    protected function getIdentifier()
-    {
-        $nodeExists = !empty(
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-                ->repositoryWrap->repositorySet
-        );
-        if (!$nodeExists) {
-            return '';
-        }
-        foreach ($this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-            ->repositoryWrap->repositorySet as $set
-        ) {
-            if (!empty($set->workID)) {
-                return (string)$set->workID;
-            }
-        }
-        return '';
-    }
-
-    /**
      * Return the object measurements. Only the display element is used currently
      * until processing more granular data is needed.
      *
@@ -1863,5 +1834,51 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getSecondaryAuthors(): array
     {
         return $this->getActors($this->getSecondaryAuthorEvents(), null, true);
+    }
+
+    /**
+     * Get hierarchy fields
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function getHierarchyFields(array &$data): void
+    {
+        if ($this->getDriverParam('indexHierarchies', false)) {
+            parent::getHierarchyFields($data);
+            return;
+        }
+        $fields = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
+        if ($fields) {
+            $data['hierarchy_parent_title'] = $fields;
+        }
+    }
+
+    /**
+     * Check if the record is available online
+     *
+     * @return bool
+     */
+    protected function isOnline(): bool
+    {
+        if (null !== ($online = $this->getDriverParam('online', null))) {
+            return boolval($online);
+        }
+
+        return !empty($this->getUrls());
+    }
+
+    /**
+     * Check if the record is freely available online
+     *
+     * @return bool
+     */
+    protected function isFreeOnline(): bool
+    {
+        if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
+            return boolval($free);
+        }
+        return $this->getDriverParam('freeOnlineDefault', true);
     }
 }
