@@ -45,9 +45,9 @@ class FieldMapper extends \RecordManager\Base\Utils\FieldMapper
      *
      * @return void
      */
-    public function initdataSourceConfig(array $dataSourceConfig): void
+    public function initDataSourceConfig(array $dataSourceConfig): void
     {
-        parent::initdataSourceConfig($dataSourceConfig);
+        parent::initDataSourceConfig($dataSourceConfig);
 
         foreach ($this->settings as &$settings) {
             if (empty($settings['mappingFiles']['format_ext_str_mv'])
