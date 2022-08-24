@@ -2339,7 +2339,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             return boolval($online);
         }
 
-        if (!empty($this->getLinkData())) {
+        if ($this->getLinkData()) {
             return true;
         }
 
@@ -2368,6 +2368,12 @@ class Marc extends \RecordManager\Base\Record\Marc
             $this->getFieldSubfields('506', ['f' => 1]),
             'NFKC'
         );
+        // Require link data (otherwise records with just 'cr' in 338b are marked
+        // available as well):
+        if (!$access && !$this->getLinkData()) {
+            return false;
+        }
+
         return $access !== 'onlineaccesswithauthorization';
     }
 }
