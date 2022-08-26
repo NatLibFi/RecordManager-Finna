@@ -339,7 +339,9 @@ trait QdcRecordTrait
         if (null !== ($online = $this->getDriverParam('online', null))) {
             return boolval($online);
         }
-        if (!empty($this->getRelationUrls()) || !empty($this->doc->file)) {
+        // Note: Make sure not to use `empty()` for the file check since the element
+        // will be empty.
+        if (!empty($this->getRelationUrls()) || $this->doc->file) {
             return true;
         }
         return false;
