@@ -727,6 +727,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'AMK-opinnäytetyö',
                 'Second Sample Program',
                 'testaus',
+                'AMK-opinnäytetyö'
             ],
             'language' => [
                 'fin',
@@ -866,6 +867,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Kansalliskirjasto',
                 '2020',
                 'testaus',
+                'AMK-opinnäytetyö',
+                'Sample Program',
+                '2020.',
+                'Second Sample Program',
             ],
             'language' => [
                 'fin',
