@@ -972,4 +972,115 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
 
         $this->compareArray($expected, $fields, 'toSolrArray');
     }
+
+    /**
+     * Test MARC date range
+     *
+     * @return void
+     */
+    public function testMarcDateRange()
+    {
+        $record = $this->createRecord(
+            Marc::class,
+            'marc-daterange.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+            ]
+        );
+        $fields = $record->toSolrArray();
+        unset($fields['fullrecord']);
+
+        $expected = [
+            'record_format' => 'marc',
+            'building' => [],
+            'lccn' => '',
+            'ctrlnum' => [],
+            'allfields' => [
+                'Lentolehti',
+                'Pienviljelijäin rakennuskysymyksiä',
+                'Helsinki',
+                'Maatalousseurojen keskusliitto',
+                '1940 [vuosien 1931 ja 1943 välillä?]',
+            ],
+            'language' => [
+                'fin',
+            ],
+            'format' => 'Serial',
+            'author' => [],
+            'author_role' => [],
+            'author_fuller' => [],
+            'author_sort' => '',
+            'author2' => [],
+            'author2_role' => [],
+            'author2_fuller' => [],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author2_id_str_mv' => [],
+            'author2_id_role_str_mv' => [],
+            'author_additional' => [],
+            'title' => 'Lentolehti',
+            'title_sub' => '',
+            'title_short' => 'Lentolehti',
+            'title_full' => 'Lentolehti Pienviljelijäin rakennuskysymyksiä',
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'lentolehti pienviljelijäin rakennuskysymyksiä',
+            'series' => [],
+            'publisher' => [
+                '[Maatalousseurojen keskusliitto]',
+            ],
+            'publishDateSort' => '1931',
+            'publishDate' => [
+                '1931',
+            ],
+            'physical' => [],
+            'dateSpan' => [],
+            'edition' => '',
+            'contents' => [],
+            'isbn' => [],
+            'issn' => [],
+            'callnumber-first' => '',
+            'callnumber-raw' => [],
+            'callnumber-sort' => '',
+            'topic' => [],
+            'genre' => [],
+            'geographic' => [],
+            'geographic_id_str_mv' => [],
+            'era' => [],
+            'topic_facet' => [],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
+            'illustrated' => 'Not Illustrated',
+            'main_date_str' => '1931',
+            'main_date' => '1931-01-01T00:00:00Z',
+            'publication_daterange' => '[1931-01-01 TO 1943-12-31]',
+            'search_daterange_mv' => [
+                '[1931-01-01 TO 1943-12-31]',
+            ],
+            'publication_place_txt_mv' => [
+                'Helsinki',
+            ],
+            'subtitle_lng_str_mv' => [],
+            'original_lng_str_mv' => [],
+            'source_str_mv' => '__unit_test_no_source__',
+            'datasource_str_mv' => [
+                '__unit_test_no_source__',
+            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
+            'holdings_txtP_mv' => [],
+            'author_facet' => [],
+            'format_ext_str_mv' => 'Serial',
+            'topic_id_str_mv' => [],
+            'description' => '',
+        ];
+
+        $this->compareArray($expected, $fields, 'toSolrArray');
+    }
 }

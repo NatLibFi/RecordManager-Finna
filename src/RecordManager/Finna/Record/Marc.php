@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2021.
+ * Copyright (C) The National Library of Finland 2012-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -101,6 +101,17 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @var mixed
      */
     protected $cachedFormat = null;
+
+    /**
+     * Patterns for matching publication date ranges (case-insentive)
+     *
+     * @var array
+     */
+    protected $publicationDateRangePatterns = [
+        '/between\s+(?<begin>\d{4})\s+and\s+(?<end>\d{4})/',
+        '/vuosien\s+(?<begin>\d{4})\s+ja\s+(?<end>\d{4})\s+välillä/',
+        '/(?<begin>\d{4})\s+-\s+(?<end>\d{4})/',
+    ];
 
     /**
      * Constructor
@@ -1640,13 +1651,10 @@ class Marc extends \RecordManager\Base\Record\Marc
             || $this->metadataUtils->validateISO8601Date($startDate) === false
             || $this->metadataUtils->validateISO8601Date($endDate) === false
         ) {
-            $field = $this->getField('260');
-            if ($field) {
-                $year = $this->getSubfield($field, 'c');
-                $matches = [];
-                if ($year && preg_match('/(\d{4})/', $year, $matches)) {
-                    $startDate = "{$matches[1]}-01-01T00:00:00Z";
-                    $endDate = "{$matches[1]}-12-31T23:59:59Z";
+            if ($field = $this->getField('260')) {
+                if ($year = $this->extractYear($this->getSubfield($field, 'c'))) {
+                    $startDate = "{$year}-01-01T00:00:00Z";
+                    $endDate = "{$year}-12-31T23:59:59Z";
                 }
             }
         }
@@ -1655,16 +1663,20 @@ class Marc extends \RecordManager\Base\Record\Marc
             || $this->metadataUtils->validateISO8601Date($startDate) === false
             || $this->metadataUtils->validateISO8601Date($endDate) === false
         ) {
-            $fields = $this->getFields('264');
-            foreach ($fields as $field) {
-                if ($this->getIndicator($field, 2) == '1') {
-                    $year = $this->getSubfield($field, 'c');
-                    $matches = [];
-                    if ($year && preg_match('/(\d{4})/', $year, $matches)) {
-                        $startDate = "{$matches[1]}-01-01T00:00:00Z";
-                        $endDate = "{$matches[1]}-12-31T23:59:59Z";
-                        break;
-                    }
+            foreach ($this->getFields('264') as $field) {
+                if ($this->getIndicator($field, 2) !== '1') {
+                    continue;
+                }
+                $publishDate = $this->getSubfield($field, 'c');
+                if ($years = $this->extractYearRange($publishDate)) {
+                    $startDate = "{$years[0]}-01-01T00:00:00Z";
+                    $endDate = "{$years[1]}-12-31T23:59:59Z";
+                    break;
+                }
+                if ($year = $this->extractYear($publishDate)) {
+                    $startDate = "{$year}-01-01T00:00:00Z";
+                    $endDate = "{$year}-12-31T23:59:59Z";
+                    break;
                 }
             }
         }
@@ -1686,6 +1698,33 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         return [];
+    }
+
+    /**
+     * Extract a year range from a field such as publication date.
+     *
+     * @param string $field Field
+     *
+     * @return ?array [start, end] or null if no match
+     */
+    protected function extractYearRange($field): ?array
+    {
+        $subjects = [];
+        // First look for years in brackets:
+        if (preg_match('/\[(.+)\]/', $field, $matches)) {
+            $subjects[] = $matches[1];
+        }
+        // Then look for any years:
+        $subjects[] = $field;
+
+        foreach ($subjects as $subject) {
+            foreach ($this->publicationDateRangePatterns as $pattern) {
+                if (preg_match($pattern, $subject, $years)) {
+                    return [$years['begin'], $years['end']];
+                }
+            }
+        }
+        return null;
     }
 
     /**
