@@ -1393,7 +1393,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             $startDate = $year;
             $endDate = $year;
             $imprecise = true;
-        } elseif (preg_match('/(-?\d?\d?\d\d)/', $input, $matches) > 0) {
+        } elseif (preg_match('/(-?\d?\d?\d\d)\b/', $input, $matches) > 0) {
             $year = $matches[1];
 
             $startDate = $year;
