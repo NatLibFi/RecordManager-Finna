@@ -128,6 +128,9 @@ trait StoreRecordTrait
         $count = 0;
         $mainID = '';
         foreach ($dataArray as $data) {
+            // First ensure that $data is valid UTF-8:
+            $data = mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+
             if (null !== $settings['normalizationXSLT']) {
                 $metadataRecord = $this->createRecord(
                     $settings['format'],
