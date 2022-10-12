@@ -86,4 +86,21 @@ class Qdc extends \RecordManager\Base\Record\Qdc
         }
         return $result;
     }
+
+    /**
+     * Get hierarchy fields
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function getHierarchyFields(array &$data): void
+    {
+        $data['hierarchy_parent_title'] = $this->getValues('isPartOf');
+        foreach ($this->doc->relation as $rel) {
+            if ((string)$rel->attributes()->type === 'ispartof') {
+                $data['hierarchy_parent_title'][] = trim((string)$rel);
+            }
+        }
+    }
 }
