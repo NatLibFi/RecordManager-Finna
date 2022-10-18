@@ -115,7 +115,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author_role' => [
                 '-',
             ],
-            'author_fuller' => [],
             'author_sort' => 'Hirsjärvi, Sirkka',
             'author2' => [
                 'Hirsjärvi, Sirkka',
@@ -127,7 +126,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '-',
                 '-',
             ],
-            'author2_fuller' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -352,16 +350,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author_role' => [
                 '-',
             ],
-            'author_fuller' => [
-            ],
             'author_sort' => 'Kalat, James W.',
             'author2' => [
                 'Kalat, James W.',
             ],
             'author2_role' => [
                 '-',
-            ],
-            'author2_fuller' => [
             ],
             'author_corporate' => [
             ],
@@ -543,13 +537,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'author_role' => [
             ],
-            'author_fuller' => [
-            ],
             'author2' => [
             ],
             'author2_role' => [
-            ],
-            'author2_fuller' => [
             ],
             'author_corporate' => [
                 'Maanmittaushallitus',
@@ -739,7 +729,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author_role' => [
                 '-',
             ],
-            'author_fuller' => [],
             'author_sort' => 'Author, Test',
             'author2' => [
                 'Author, Test',
@@ -747,7 +736,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author2_role' => [
                 '-',
             ],
-            'author2_fuller' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -882,7 +870,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author_role' => [
                 '-',
             ],
-            'author_fuller' => [],
             'author_sort' => 'Author, Test',
             'author2' => [
                 'Author, Test',
@@ -890,7 +877,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author2_role' => [
                 '-',
             ],
-            'author2_fuller' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -1015,11 +1001,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format' => 'Serial',
             'author' => [],
             'author_role' => [],
-            'author_fuller' => [],
             'author_sort' => '',
             'author2' => [],
             'author2_role' => [],
-            'author2_fuller' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
