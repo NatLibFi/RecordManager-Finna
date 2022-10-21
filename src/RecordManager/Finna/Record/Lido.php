@@ -249,7 +249,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
-
+        $data['language'] = $this->getLanguages();
         return $data;
     }
 
@@ -1512,7 +1512,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->doc->lido->descriptiveMetadata->objectClassificationWrap
             ->classificationWrap->classification as $classification
         ) {
-            if (!empty($classification->term)) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' !== $type && !empty($classification->term)) {
                 foreach ($classification->term as $term) {
                     $results[] = (string)$term;
                 }
@@ -1881,5 +1882,28 @@ class Lido extends \RecordManager\Base\Record\Lido
             return boolval($free);
         }
         return $this->getDriverParam('freeOnlineDefault', true);
+    }
+
+    /**
+     * Get all language codes
+     *
+     * @return array Language codes
+     */
+    protected function getLanguages(): array
+    {
+        $classifications = $this->doc->lido->descriptiveMetadata
+                ->objectClassificationWrap->classificationWrap->classification ?? [];
+        $result = [];
+        foreach ($classifications as $classification) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' === $type) {
+                foreach ($classification->term as $lang) {
+                    if ($trimmed = trim((string)$lang)) {
+                        $result[] = $trimmed;
+                    }
+                }
+            }
+        }
+        return array_unique($result);
     }
 }

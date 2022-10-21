@@ -173,6 +173,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'musketti_www.M012:4878:1',
                 'kuva',
                 'valokuva',
+                'fi',
+                'sv',
+                'en',
                 'Imatrankoski',
                 '33,1.',
                 'Imatra. val. H.Hintze 1897 Antr.',
@@ -270,6 +273,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'issn' => [
             ],
+            'language' => [
+                'fi',
+                'sv',
+                'en'
+            ]
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
