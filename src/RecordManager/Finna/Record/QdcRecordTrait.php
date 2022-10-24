@@ -90,12 +90,13 @@ trait QdcRecordTrait
                 $this->getPublicationYear() . '-01-01T00:00:00Z'
             );
         }
-
-        if ($range = $this->getPublicationDateRange()) {
-            $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->dateRangeToStr($range);
+        foreach ($this->getDateRanges() as $range) {
+            $stringDate = $this->dateRangeToStr($range);
+            if (!isset($data['publication_daterange'])) {
+                $data['publication_daterange'] = $stringDate;
+            }
+            $data['search_daterange_mv'][] = $stringDate;
         }
-
         foreach ($this->getRelationUrls() as $url) {
             $link = [
                 'url' => $url,
@@ -241,15 +242,31 @@ trait QdcRecordTrait
      *
      * @return array|null
      */
-    protected function getPublicationDateRange()
+    protected function getDateRanges()
     {
-        $year = $this->getPublicationYear();
-        if ($year) {
-            $startDate = "$year-01-01T00:00:00Z";
-            $endDate = "$year-12-31T23:59:59Z";
-            return [$startDate, $endDate];
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            if (preg_match_all('{\d{4}}', $date, $matches)) {
+                $years = $matches[0];
+                $result[] = [
+                    $years[0] . '-01-01T00:00:00Z',
+                    ($years[1] ?? $years[0]) . '-12-31T23:59:59Z'
+                ];
+            }
         }
-        return null;
+        // Try to find from issued field as a fallback
+        if (!$result) {
+            foreach ($this->doc->issued as $date) {
+                if (preg_match_all('{\d{4}}', $date, $matches)) {
+                    $years = $matches[0];
+                    $result[] = [
+                        $years[0] . '-01-01T00:00:00Z',
+                        ($years[1] ?? $years[0]) . '-12-31T23:59:59Z'
+                    ];
+                }
+            }
+        }
+        return $result;
     }
 
     /**
