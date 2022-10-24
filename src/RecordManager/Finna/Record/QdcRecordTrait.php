@@ -90,13 +90,15 @@ trait QdcRecordTrait
                 $this->getPublicationYear() . '-01-01T00:00:00Z'
             );
         }
-        foreach ($this->getPublicationDateRange() as $range) {
-            $stringDate = $this->dateRangeToStr($range);
-            if (!isset($data['publication_daterange'])) {
-                $data['publication_daterange'] = $stringDate;
+
+        if ($ranges = $this->getPublicationDateRange()) {
+            $data['publication_daterange'] = $this->dateRangeToStr(reset($ranges));
+            foreach ($ranges as $range) {
+                $stringDate = $this->dateRangeToStr($range);
+                $data['search_daterange_mv'][] = $stringDate;
             }
-            $data['search_daterange_mv'][] = $stringDate;
         }
+
         foreach ($this->getRelationUrls() as $url) {
             $link = [
                 'url' => $url,
@@ -245,18 +247,8 @@ trait QdcRecordTrait
     protected function getPublicationDateRange()
     {
         $result = [];
-        foreach ($this->doc->date as $date) {
-            if (preg_match_all('{\d{4}}', $date, $matches)) {
-                $years = $matches[0];
-                $result[] = [
-                    $years[0] . '-01-01T00:00:00Z',
-                    ($years[1] ?? $years[0]) . '-12-31T23:59:59Z'
-                ];
-            }
-        }
-        // Try to find from issued field as a fallback
-        if (!$result) {
-            foreach ($this->doc->issued as $date) {
+        foreach ([$this->doc->date, $this->doc->issued] as $arr) {
+            foreach ($arr as $date) {
                 if (preg_match_all('{\d{4}}', $date, $matches)) {
                     $years = $matches[0];
                     $result[] = [
