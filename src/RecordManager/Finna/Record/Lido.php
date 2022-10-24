@@ -334,65 +334,68 @@ class Lido extends \RecordManager\Base\Record\Lido
         $locations = [];
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
-                // If there is already gml in the record, don't return anything for
-                // geocoding
-                if (!empty($eventNode->eventPlace->place->gml)) {
-                    return [];
-                }
-                $hasValue = !empty(
-                    $eventNode->eventPlace->place->namePlaceSet->appellationValue
-                );
-                if ($hasValue) {
-                    $mainPlace = (string)$eventNode->eventPlace->place->namePlaceSet
-                        ->appellationValue;
-                    $subLocation = $this->getSubLocation(
-                        $eventNode->eventPlace->place
+                foreach ($eventNode->eventPlace as $placeNode) {
+                    // If there is already gml in the record,
+                    // don't return anything for geocoding
+                    if (!empty($placeNode->place->gml)) {
+                        return [];
+                    }
+                    $hasValue = !empty(
+                        $placeNode->place->namePlaceSet->appellationValue
                     );
-                    if ($mainPlace && !$subLocation) {
+                    if ($hasValue) {
+                        $mainPlace = (string)$placeNode->place->namePlaceSet
+                            ->appellationValue;
+                        $subLocation = $this->getSubLocation(
+                            $placeNode->place
+                        );
+                        if ($mainPlace && !$subLocation) {
+                            $locations = array_merge(
+                                $locations,
+                                explode('/', $mainPlace)
+                            );
+                        } else {
+                            $locations = array_merge(
+                                $locations,
+                                $this->splitAddresses($mainPlace, $subLocation)
+                            );
+                        }
+                    } elseif (!empty($placeNode->place->partOfPlace)) {
+                        // Flat part of place structure (e.g. Musketti)
+                        $haveStreet = false;
+                        foreach ($placeNode->place->partOfPlace as $part) {
+                            if (isset($part->placeClassification->term)
+                                && $part->placeClassification->term == 'katuosoite'
+                                && !empty($part->namePlaceSet->appellationValue)
+                            ) {
+                                $haveStreet = true;
+                                break;
+                            }
+                        }
+                        $parts = [];
+                        foreach ($placeNode->place->partOfPlace as $p) {
+                            if ($haveStreet && isset($p->placeClassification->term)
+                                && ($p->placeClassification->term == 'kaupunginosa'
+                                || $p->placeClassification->term == 'rakennus')
+                            ) {
+                                continue;
+                            }
+                            if (!empty($p->namePlaceSet->appellationValue)) {
+                                $parts[]
+                                    = (string)$p->namePlaceSet->appellationValue;
+                            }
+                        }
+                        $locations[] = implode(' ', $parts);
+                    } elseif (!empty($placeNode->displayPlace)) {
+                        // Split multiple locations separated with a slash
                         $locations = array_merge(
                             $locations,
-                            explode('/', $mainPlace)
-                        );
-                    } else {
-                        $locations = array_merge(
-                            $locations,
-                            $this->splitAddresses($mainPlace, $subLocation)
+                            preg_split(
+                                '/[\/;]/',
+                                (string)$placeNode->displayPlace
+                            )
                         );
                     }
-                } elseif (!empty($eventNode->eventPlace->place->partOfPlace)) {
-                    // Flat part of place structure (e.g. Musketti)
-                    $haveStreet = false;
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if (isset($part->placeClassification->term)
-                            && $part->placeClassification->term == 'katuosoite'
-                            && !empty($part->namePlaceSet->appellationValue)
-                        ) {
-                            $haveStreet = true;
-                            break;
-                        }
-                    }
-                    $parts = [];
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if ($haveStreet && isset($part->placeClassification->term)
-                            && ($part->placeClassification->term == 'kaupunginosa'
-                            || $part->placeClassification->term == 'rakennus')
-                        ) {
-                            continue;
-                        }
-                        if (!empty($part->namePlaceSet->appellationValue)) {
-                            $parts[] = (string)$part->namePlaceSet->appellationValue;
-                        }
-                    }
-                    $locations[] = implode(' ', $parts);
-                } elseif (!empty($eventNode->eventPlace->displayPlace)) {
-                    // Split multiple locations separated with a slash
-                    $locations = array_merge(
-                        $locations,
-                        preg_split(
-                            '/[\/;]/',
-                            (string)$eventNode->eventPlace->displayPlace
-                        )
-                    );
                 }
             }
         }
