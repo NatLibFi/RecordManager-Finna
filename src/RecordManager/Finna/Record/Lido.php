@@ -241,6 +241,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
+            $data['usage_rights_ext_str_mv'] = $rights;
         }
 
         $data['format_ext_str_mv'] = $this->getObjectWorkTypes();

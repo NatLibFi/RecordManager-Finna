@@ -248,6 +248,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'usage_rights_str_mv' => [
                 '',
             ],
+            'usage_rights_ext_str_mv' => [
+                '',
+            ],
             'author_facet' => [
                 'Testaaja, Taavi',
                 'Hintze Harry',

@@ -382,6 +382,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             'usage_rights_str_mv' => [
                 'restricted',
             ],
+            'usage_rights_ext_str_mv' => [
+                'restricted',
+            ],
             'author_role' => [],
             'author_variant' => [
                 'Sundwall, Gustaf Edvard',

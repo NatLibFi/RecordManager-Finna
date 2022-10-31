@@ -160,6 +160,7 @@ trait QdcRecordTrait
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
+            $data['usage_rights_ext_str_mv'] = $rights;
         }
 
         $data['source_str_mv'] = $this->source;

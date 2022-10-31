@@ -158,6 +158,7 @@ class Ead extends \RecordManager\Base\Record\Ead
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
+            $data['usage_rights_ext_str_mv'] = $rights;
         }
 
         $data['author_facet'] = array_merge(
