@@ -91,7 +91,7 @@ trait QdcRecordTrait
             );
         }
 
-        if ($ranges = $this->getPublicationDateRange()) {
+        if ($ranges = $this->getPublicationDateRanges()) {
             $data['publication_daterange'] = $this->dateRangeToStr(reset($ranges));
             foreach ($ranges as $range) {
                 $stringDate = $this->dateRangeToStr($range);
@@ -240,11 +240,11 @@ trait QdcRecordTrait
     }
 
     /**
-     * Return publication year/date range
+     * Return publication year/date ranges
      *
-     * @return array|null
+     * @return array
      */
-    protected function getPublicationDateRange()
+    protected function getPublicationDateRanges()
     {
         $result = [];
         foreach ([$this->doc->date, $this->doc->issued] as $arr) {
@@ -258,7 +258,7 @@ trait QdcRecordTrait
                 }
             }
         }
-        return $result ?: null;
+        return $result;
     }
 
     /**
