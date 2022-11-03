@@ -244,7 +244,7 @@ trait QdcRecordTrait
      *
      * @return array
      */
-    protected function getPublicationDateRanges()
+    protected function getPublicationDateRanges(): array
     {
         $result = [];
         foreach ([$this->doc->date, $this->doc->issued] as $arr) {
