@@ -249,16 +249,16 @@ trait QdcRecordTrait
         $result = [];
         foreach ([$this->doc->date, $this->doc->issued] as $arr) {
             foreach ($arr as $date) {
-                if (preg_match_all('{\d{4}}', $date, $matches)) {
-                    $years = $matches[0];
+                $years = $this->getYearsFromString($date);
+                if (isset($years['startYear'])) {
                     $result[] = [
-                        $years[0] . '-01-01T00:00:00Z',
-                        ($years[1] ?? $years[0]) . '-12-31T23:59:59Z'
+                        $years['startYear'] . '-01-01T00:00:00Z',
+                        $years['endYear'] . '-12-31T23:59:59Z'
                     ];
                 }
             }
         }
-        return $result;
+        return array_unique($result, SORT_REGULAR);
     }
 
     /**
