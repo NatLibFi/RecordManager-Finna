@@ -117,9 +117,8 @@ trait DateSupportTrait
             if (!isset($result['endYear']) && isset($result['startYear'])) {
                 $result['endYear'] = $result['startYear'];
             }
-            // Verify that the startYear is smaller than the endYear.
-            // If not, then assign startYear as endYear
-            if (strcmp($result['startYear'], $result['endYear']) === 1) {
+            // Turn the years into numbers and compare them.
+            if (intval($result['startYear']) > intval($result['endYear'])) {
                 $result['endYear'] = $result['startYear'];
             }
             return $result;
