@@ -67,7 +67,7 @@ trait DateSupportTrait
     }
 
     /**
-     * Get years from a string, matches ISO 8601 formats.
+     * Get years from a string, matches ISO 8601 format.
      *
      * @param string $dateString String to check for years.
      *
