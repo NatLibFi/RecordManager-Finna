@@ -67,7 +67,7 @@ trait DateSupportTrait
     }
 
     /**
-     * Get years from a string, try exploding with separators [/-–].
+     * Get years from a string, matches ISO 8601 formats.
      *
      * @param string $dateString String to check for years.
      *
