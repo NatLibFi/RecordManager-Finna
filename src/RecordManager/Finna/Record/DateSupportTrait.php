@@ -75,68 +75,22 @@ trait DateSupportTrait
      */
     protected function getYearsFromString(string $dateString): array
     {
-        $getYears = function (array $dates) {
-            $result = [];
-            // Reset array indexes just in case
-            $dates = array_values($dates);
-
-            for ($i = 0; $i < count($dates); $i++) {
-                $exploded = explode('-', $dates[$i]);
-                if (!isset($exploded[0])) {
-                    continue;
-                }
-                // First array element = "" equals negative year
-                $isNegative = $exploded[0] === "";
-                if ($isNegative) {
-                    array_shift($exploded);
-                }
-                $firstElement = reset($exploded);
-
-                // The year should be the first element in the array.
-                // Also check that it is purely numeric and contains 4 digits
-                if (strlen($firstElement) === 4 && is_numeric($firstElement)) {
-                    if ($isNegative) {
-                        $firstElement = "-{$firstElement}";
-                    }
-                    switch ($i) {
-                    case 0:
-                        $result['startYear'] = $firstElement;
-                        break;
-                    case 1:
-                        $result['endYear'] = $firstElement;
-                        break;
-                    }
-                }
-            }
-            if (empty($result)) {
-                return [];
-            }
-            if (!isset($result['startYear']) && isset($result['endYear'])) {
-                $result['startYear'] = $result['endYear'];
-            }
-            if (!isset($result['endYear']) && isset($result['startYear'])) {
-                $result['endYear'] = $result['startYear'];
-            }
+        if (preg_match_all(
+            '/([-]{0,1}\b\d{4})\b[-]{0,1}\d{0,2}\b[-]{0,1}\b\d{0,2}\b/',
+            $dateString,
+            $matches
+        )
+        ) {
+            $result = [
+                'startYear' => $matches[1][0],
+                'endYear' => $matches[1][1] ?? $matches[1][0]
+            ];
             // Turn the years into numbers and compare them.
-            if (intval($result['startYear']) > intval($result['endYear'])) {
+            if ((int)$result['startYear'] > (int)$result['endYear']) {
                 $result['endYear'] = $result['startYear'];
             }
             return $result;
-        };
-        $split = explode('/', $dateString);
-        if (count($split) === 2) {
-            return $getYears($split);
         }
-        $split = explode('-', $dateString);
-        if (count($split) === 2 && $split[0] !== "") {
-            return $getYears($split);
-        }
-        // Try the U-2013 just in case
-        $split = explode('–', $dateString);
-        if (count($split) === 2) {
-            return $getYears($split);
-        }
-        // Splitting did not yield results. Try to get a year from the string itself.
-        return $getYears([$dateString]);
+        return [];
     }
 }
