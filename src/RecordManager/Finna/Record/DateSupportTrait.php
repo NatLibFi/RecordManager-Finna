@@ -76,7 +76,7 @@ trait DateSupportTrait
     protected function getYearsFromString(string $dateString): array
     {
         if (preg_match_all(
-            '/([-]{0,1}\b\d{4})\b[-]{0,1}\d{0,2}\b[-]{0,1}\b\d{0,2}\b/',
+            '/([-]?\b\d{4})\b[-]?\d{0,2}\b[-]?\b\d{0,2}\b/',
             $dateString,
             $matches
         )
