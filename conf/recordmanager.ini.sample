@@ -131,6 +131,7 @@ unicode_normalization_form = NFKC
 ; Enrichments used with all data sources
 ;enrichment[] = NominatimGeocoder
 ;enrichment[] = MusicBrainzEnrichment
+;enrichment[] = SkosmosEnrichment
 ; Whether to add work identification keys from analytical entries (MARC 7xx fields).
 ; Default is false.
 ;work_keys_from_analytical_entries = true
@@ -182,8 +183,8 @@ result_limit = 1000
 id_prefix = "oai:base.address:"
 
 [Enrichment]
-; Maximum lifetime of cached entries in minutes. Default is 1440 (24 hours)
-;cache_expiration = 1440
+; Maximum lifetime of cached entries in minutes. Default is 10080 (1 week)
+;cache_expiration = 10080
 
 [Log]
 log_file        = /var/log/recman.log
@@ -221,6 +222,11 @@ disable_proxy_hosts[] = "::1"
 ; The following setting can be used to override the default RDA relator codes that
 ; are used to classify authors between primary and secondary
 ;primary_author_relators = "adp,aut,cmp"
+; Serialization format for Solr index. Valid values are:
+; JSON    - MARC-in-JSON (default)
+; MARCXML - MARCXML
+; ISO2709 - ISO 2709 with MARCXML for too long records
+;solr_serialization = JSON
 
 [ForwardRecord]
 ; The following settings can be used to override the default relator codes that
@@ -282,8 +288,10 @@ dewey-ones = dewey_ones.map
 search[] = '([^\s]+ st)\.'
 replace[] = '\1 street'
 
-[OnkiLightEnrichment]
-; Service base URL
+; Skosmos enrichment settings
+[SkosmosEnrichment]
+; Service base URL or "database" to only use local records imported with
+; e.g. util:import-rdf
 ;base_url = "http://api.somewhere/rest/v1"
 ; URL prefixes to process
 ;url_prefix_allowed_list[] = "http://somewhere/"
@@ -294,6 +302,20 @@ replace[] = '\1 street'
 ; Solr field that contains centroids for the locations. Set to empty if no suitable
 ; field is available. The field should be a LatLonPointSpatialField.
 ;solr_center_field = center_coords_mv
+; Allowed languages in enriched data. Default is to allow everything.
+;languages[] = "en"
+;languages[] = "fi"
+; In-memory cache size for enrichment results. Default is 10000. Set to 0 to
+; disable the cache. This cache contains enrichment results by identifier, which are
+; smaller and faster to use than record cache. Note that there is a separate cache
+; for each record worker (see Solr/record_workers).
+;enrichment_cache_size = 1000
+; In-memory cache size for linked data records. Default is 1000. Set to 0 to
+; disable the cache. This cache contains full linked data records, so it can be used
+; for retrieving main entities as well as exact matches, but the records are larger
+; than in the enrichment result cache. Note that there is a separate cache for each
+; record worker (see Solr/record_workers).
+;record_cache_size = 1000
 
 [MusicBrainzEnrichment]
 ; Note that you need to add the following line to any data source in datasources.ini

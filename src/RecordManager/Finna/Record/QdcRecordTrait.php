@@ -77,7 +77,7 @@ trait QdcRecordTrait
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -124,10 +124,10 @@ trait QdcRecordTrait
 
         if ($this->isOnline()) {
             // This may get overridden below...
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 $data['free_online_str_mv'] = $this->source;
             }
         }
@@ -166,11 +166,16 @@ trait QdcRecordTrait
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        $data['author_facet'] = array_merge(
-            $this->getPrimaryAuthors(),
-            $this->getSecondaryAuthors(),
-            $this->getCorporateAuthors()
-        );
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a = (array)($data['author'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a2 = (array)($data['author2'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $ac = (array)($data['author_corporate'] ?? []);
+        $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = $data['format'];
 

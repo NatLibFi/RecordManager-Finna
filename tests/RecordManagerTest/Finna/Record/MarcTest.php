@@ -47,7 +47,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarc1()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc1.xml',
             [
@@ -295,7 +295,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarc2()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc2.xml',
             [],
@@ -357,27 +357,20 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'author2_role' => [
                 '-',
             ],
-            'author_corporate' => [
-            ],
-            'author_corporate_role' => [
-            ],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
             'author2_id_str_mv' => [],
             'author2_id_role_str_mv' => [],
-            'author_additional' => [
-            ],
+            'author_additional' => [],
             'title' => 'Biological psychology',
             'title_sub' => '',
             'title_short' => 'Biological psychology',
             'title_full' => 'Biological psychology / James W. Kalat',
-            'title_alt' => [
-            ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
             'title_sort' => 'biological psychology / james w. kalat',
-            'series' => [
-            ],
+            'series' => [],
             'publisher' => [
                 'Wadsworth',
             ],
@@ -388,47 +381,36 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'physical' => [
                 'xxiii, 551 sivua : kuvitettu + CD-ROM -levy',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '7th ed',
-            'contents' => [
-            ],
+            'contents' => [],
             'isbn' => [
                 '9780534514099',
                 '9780534514006',
             ],
-            'issn' => [
-            ],
+            'issn' => [],
             'callnumber-first' => '',
-            'callnumber-raw' => [
-            ],
+            'callnumber-raw' => [],
             'topic' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre' => [
-            ],
-            'geographic' => [
-            ],
+            'genre' => [],
+            'geographic' => [],
             'geographic_id_str_mv' => [],
-            'era' => [
-            ],
+            'era' => [],
             'topic_facet' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre_facet' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Illustrated',
             'main_date_str' => '2001',
             'main_date' => '2001-01-01T00:00:00Z',
@@ -439,8 +421,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'publication_place_txt_mv' => [
                 'Belmont, CA',
             ],
-            'subtitle_lng_str_mv' => [
-            ],
+            'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [
                 'eng',
             ],
@@ -448,12 +429,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
             ],
-            'other_issn_str_mv' => [
-            ],
-            'other_issn_isn_mv' => [
-            ],
-            'linking_issn_str_mv' => [
-            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [
                 'L 123 L 616.8 __unit_test_no_source__',
                 'Ll 234 Ll Course __unit_test_no_source__',
@@ -485,7 +463,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcGeo()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc_geo.xml',
             [],
@@ -533,26 +511,19 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'swe',
             ],
             'format' => 'Map',
-            'author' => [
-            ],
-            'author_role' => [
-            ],
-            'author2' => [
-            ],
-            'author2_role' => [
-            ],
+            'author' => [],
+            'author_role' => [],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [
                 'Maanmittaushallitus',
             ],
             'author_corporate_role' => [
                 '-',
             ],
-            'author2_id_str_mv' => [
-            ],
-            'author2_id_role_str_mv' => [
-            ],
-            'author_additional' => [
-            ],
+            'author2_id_str_mv' => [],
+            'author2_id_role_str_mv' => [],
+            'author_additional' => [],
             'title' => 'Suomen tiekartta = Vägkarta över Finland. 1.',
             'title_sub' => 'Vägkarta över Finland. 1.',
             'title_short' => 'Suomen tiekartta',
@@ -561,13 +532,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Vägkarta över Finland',
                 'Suomen tiekartta 1',
             ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
+            'title_old' => [],
+            'title_new' => [],
             'title_sort' => 'suomen tiekartta = vägkarta över finland. 1.',
-            'series' => [
-            ],
+            'series' => [],
             'publisher' => [
                 '[Maanmittaushallitus]',
             ],
@@ -578,15 +546,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'physical' => [
                 '1 kartta : värillinen ; taitettuna 26 x 13 cm',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '',
-            'contents' => [
-            ],
-            'isbn' => [
-            ],
-            'issn' => [
-            ],
+            'contents' => [],
+            'issn' => [],
             'callnumber-first' => '42.02',
             'callnumber-raw' => [
                 '42.02',
@@ -596,8 +559,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'tiekartat',
                 'kartat Suomi',
             ],
-            'genre' => [
-            ],
+            'genre' => [],
             'geographic' => [
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
@@ -608,24 +570,20 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p94460',
                 'http://www.yso.fi/onto/yso/p94081',
             ],
-            'era' => [
-            ],
+            'era' => [],
             'topic_facet' => [
                 'tiekartat',
                 'kartat',
             ],
-            'genre_facet' => [
-            ],
+            'genre_facet' => [],
             'geographic_facet' => [
                 'Suomi',
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
             ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Not Illustrated',
             'main_date_str' => '1946',
             'main_date' => '1946-01-01T00:00:00Z',
@@ -636,8 +594,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'publication_place_txt_mv' => [
                 'Helsinki',
             ],
-            'subtitle_lng_str_mv' => [
-            ],
+            'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [
                 'fin',
                 'swe',
@@ -660,12 +617,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
             ],
-            'other_issn_str_mv' => [
-            ],
-            'other_issn_isn_mv' => [
-            ],
-            'linking_issn_str_mv' => [
-            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [
                 '1 001 __unit_test_no_source__',
             ],
@@ -687,7 +641,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcThesis1()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-thesis1.xml',
             [],
@@ -761,7 +715,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
@@ -830,7 +783,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcThesis2()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-thesis2.xml',
             [],
@@ -902,7 +855,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
@@ -971,7 +923,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcDateRange()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-daterange.xml',
             [],
@@ -1029,7 +981,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],

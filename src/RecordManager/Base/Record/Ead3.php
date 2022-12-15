@@ -116,7 +116,7 @@ class Ead3 extends Ead
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -219,13 +219,33 @@ class Ead3 extends Ead
     }
 
     /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNode('subject', true);
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return [];
+    }
+
+    /**
      * Get topic identifiers.
      *
      * @return array
      */
-    public function getTopicIDs()
+    protected function getTopicIDs(): array
     {
-        return $this->getTopicTermsFromNode('subject', true);
+        return $this->getRawTopicIds();
     }
 
     /**
@@ -484,7 +504,7 @@ class Ead3 extends Ead
      *
      * @param \SimpleXMLElement $xml The XML document
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getAllFields($xml)
     {
@@ -496,7 +516,7 @@ class Ead3 extends Ead
             }
             $s = $this->getAllFields($field);
             if ($s) {
-                $allFields = array_merge($allFields, $s);
+                $allFields = [...$allFields, ...$s];
             }
         }
         return $allFields;

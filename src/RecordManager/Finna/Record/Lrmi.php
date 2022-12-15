@@ -44,6 +44,8 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class Lrmi extends \RecordManager\Base\Record\Lrmi
 {
+    use AuthoritySupportTrait;
+
     /**
      * Fields that are not included in allfield.
      *
@@ -65,7 +67,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -109,10 +111,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         }
 
         // Topic ids
-        $data['topic_id_str_mv'] = array_merge(
-            $data['topic_id_str_mv'] ?? [],
-            array_filter(array_column($this->getTopicsExtended(), 'id'))
-        );
+        $data['topic_id_str_mv'] = $this->getTopicIds();
 
         return $data;
     }
@@ -167,5 +166,16 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         }
 
         return !empty($this->doc->material);
+    }
+
+    /**
+     * Return subject identifiers associated with object.
+     *
+     * @return array
+     */
+    protected function getTopicIDs(): array
+    {
+        $result = $this->getTopicData(true);
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 }

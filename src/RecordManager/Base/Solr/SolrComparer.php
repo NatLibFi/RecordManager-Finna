@@ -231,10 +231,10 @@ class SolrComparer extends SolrUpdater
         ];
 
         if (isset($this->config['Solr']['ignore_in_comparison'])) {
-            $ignoreFields = array_merge(
-                $ignoreFields,
-                explode(',', $this->config['Solr']['ignore_in_comparison'])
-            );
+            $ignoreFields = [
+                ...$ignoreFields,
+                ...explode(',', $this->config['Solr']['ignore_in_comparison'])
+            ];
         }
 
         if (!isset($this->config['Solr']['search_url'])) {
@@ -266,7 +266,7 @@ class SolrComparer extends SolrUpdater
 
         $differences = '';
         $allFields = array_unique(
-            array_merge(array_keys($record), array_keys($solrRecord))
+            [...array_keys($record), ...array_keys($solrRecord)]
         );
         $allFields = $this->compareFields
             ? array_intersect($allFields, $this->compareFields)
@@ -283,12 +283,12 @@ class SolrComparer extends SolrUpdater
 
                 foreach ($solrValues as $solrValue) {
                     if (!in_array($solrValue, $values)) {
-                        $valueDiffs .= "--- $solrValue" . PHP_EOL;
+                        $valueDiffs .= "--- {$solrValue}⏎" . PHP_EOL;
                     }
                 }
                 foreach ($values as $value) {
                     if (!in_array($value, $solrValues)) {
-                        $valueDiffs .= "+++ $value " . PHP_EOL;
+                        $valueDiffs .= "+++ {$value}⏎" . PHP_EOL;
                     }
                 }
 

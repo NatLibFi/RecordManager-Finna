@@ -1,10 +1,10 @@
 <?php
 /**
- * MarcOnkiLightEnrichment Class
+ * Ead3SkosmosEnrichment Class
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2014-2019.
+ * Copyright (C) The National Library of Finland 2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,25 +22,23 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
- * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 namespace RecordManager\Base\Enrichment;
 
 /**
- * MarcOnkiLightEnrichment Class
+ * Ead3SkosmosEnrichment Class
  *
- * This is a class for enrichment of MARC records from an ONKI Light source.
+ * This is a class for enrichment of EAD3 records from a Skosmos instance.
  *
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
- * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class MarcOnkiLightEnrichment extends OnkiLightEnrichment
+class Ead3SkosmosEnrichment extends SkosmosEnrichment
 {
     /**
      * Enrich the record and return any additions in solrArray
@@ -53,35 +51,9 @@ class MarcOnkiLightEnrichment extends OnkiLightEnrichment
      */
     public function enrich($sourceId, $record, &$solrArray)
     {
-        if (!($record instanceof \RecordManager\Base\Record\Marc)) {
+        if (!($record instanceof \RecordManager\Base\Record\Ead3)) {
             return;
         }
-        $fields = [
-            '650' => [
-                'pref' => 'topic_add_txt_mv',
-                'alt' => 'topic_alt_txt_mv',
-                'check' => 'topic'
-            ],
-            '651' => [
-                'pref' => 'geographic_add_txt_mv',
-                'alt' => 'geographic_alt_txt_mv',
-                'check' => 'geographic'
-            ]
-        ];
-        foreach ($fields as $marcField => $spec) {
-            foreach ($record->getFields((string)$marcField) as $recField) {
-                if ($id = $record->getSubfield($recField, '0')) {
-                    $this->enrichField(
-                        $sourceId,
-                        $record,
-                        $solrArray,
-                        $id,
-                        $spec['pref'],
-                        $spec['alt'],
-                        $spec['check']
-                    );
-                }
-            }
-        }
+        parent::enrich($sourceId, $record, $solrArray);
     }
 }

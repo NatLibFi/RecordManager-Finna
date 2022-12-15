@@ -106,7 +106,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -198,10 +198,10 @@ class Lido extends \RecordManager\Base\Record\Lido
             foreach ($dateSources as $dateSource => $field) {
                 $daterange = $this->getDateRange($dateSource);
                 if ($daterange) {
-                    $data[$field . '_daterange'] = $this->dateRangeToStr($daterange);
+                    $rangeStr = $this->dateRangeToStr($daterange);
+                    $data[$field . '_daterange'] = $rangeStr;
                     if (!isset($data['search_daterange_mv'])) {
-                        $data['search_daterange_mv'][]
-                            = $data[$field . '_daterange'];
+                        $data['search_daterange_mv'][] = $rangeStr;
                     }
                     if (!isset($data['main_date_str'])) {
                         $data['main_date_str']
@@ -222,14 +222,14 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['datasource_str_mv'] = $this->source;
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 $data['free_online_str_mv'] = $this->source;
             }
             if ($this->hasHiResImages()) {
-                $data['hires_image_boolean'] = true;
+                $data['hires_image_boolean'] = '1';
                 $data['hires_image_str_mv'] = $this->source;
             }
         }
@@ -249,7 +249,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
-
+        $data['language'] = $this->getLanguages();
         return $data;
     }
 
@@ -296,10 +296,10 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
             if ('' !== $mainPlace && '' !== $subLocation) {
-                $subjectLocations = array_merge(
-                    $subjectLocations,
-                    $this->splitAddresses(trim($mainPlace), trim($subLocation))
-                );
+                $subjectLocations = [
+                    ...$subjectLocations,
+                    ...$this->splitAddresses(trim($mainPlace), trim($subLocation))
+                ];
                 continue;
             }
             // Handle a hierarchical place
@@ -334,65 +334,68 @@ class Lido extends \RecordManager\Base\Record\Lido
         $locations = [];
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
-                // If there is already gml in the record, don't return anything for
-                // geocoding
-                if (!empty($eventNode->eventPlace->place->gml)) {
-                    return [];
-                }
-                $hasValue = !empty(
-                    $eventNode->eventPlace->place->namePlaceSet->appellationValue
-                );
-                if ($hasValue) {
-                    $mainPlace = (string)$eventNode->eventPlace->place->namePlaceSet
-                        ->appellationValue;
-                    $subLocation = $this->getSubLocation(
-                        $eventNode->eventPlace->place
+                foreach ($eventNode->eventPlace as $placeNode) {
+                    // If there is already gml in the record,
+                    // don't return anything for geocoding
+                    if (!empty($placeNode->place->gml)) {
+                        return [];
+                    }
+                    $hasValue = !empty(
+                        $placeNode->place->namePlaceSet->appellationValue
                     );
-                    if ($mainPlace && !$subLocation) {
-                        $locations = array_merge(
-                            $locations,
-                            explode('/', $mainPlace)
+                    if ($hasValue) {
+                        $mainPlace = (string)$placeNode->place->namePlaceSet
+                            ->appellationValue;
+                        $subLocation = $this->getSubLocation(
+                            $placeNode->place
                         );
-                    } else {
-                        $locations = array_merge(
-                            $locations,
-                            $this->splitAddresses($mainPlace, $subLocation)
-                        );
-                    }
-                } elseif (!empty($eventNode->eventPlace->place->partOfPlace)) {
-                    // Flat part of place structure (e.g. Musketti)
-                    $haveStreet = false;
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if (isset($part->placeClassification->term)
-                            && $part->placeClassification->term == 'katuosoite'
-                            && !empty($part->namePlaceSet->appellationValue)
-                        ) {
-                            $haveStreet = true;
-                            break;
+                        if ($mainPlace && !$subLocation) {
+                            $locations = [
+                                ...$locations,
+                                ...explode('/', $mainPlace)
+                            ];
+                        } else {
+                            $locations = [
+                                ...$locations,
+                                ...$this->splitAddresses($mainPlace, $subLocation)
+                            ];
                         }
-                    }
-                    $parts = [];
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if ($haveStreet && isset($part->placeClassification->term)
-                            && ($part->placeClassification->term == 'kaupunginosa'
-                            || $part->placeClassification->term == 'rakennus')
-                        ) {
-                            continue;
+                    } elseif (!empty($placeNode->place->partOfPlace)) {
+                        // Flat part of place structure (e.g. Musketti)
+                        $haveStreet = false;
+                        foreach ($placeNode->place->partOfPlace as $part) {
+                            if (isset($part->placeClassification->term)
+                                && $part->placeClassification->term == 'katuosoite'
+                                && !empty($part->namePlaceSet->appellationValue)
+                            ) {
+                                $haveStreet = true;
+                                break;
+                            }
                         }
-                        if (!empty($part->namePlaceSet->appellationValue)) {
-                            $parts[] = (string)$part->namePlaceSet->appellationValue;
+                        $parts = [];
+                        foreach ($placeNode->place->partOfPlace as $p) {
+                            if ($haveStreet && isset($p->placeClassification->term)
+                                && ($p->placeClassification->term == 'kaupunginosa'
+                                || $p->placeClassification->term == 'rakennus')
+                            ) {
+                                continue;
+                            }
+                            if (!empty($p->namePlaceSet->appellationValue)) {
+                                $parts[]
+                                    = (string)$p->namePlaceSet->appellationValue;
+                            }
                         }
+                        $locations[] = implode(' ', $parts);
+                    } elseif (!empty($placeNode->displayPlace)) {
+                        // Split multiple locations separated with a slash
+                        $locations = [
+                            ...$locations,
+                            ...preg_split(
+                                '/[\/;]/',
+                                (string)$placeNode->displayPlace
+                            )
+                        ];
                     }
-                    $locations[] = implode(' ', $parts);
-                } elseif (!empty($eventNode->eventPlace->displayPlace)) {
-                    // Split multiple locations separated with a slash
-                    $locations = array_merge(
-                        $locations,
-                        preg_split(
-                            '/[\/;]/',
-                            (string)$eventNode->eventPlace->displayPlace
-                        )
-                    );
                 }
             }
         }
@@ -482,7 +485,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @param string $mainPlace   Main location
      * @param string $subLocation Sublocation(s)
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function splitAddresses($mainPlace, $subLocation)
     {
@@ -501,7 +504,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Return usage rights if any
      *
-     * @return array ['restricted'] or a more specific id if restricted,
+     * @return array<int, string> ['restricted'] or a more specific id if restricted,
      * empty array otherwise
      */
     protected function getUsageRights()
@@ -527,28 +530,21 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Return subject identifiers associated with object.
+     * Get all topic identifiers (for enrichment)
      *
-     * @param string[] $exclude List of subject types to exclude (defaults to
-     *                          'iconclass' since it doesn't contain human readable
-     *                          terms)
-     *
-     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
-     * #subjectComplexType
      * @return array
      */
-    public function getTopicIDs($exclude = ['iconclass'])
+    public function getRawTopicIds(): array
     {
-        $result = parent::getTopicIDs();
-        return $this->addNamespaceToAuthorityIds($result, 'topic');
+        return parent::getTopicIDs();
     }
 
     /**
-     * Get geographic topic identifiers
+     * Get all geographic topic identifiers (for enrichment)
      *
      * @return array
      */
-    protected function getGeographicTopicIDs()
+    public function getRawGeographicTopicIds(): array
     {
         $result = [];
 
@@ -578,6 +574,34 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
 
+        return $result;
+    }
+
+    /**
+     * Return subject identifiers associated with object.
+     *
+     * @param string[] $exclude List of subject types to exclude (defaults to
+     *                          'iconclass' since it doesn't contain human readable
+     *                          terms)
+     *
+     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
+     * #subjectComplexType
+     * @return array
+     */
+    protected function getTopicIDs($exclude = ['iconclass']): array
+    {
+        $result = parent::getTopicIDs();
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
+    }
+
+    /**
+     * Get geographic topic identifiers
+     *
+     * @return array
+     */
+    protected function getGeographicTopicIDs()
+    {
+        $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
@@ -635,24 +659,23 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getDescription()
     {
-        $descriptionWrapDescriptions = [];
+        $descriptions = [];
+        $title = $this->getTitle();
         foreach ($this->getObjectDescriptionSetNodes(['provenienssi'])
             as $set
         ) {
             foreach ($set->descriptiveNoteValue as $descriptiveNoteValue) {
-                $descriptionWrapDescriptions[] = (string)$descriptiveNoteValue;
+                $descriptions[] = (string)$descriptiveNoteValue;
             }
         }
-        if ($descriptionWrapDescriptions
-            && $this->getTitle() == implode('; ', $descriptionWrapDescriptions)
-        ) {
+        if ($descriptions && $title === implode('; ', $descriptions)) {
             // We have the description already in the title, don't repeat
-            $descriptionWrapDescriptions = [];
+            $descriptions = [];
         }
 
         // Also read in "description of subject" which contains data suitable for
         // this field
-        $title = str_replace([',', ';'], ' ', $this->getTitle());
+        $title = str_replace([',', ';'], ' ', $title);
         if ($this->getDriverParam('splitTitles', false)) {
             $titlePart = $this->metadataUtils->splitTitle($title);
             if ($titlePart) {
@@ -660,27 +683,19 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         $title = str_replace([',', ';'], ' ', $title);
-        $subjectDescriptions = [];
         foreach ($this->getSubjectSetNodes() as $set) {
             $subject = $set->displaySubject;
             $label = $subject['label'];
-            $checkTitle
+            $nonTitle
                 = trim(str_replace([',', ';'], ' ', (string)$subject)) != $title;
             if ((null === $label || 'aihe' === mb_strtolower($label, 'UTF-8'))
-                && $checkTitle
+                && $nonTitle
             ) {
-                $subjectDescriptions[] = (string)$set->displaySubject;
+                $descriptions[] = (string)$set->displaySubject;
             }
         }
 
-        return trim(
-            implode(
-                ' ',
-                array_unique(
-                    array_merge($subjectDescriptions, $descriptionWrapDescriptions)
-                )
-            )
-        );
+        return trim(implode(' ', array_unique($descriptions)));
     }
 
     /**
@@ -896,7 +911,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string|array $event Event type(s) allowed (null = all types)
      *
-     * @return array WKT
+     * @return array<int, string> WKT
      */
     protected function getEventPlaceLocations($event = null)
     {
@@ -1512,7 +1527,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->doc->lido->descriptiveMetadata->objectClassificationWrap
             ->classificationWrap->classification as $classification
         ) {
-            if (!empty($classification->term)) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' !== $type && !empty($classification->term)) {
                 foreach ($classification->term as $term) {
                     $results[] = (string)$term;
                 }
@@ -1526,7 +1542,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string $eventType Event type
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getEventNames($eventType)
     {
@@ -1589,7 +1605,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #objectWorkTypeWrap
-     * @return string|array
+     * @return array<int, string>
      */
     protected function getObjectWorkTypes()
     {
@@ -1630,7 +1646,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string[] $relatedWorkRelType Which relation types to use
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getRelatedWorks($relatedWorkRelType)
     {
@@ -1650,7 +1666,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #objectMeasurementsSetComplexType
-     * @return array
+     * @return array<int, string>
      */
     protected function getMeasurements()
     {
@@ -1718,7 +1734,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #eventComplexType
-     * @return array
+     * @return array<int, string>
      */
     protected function getCulture()
     {
@@ -1783,7 +1799,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get categories
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getCategories(): array
     {
@@ -1881,5 +1897,28 @@ class Lido extends \RecordManager\Base\Record\Lido
             return boolval($free);
         }
         return $this->getDriverParam('freeOnlineDefault', true);
+    }
+
+    /**
+     * Get all language codes
+     *
+     * @return array Language codes
+     */
+    protected function getLanguages(): array
+    {
+        $classifications = $this->doc->lido->descriptiveMetadata
+                ->objectClassificationWrap->classificationWrap->classification ?? [];
+        $result = [];
+        foreach ($classifications as $classification) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' === $type) {
+                foreach ($classification->term as $lang) {
+                    if ($trimmed = trim((string)$lang)) {
+                        $result[] = $trimmed;
+                    }
+                }
+            }
+        }
+        return array_unique($result);
     }
 }

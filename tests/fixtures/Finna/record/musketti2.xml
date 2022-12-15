@@ -16,6 +16,13 @@
                     <classification>
                         <term label="aineistotyyppi" lang="fi">valokuva</term>
                     </classification>
+                    <classification type="language">
+                        <term>fi</term>
+                        <term>sv</term>
+                    </classification>
+                    <classification type="language">
+                        <term>en</term>
+                    </classification>
                 </classificationWrap>
             </objectClassificationWrap>
             <objectIdentificationWrap>

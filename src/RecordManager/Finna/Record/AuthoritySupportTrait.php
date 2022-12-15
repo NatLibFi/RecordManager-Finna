@@ -59,7 +59,7 @@ trait AuthoritySupportTrait
      * @param string[] $ids  Array of authority ids
      * @param string   $type Authority type
      *
-     * @return string[]
+     * @return array<int, string>
      */
     protected function addNamespaceToAuthorityIds($ids, $type = '*')
     {

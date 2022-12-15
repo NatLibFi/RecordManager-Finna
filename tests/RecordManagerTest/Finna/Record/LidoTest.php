@@ -140,15 +140,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Hintze Harry, kuvaaja',
             ],
             'author_sort' => 'Testaaja, Taavi, suunnittelija',
-            'topic_facet' => [
-            ],
-            'topic' => [
-            ],
+            'topic_facet' => [],
+            'topic' => [],
             'topic_id_str_mv' => [],
-            'material' => [
-            ],
-            'material_str_mv' => [
-            ],
+            'material' => [],
+            'material_str_mv' => [],
             'era_facet' => [
                 '1897', '1898'
             ],
@@ -173,6 +169,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'musketti_www.M012:4878:1',
                 'kuva',
                 'valokuva',
+                'fi',
+                'sv',
+                'en',
                 'Imatrankoski',
                 '33,1.',
                 'Imatra. val. H.Hintze 1897 Antr.',
@@ -209,17 +208,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'measurements' => [
                 '12 x 17 cm, 12 cm',
             ],
-            'culture' => [
-            ],
+            'culture' => [],
             'rights' => 'Museovirasto/MV',
-            'artist_str_mv' => [
-            ],
-            'photographer_str_mv' => [
-            ],
-            'finder_str_mv' => [
-            ],
-            'manufacturer_str_mv' => [
-            ],
+            'artist_str_mv' => [],
+            'photographer_str_mv' => [],
+            'finder_str_mv' => [],
+            'manufacturer_str_mv' => [],
             'designer_str_mv' => ['Testaaja, Taavi'],
             'classification_str_mv' => [
                 'valokuva',
@@ -227,8 +221,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'classification_txt_mv' => [
                 'valokuva',
             ],
-            'exhibition_str_mv' => [
-            ],
+            'exhibition_str_mv' => [],
             'main_date_str' => '1897',
             'main_date' => '1897-01-01T00:00:00Z',
             'search_daterange_mv' => [
@@ -238,12 +231,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'creation_daterange' => '[1897-01-01 TO 1897-12-31]',
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => '__unit_test_no_source__',
-            'online_boolean' => true,
+            'online_boolean' => '1',
             'online_str_mv' => '__unit_test_no_source__',
-            'free_online_boolean' => true,
+            'free_online_boolean' => '1',
             'free_online_str_mv' => '__unit_test_no_source__',
-            'location_geo' => [
-            ],
+            'location_geo' => [],
             'center_coords' => '',
             'usage_rights_str_mv' => [
                 '',
@@ -264,12 +256,14 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'category_str_mv' => [
                 'Luonto'
             ],
-            'ctrlnum' => [
-            ],
-            'isbn' => [
-            ],
-            'issn' => [
-            ],
+            'ctrlnum' => [],
+            'isbn' => [],
+            'issn' => [],
+            'language' => [
+                'fi',
+                'sv',
+                'en'
+            ]
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

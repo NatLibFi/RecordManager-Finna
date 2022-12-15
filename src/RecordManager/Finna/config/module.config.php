@@ -32,6 +32,7 @@ return [
         'plugin_managers' => [
             'record' => [
                 'factories' => [
+                    \RecordManager\Finna\Record\Aipa::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Finna\Record\Dc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Finna\Record\Eaccpf::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Finna\Record\Ead::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
@@ -41,7 +42,7 @@ return [
                     \RecordManager\Finna\Record\Lido::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Finna\Record\Lrmi::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Finna\Record\Marc::class => \RecordManager\Finna\Record\MarcFactory::class,
-                    \RecordManager\Finna\Record\MarcAuthority::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
+                    \RecordManager\Finna\Record\MarcAuthority::class => \RecordManager\Finna\Record\MarcFactory::class,
                     \RecordManager\Finna\Record\Qdc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                 ],
                 'aliases' => [
@@ -56,6 +57,7 @@ return [
                     \RecordManager\Base\Record\Marc::class => \RecordManager\Finna\Record\Marc::class,
                     \RecordManager\Base\Record\MarcAuthority::class => \RecordManager\Finna\Record\MarcAuthority::class,
                     \RecordManager\Base\Record\Qdc::class => \RecordManager\Finna\Record\Qdc::class,
+                    'aipa' => \RecordManager\Finna\Record\Aipa::class,
                 ],
             ],
             'splitter' => [

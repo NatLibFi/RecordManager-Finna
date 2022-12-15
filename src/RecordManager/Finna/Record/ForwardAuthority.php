@@ -77,7 +77,7 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
     /**
      * Get other names associated with the person
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getUseForHeadings(): array
     {

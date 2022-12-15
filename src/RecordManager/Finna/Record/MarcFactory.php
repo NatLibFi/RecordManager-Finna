@@ -74,6 +74,9 @@ class MarcFactory
             $configReader->get('datasources.ini'),
             $container->get(\RecordManager\Base\Utils\Logger::class),
             $container->get(\RecordManager\Base\Utils\MetadataUtils::class),
+            function ($data) {
+                return new \RecordManager\Base\Marc\Marc($data);
+            },
             $container->get(\RecordManager\Base\Record\PluginManager::class)
         );
     }

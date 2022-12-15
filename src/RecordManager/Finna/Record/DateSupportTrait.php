@@ -44,13 +44,13 @@ trait DateSupportTrait
      *
      * @param array|null $range Start and end date
      *
-     * @return string|null Start and end date in Solr format
+     * @return string Start and end date in Solr format
      * @throws \Exception
      */
     public function dateRangeToStr($range)
     {
         if (!$range) {
-            return null;
+            return '';
         }
         $oldTZ = date_default_timezone_get();
         try {

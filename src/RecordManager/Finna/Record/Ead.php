@@ -65,7 +65,7 @@ class Ead extends \RecordManager\Base\Record\Ead
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -124,13 +124,13 @@ class Ead extends \RecordManager\Base\Record\Ead
         }
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             // This is sort of special. Make sure to use source instead
             // of datasource.
             $data['online_str_mv'] = $data['source_str_mv'];
 
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
                 $data['free_online_str_mv'] = $data['source_str_mv'];
@@ -161,11 +161,16 @@ class Ead extends \RecordManager\Base\Record\Ead
             $data['usage_rights_ext_str_mv'] = $rights;
         }
 
-        $data['author_facet'] = array_merge(
-            isset($data['author']) ? (array)$data['author'] : [],
-            isset($data['author2']) ? (array)$data['author2'] : [],
-            isset($data['author_corporate']) ? (array)$data['author_corporate'] : []
-        );
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a = (array)($data['author'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a2 = (array)($data['author2'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $ac = (array)($data['author_corporate'] ?? []);
+        $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = (array)$data['format'];
         if ($this->hasImages()) {
@@ -384,7 +389,7 @@ class Ead extends \RecordManager\Base\Record\Ead
      *
      * @return array
      */
-    public function getTopicIDs()
+    protected function getTopicIDs(): array
     {
         $result = parent::getTopicIDs();
         return $this->addNamespaceToAuthorityIds($result, 'topic');

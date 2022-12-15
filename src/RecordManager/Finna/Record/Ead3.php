@@ -87,7 +87,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, string|array<int, string>>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -150,13 +150,13 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['datasource_str_mv'] = $this->source;
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             // This is sort of special. Make sure to use source instead
             // of datasource.
             $data['online_str_mv'] = $data['source_str_mv'];
 
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
                 $data['free_online_str_mv'] = $data['source_str_mv'];
@@ -258,7 +258,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
             $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
-                    array_unique(array_merge($corporateAuthorIds, $author2Ids)),
+                    array_unique([...$corporateAuthorIds, ...$author2Ids]),
                     'author'
                 );
             $data['author2_id_role_str_mv']
@@ -420,7 +420,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Get corporate authors
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getCorporateAuthors() : array
     {
@@ -449,7 +449,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Get corporate author identifiers
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getCorporateAuthorIds()
     {
@@ -646,7 +646,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
             if ($primary) {
-                $result = array_merge($primary, $result);
+                $result = [...$primary, ...$result];
             }
         }
         return array_filter($result);
@@ -844,14 +844,38 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array
      */
-    public function getTopicIDs()
+    protected function getTopicIDs(): array
     {
-        $result = $this->getTopicTermsFromNodeWithRelators(
+        $result = $this->getRawTopicIds();
+        return $this->addNamespaceToAuthorityIds($result, 'geographic');
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
             'subject',
             self::SUBJECT_RELATORS,
             true
         );
-        return $this->addNamespaceToAuthorityIds($result, 'geographic');
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
     }
 
     /**
@@ -874,11 +898,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getGeographicTopicIDs()
     {
-        $result = $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
+        $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 

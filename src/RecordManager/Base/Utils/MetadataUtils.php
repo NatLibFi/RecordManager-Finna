@@ -183,10 +183,10 @@ class MetadataUtils
 
         $this->eArticleFormats = $config['Solr']['earticle_formats'] ?? ['eArticle'];
 
-        $this->allArticleFormats = array_merge(
-            $this->articleFormats,
-            $this->eArticleFormats
-        );
+        $this->allArticleFormats = [
+            ...$this->articleFormats,
+            ...$this->eArticleFormats
+        ];
 
         $this->unicodeNormalizationForm
             = $config['Solr']['unicode_normalization_form'] ?? '';
@@ -479,13 +479,19 @@ class MetadataUtils
     /**
      * Strip trailing spaces and punctuation characters from a string
      *
-     * @param string $str        String to strip
-     * @param string $additional Additional chars to strip
+     * @param string $str                     String to strip
+     * @param string $additional              Additional chars to strip
+     * @param bool   $preservePunctuationOnly Return the original string if it
+     *                                        contains only punctuation
      *
      * @return string
      */
-    public function stripTrailingPunctuation($str, $additional = '')
-    {
+    public function stripTrailingPunctuation(
+        string $str,
+        string $additional = '',
+        bool $preservePunctuationOnly = false
+    ): string {
+        $originalStr = $str;
         $basic = ' /:;,=([';
         if ($additional) {
             // Use preg_replace for multibyte support
@@ -494,6 +500,15 @@ class MetadataUtils
                 '',
                 $str
             );
+            if (null === $str) {
+                // Possibly invalid UTF-8, log and return:
+                $this->logger->logError(
+                    'stripLeadingPunctuation',
+                    "Failed to replace punctuation for '$originalStr': "
+                    . preg_last_error_msg()
+                );
+                return $originalStr;
+            }
         } else {
             $str = rtrim($str, $basic);
         }
@@ -525,27 +540,47 @@ class MetadataUtils
             $str = substr($str, 0, -1);
         }
 
+        if ($preservePunctuationOnly && '' === $str) {
+            return $originalStr;
+        }
         return $str;
     }
 
     /**
      * Strip leading spaces and punctuation characters from a string
      *
-     * @param string $str         String to strip
-     * @param string $punctuation String of punctuation characters
+     * @param string  $str                     String to strip
+     * @param ?string $punctuation             String of punctuation characters or
+     *                                         null for default
+     * @param bool    $preservePunctuationOnly Return the original string if it
+     *                                         contains only punctuation
      *
      * @return string
      */
     public function stripLeadingPunctuation(
-        $str,
-        $punctuation = " \t\\#*!¡?/:;.,=(['\"´`” ̈"
+        string $str,
+        ?string $punctuation = null,
+        bool $preservePunctuationOnly = true
     ) {
+        $punctuation = $punctuation ?? " \t\\#*!¡?/:;.,=(['\"´`” ̈";
         // Use preg_replace for multibyte support
-        return preg_replace(
+        $result = preg_replace(
             '/^[' . preg_quote($punctuation, '/') . ']*/u',
             '',
             $str
         );
+        if (null === $result) {
+            // Possibly invalid UTF-8, log and return:
+            $this->logger->logError(
+                'stripLeadingPunctuation',
+                "Failed to replace punctuation for '$str': " . preg_last_error_msg()
+            );
+            return $str;
+        }
+        if ($preservePunctuationOnly && '' === $result) {
+            return $str;
+        }
+        return $result;
     }
 
     /**
@@ -1036,12 +1071,12 @@ class MetadataUtils
      * Load XML into DOM or SimpleXMLElement (if $dom is null)
      *
      * @param string       $xml     XML
-     * @param \DomDocument $dom     DOM
+     * @param \DOMDocument $dom     DOM
      * @param int          $options Additional libxml options (LIBXML_PARSEHUGE and
      *                              LIBXML_COMPACT are set by default)
      * @param string       $errors  Any errors encountered
      *
-     * @return \SimpleXMLElement|\DomDocument|bool
+     * @return \SimpleXMLElement|\DOMDocument|bool
      */
     public function loadXML(
         $xml,

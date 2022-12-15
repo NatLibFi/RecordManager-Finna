@@ -369,9 +369,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             'hierarchy_sequence_str' => '0000003',
             'source_str_mv' => '102268433',
             'datasource_str_mv' => '__unit_test_no_source__',
-            'online_boolean' => true,
+            'online_boolean' => '1',
             'online_str_mv' => '102268433',
-            'free_online_boolean' => true,
+            'free_online_boolean' => '1',
             'free_online_str_mv' => '102268433',
             'identifier' => '238612737',
             'material' => [
