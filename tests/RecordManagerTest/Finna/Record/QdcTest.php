@@ -47,8 +47,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testDateRanges()
     {
-        $expected
-            = [
+        $expected = [
                 '[1800-01-01 TO 1801-12-31]',
                 '[1802-01-01 TO 1803-12-31]',
                 '[1804-01-01 TO 1805-12-31]',
