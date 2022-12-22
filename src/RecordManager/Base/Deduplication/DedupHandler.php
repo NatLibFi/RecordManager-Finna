@@ -102,14 +102,14 @@ class DedupHandler implements DedupHandlerInterface
      *
      * @var array
      */
-    protected $ignoredIds;
+    protected $ignoredIds = [];
 
     /**
      * Identifiers+titles ignored in deduplication
      *
      * @var array
      */
-    protected $ignoredIdsAndTitles;
+    protected $ignoredIdsAndTitles = [];
 
     /**
      * Metadata utilities
@@ -818,7 +818,7 @@ class DedupHandler implements DedupHandlerInterface
                     return '++ISBN match:' . PHP_EOL
                         . print_r($origISBNs, true) . PHP_EOL
                         . print_r($candidateISBNs, true) . PHP_EOL
-                        . $origRecord->getFullTitleForDebugging()
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
                         . $candidateRecord->getFullTitleForDebugging();
                 }
             );
@@ -841,7 +841,7 @@ class DedupHandler implements DedupHandlerInterface
                     return '++ID match:' . PHP_EOL
                         . print_r($origIDs, true) . PHP_EOL
                         . print_r($candidateIDs, true) . PHP_EOL
-                        . $origRecord->getFullTitleForDebugging()
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
                         . $candidateRecord->getFullTitleForDebugging();
                 }
             );
@@ -863,7 +863,7 @@ class DedupHandler implements DedupHandlerInterface
                     return '--ISSN mismatch:' . PHP_EOL
                         . print_r($origISSNs, true) . PHP_EOL
                         . print_r($candidateISSNs, true) . PHP_EOL
-                        . $origRecord->getFullTitleForDebugging()
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
                         . $candidateRecord->getFullTitleForDebugging();
                 }
             );
