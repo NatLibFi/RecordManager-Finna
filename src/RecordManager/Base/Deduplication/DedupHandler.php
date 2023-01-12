@@ -783,8 +783,8 @@ class DedupHandler implements DedupHandlerInterface
         }
 
         // Check format
-        $origFormat = $origRecord->getFormat();
-        $candidateFormat = $candidateRecord->getFormat();
+        $origFormat = (array)$origRecord->getFormat();
+        $candidateFormat = (array)$candidateRecord->getFormat();
         $origMapped = $this->fieldMapper->mapFormat(
             $origDbRecord['source_id'],
             $origFormat
@@ -793,10 +793,15 @@ class DedupHandler implements DedupHandlerInterface
             $candidateDbRecord['source_id'],
             $candidateFormat
         );
+        sort($origFormat);
+        sort($candidateFormat);
+        sort($origMapped);
+        sort($candidateMapped);
         if ($origFormat != $candidateFormat && $origMapped != $candidateMapped) {
             $this->log->writelnVeryVerbose(
-                "--Format mismatch: $origFormat != $candidateFormat and $origMapped"
-                . " != $candidateMapped"
+                '--Format mismatch: ' . implode(',', $origFormat) . ' != ' .
+                implode(',', $candidateFormat) . ' and ' . implode(',', $origMapped)
+                . ' != ' . implode(',', $candidateMapped)
             );
             return false;
         }

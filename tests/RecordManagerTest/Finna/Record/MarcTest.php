@@ -113,23 +113,32 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Hirsjärvi, Sirkka',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Hirsjärvi, Sirkka',
+            'author_variant' => [
+                's h sh',
+            ],
             'author2' => [
-                'Hirsjärvi, Sirkka',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
             ],
             'author2_role' => [
-                '-',
-                '-',
-                '-',
+                '',
+                '',
             ],
             'author_corporate' => [],
             'author_corporate_role' => [],
-            'author2_id_str_mv' => [],
+            'author2_id_str_mv' => [
+                'testauth.(TEST)1',
+                'testauth.(TEST)2',
+                'testauth.(TEST)3',
+            ],
             'author2_id_role_str_mv' => [],
+            'author2_variant' => [
+                'p r pr',
+                'p s ps',
+            ],
             'author_additional' => [],
             'title' => 'Tutki ja kirjoita',
             'title_sub' => '',
@@ -139,7 +148,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'tutki ja kirjoita / sirkka hirsjärvi, pirkko remes,'
+            'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
             'series' => [],
             'publisher' => [
@@ -242,17 +251,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'author_facet' => [
                 'Hirsjärvi, Sirkka',
-                'Hirsjärvi, Sirkka',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
             ],
             'format_ext_str_mv' => 'Book',
-            'author2_id_str_mv' => [
-                'testauth.(TEST)1',
-                'testauth.(TEST)1',
-                'testauth.(TEST)2',
-                'testauth.(TEST)3',
-            ],
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
         ];
@@ -267,6 +269,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                     [
                         'type' => 'author',
                         'value' => 'Hirsjärvi, Sirkka.',
+                    ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Remes, Pirkko.',
+                    ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Sajavaara, Paula.',
                     ],
                 ],
                 'authorsAltScript' => [],
@@ -348,15 +358,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Kalat, James W.',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Kalat, James W.',
-            'author2' => [
-                'Kalat, James W.',
+            'author_variant' => [
+                'j w k jw jwk',
             ],
-            'author2_role' => [
-                '-',
-            ],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -369,7 +378,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'biological psychology / james w. kalat',
+            'title_sort' => 'biological psychology james w kalat',
             'series' => [],
             'publisher' => [
                 'Wadsworth',
@@ -438,7 +447,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'callnumber-sort' => '',
             'author_facet' => [
-                'Kalat, James W.',
                 'Kalat, James W.',
             ],
             'format_ext_str_mv' => 'Book',
@@ -519,7 +527,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Maanmittaushallitus',
             ],
             'author_corporate_role' => [
-                '-',
+                '',
             ],
             'author2_id_str_mv' => [],
             'author2_id_role_str_mv' => [],
@@ -534,7 +542,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'suomen tiekartta = vägkarta över finland. 1.',
+            'title_sort' => 'suomen tiekartta vägkarta över finland 1',
             'series' => [],
             'publisher' => [
                 '[Maanmittaushallitus]',
@@ -681,15 +689,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Author, Test',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Author, Test',
-            'author2' => [
-                'Author, Test',
+            'author_variant' => [
+                't a ta',
             ],
-            'author2_role' => [
-                '-',
-            ],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -702,7 +709,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'thesis title / test author',
+            'title_sort' => 'thesis title test author',
             'series' => [],
             'publisher' => [
                 'Kansalliskirjasto',
@@ -763,7 +770,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [],
             'author_facet' => [
-                'Author, Test',
                 'Author, Test',
             ],
             'format_ext_str_mv' => 'BachelorsThesisPolytechnic',
@@ -821,15 +827,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Author, Test',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Author, Test',
-            'author2' => [
-                'Author, Test',
+            'author_variant' => [
+                't a ta',
             ],
-            'author2_role' => [
-                '-',
-            ],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -842,7 +847,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'thesis title / test author',
+            'title_sort' => 'thesis title test author',
             'series' => [],
             'publisher' => [
                 'Kansalliskirjasto',
@@ -903,7 +908,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [],
             'author_facet' => [
-                'Author, Test',
                 'Author, Test',
             ],
             'format_ext_str_mv' => 'BachelorsThesisPolytechnic',

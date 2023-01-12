@@ -230,7 +230,7 @@ class Ead extends AbstractRecord
         $data['title'] .= $data['title_short'];
         $data['title_full'] = $data['title_sort'] = $data['title'];
         $data['title_sort'] = mb_strtolower(
-            $this->metadataUtils->stripLeadingPunctuation($data['title_sort']),
+            $this->metadataUtils->stripPunctuation($data['title_sort']),
             'UTF-8'
         );
 
@@ -285,6 +285,10 @@ class Ead extends AbstractRecord
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)$doc->did->unittitle;
         }
+        if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+            $data['title_in_hierarchy']
+                = trim($this->getUnitId() . ' ' . $this->getTitle());
+        }
 
         return $data;
     }
@@ -292,7 +296,7 @@ class Ead extends AbstractRecord
     /**
      * Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {

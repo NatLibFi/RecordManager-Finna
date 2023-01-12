@@ -30,6 +30,7 @@ namespace RecordManager\Finna\Record;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Marc\Marc as MarcHandler;
 use RecordManager\Base\Record\CreateRecordTrait;
+use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Utils\LcCallNumber;
 use RecordManager\Base\Utils\Logger;
@@ -134,6 +135,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @param Logger              $logger              Logger
      * @param MetadataUtils       $metadataUtils       Metadata utilities
      * @param callable            $recordCallback      MARC record creation callback
+     * @param FormatCalculator    $formatCalculator    Record format calculator
      * @param RecordPluginManager $recordPluginManager Record plugin manager
      */
     public function __construct(
@@ -142,6 +144,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         Logger $logger,
         MetadataUtils $metadataUtils,
         callable $recordCallback,
+        FormatCalculator $formatCalculator,
         RecordPluginManager $recordPluginManager
     ) {
         parent::__construct(
@@ -149,7 +152,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             $dataSourceConfig,
             $logger,
             $metadataUtils,
-            $recordCallback
+            $recordCallback,
+            $formatCalculator
         );
 
         $this->recordPluginManager = $recordPluginManager;
@@ -300,7 +304,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             $field = trim($field);
             if ($field) {
                 $data['author2'][] = $field;
-                $data['author2_role'][] = '-';
+                $data['author2_role'][] = '';
             }
         }
         // 979l = component part author id's
@@ -1558,53 +1562,59 @@ class Marc extends \RecordManager\Base\Record\Marc
      * Get alternate titles
      *
      * @return array
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     protected function getAltTitles(): array
     {
-        return array_values(
-            array_unique(
-                $this->getFieldsSubfields(
+        $altTitles = $this->getFieldsSubfields(
+            [
+                [MarcHandler::GET_ALT, '245', ['a', 'b']],
+                [MarcHandler::GET_BOTH, '130', [
+                    'a', 'd', 'f', 'g', 'h', 'k', 'l', 'n', 'p', 'r', 's',
+                    't'
+                ]],
+                [MarcHandler::GET_BOTH, '240', [
+                    'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
+                    'r', 's'
+                ]],
+                [MarcHandler::GET_BOTH, '243', [
+                    'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
+                    'r', 's'
+                ]],
+                [MarcHandler::GET_BOTH, '246', ['a', 'b', 'n', 'p']],
+                // Use only 700 fields that contain subfield 't'
+                [
+                    MarcHandler::GET_BOTH,
+                    '700',
                     [
-                        [MarcHandler::GET_ALT, '245', ['a', 'b']],
-                        [MarcHandler::GET_BOTH, '130', [
-                            'a', 'd', 'f', 'g', 'h', 'k', 'l', 'n', 'p', 'r', 's',
-                            't'
-                        ]],
-                        [MarcHandler::GET_BOTH, '240', [
-                            'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
-                            'r', 's'
-                        ]],
-                        [MarcHandler::GET_BOTH, '243', [
-                            'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
-                            'r', 's'
-                        ]],
-                        [MarcHandler::GET_BOTH, '246', ['a', 'b', 'n', 'p']],
-                        [MarcHandler::GET_BOTH, '505', ['t']],
-                        // Use only 700 fields that contain subfield 't'
-                        [
-                            MarcHandler::GET_BOTH,
-                            '700',
-                            [
-                                't', 'm', 'r', 'h', 'i', 'g', 'n', 'p', 's', 'l',
-                                'o', 'k'
-                            ],
-                            ['t']
-                        ],
-                        [MarcHandler::GET_BOTH, '730', [
-                            'a', 'd', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o',
-                            'p', 'r', 's', 't'
-                        ]],
-                        [MarcHandler::GET_BOTH, '740', ['a']],
-                        // 979b = component part title
-                        [MarcHandler::GET_BOTH, '979', ['b']],
-                        // 979e = component part uniform title
-                        [MarcHandler::GET_BOTH, '979', ['e']],
-                        // Finnish 9xx reference field
-                        [MarcHandler::GET_BOTH, '940', ['a']],
-                    ]
-                )
-            )
+                        't', 'm', 'r', 'h', 'i', 'g', 'n', 'p', 's', 'l',
+                        'o', 'k'
+                    ],
+                    ['t']
+                ],
+                [MarcHandler::GET_BOTH, '730', [
+                    'a', 'd', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o',
+                    'p', 'r', 's', 't'
+                ]],
+                [MarcHandler::GET_BOTH, '740', ['a']],
+                // 979b = component part title
+                [MarcHandler::GET_BOTH, '979', ['b']],
+                // 979e = component part uniform title
+                [MarcHandler::GET_BOTH, '979', ['e']],
+                // Finnish 9xx reference field
+                [MarcHandler::GET_BOTH, '940', ['a']],
+            ]
         );
+        $altTitles = [
+            ...$altTitles,
+            ...array_map(
+                [$this->metadataUtils, 'stripTrailingPunctuation'],
+                $this->record->getFieldsSubfields('505', ['t'], null)
+            )
+        ];
+
+        return array_values(array_unique($altTitles));
     }
 
     /**
@@ -2221,7 +2231,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         return $this->getAuthorsByRelator(
             $fieldSpecs,
             $this->primaryAuthorRelators,
-            ['700'],
+            ['100'],
             true,
             true
         );
@@ -2243,7 +2253,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         return $this->getAuthorsByRelator(
             $fieldSpecs,
             $this->primaryAuthorRelators,
-            ['700'],
+            ['100'],
             false,
             true
         );

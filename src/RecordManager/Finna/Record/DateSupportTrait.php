@@ -65,4 +65,32 @@ trait DateSupportTrait
 
         return $start === $end ? $start : "[$start TO $end]";
     }
+
+    /**
+     * Get years from a string, matches ISO 8601 format.
+     *
+     * @param string $dateString String to check for years.
+     *
+     * @return array [startYear, endYear] or empty array if not found.
+     */
+    protected function getYearsFromString(string $dateString): array
+    {
+        if (preg_match_all(
+            '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
+            $dateString,
+            $matches
+        )
+        ) {
+            $result = [
+                'startYear' => $matches[1][0],
+                'endYear' => $matches[1][1] ?? $matches[1][0]
+            ];
+            // Turn the years into numbers and compare them.
+            if ((int)$result['startYear'] > (int)$result['endYear']) {
+                $result['endYear'] = $result['startYear'];
+            }
+            return $result;
+        }
+        return [];
+    }
 }

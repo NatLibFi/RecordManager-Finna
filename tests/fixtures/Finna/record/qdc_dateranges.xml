@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<dc schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+    <!-- Valid dates -->
+    <date>1800-01-01/1801-02-05</date>
+    <date>1802-1-1/1803</date>
+    <date>1804-01/1805-02</date>
+    <date>1806/1807-2</date>
+    <date>1808/1809</date>
+
+    <date>1810-01-01</date>
+    <date>1811-1-1</date>
+    <date>1812-01</date>
+    <date>1813-1</date>
+    <date>1814</date>
+
+    <date>1819-1820</date>
+    <!-- Character U-2013 -->
+    <date>1821–1822</date>
+    <date>1823</date>
+
+    <!-- Negative dates -->
+    <date>-2020-10-20/0015-9-23</date>
+    <date>-2022-10/-0021-9</date>
+    <date>-2024/-0023</date>
+    <date>-2026</date>
+
+    <!-- Later date is smaller -->
+    <date>2027-01/2026-02</date>
+    <date>2028/0005-2</date>
+    <date>2029/1002</date>
+
+    <!-- Dates which are missing splitter, but can still be used somehow -->
+    <date>0004-1-013005-2-5</date>
+    <date>3006-1-013007-2-5</date>
+    <date>0008-1-13009-2-5</date>
+    <date>3010-13011-2</date>
+
+    <!-- These dates should not appear as they are not formed properly-->
+    <date>55-01-11/56-01-12</date>
+    <date>1.1.04/1.1.06</date>
+    <date>57-1-13/58-5-14</date>
+    <date>59-15/60-16</date>
+    <date>61-17/62-18</date>
+    <date>63-01-19</date>
+    <date>64-1-20</date>
+    <date>65-21</date>
+    <date>66-22</date>
+    <date>-009-1-13009-2-5</date>
+
+    <!-- Invalid dates -->
+    <date>30123013</date>
+    <date>31a4</date>
+    <date>20221212-20221214</date>
+    <date>20221210</date>
+    <date>2 028----00 05</date>
+</dc>

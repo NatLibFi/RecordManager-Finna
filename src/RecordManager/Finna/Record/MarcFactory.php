@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2021.
+ * Copyright (C) The National Library of Finland 2021-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -77,6 +77,7 @@ class MarcFactory
             function ($data) {
                 return new \RecordManager\Base\Marc\Marc($data);
             },
+            $container->get(\RecordManager\Base\Record\Marc\FormatCalculator::class),
             $container->get(\RecordManager\Base\Record\PluginManager::class)
         );
     }

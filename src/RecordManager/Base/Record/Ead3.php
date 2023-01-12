@@ -154,7 +154,7 @@ class Ead3 extends Ead
         $data['title'] .= $data['title_short'];
         $data['title_full'] = $data['title_sort'] = $data['title'];
         $data['title_sort'] = mb_strtolower(
-            $this->metadataUtils->stripLeadingPunctuation($data['title_sort']),
+            $this->metadataUtils->stripPunctuation($data['title_sort']),
             'UTF-8'
         );
 
@@ -170,7 +170,7 @@ class Ead3 extends Ead
     /**
      * Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -462,6 +462,7 @@ class Ead3 extends Ead
         $data = [
             'hierarchytype' => 'Default'
         ];
+        $sequenceUnitId = '';
         if ($this->doc->{'add-data'}->archive) {
             $archiveAttr = $this->doc->{'add-data'}->archive->attributes();
             $data['hierarchy_top_id'] = (string)$archiveAttr->{'id'};
@@ -475,8 +476,9 @@ class Ead3 extends Ead
             if ($seqLabel) {
                 foreach ($this->doc->did->unitid ?? [] as $unitId) {
                     if ($seqLabel === (string)$unitId->attributes()->label) {
+                        $sequenceUnitId = (string)$unitId;
                         $data['hierarchy_sequence']
-                            = str_pad((string)$unitId, 7, '0', STR_PAD_LEFT);
+                            = str_pad($sequenceUnitId, 7, '0', STR_PAD_LEFT);
                         break;
                     }
                 }
@@ -494,6 +496,12 @@ class Ead3 extends Ead
             $data['is_hierarchy_id'] = $data['hierarchy_top_id'] = $this->getID();
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)($this->doc->did->unittitle ?? '');
+        }
+        if ($sequenceUnitId
+            && $this->getDriverParam('addIdToHierarchyTitle', true)
+        ) {
+            $data['title_in_hierarchy']
+                = trim("$sequenceUnitId " . $this->getTitle());
         }
 
         return $data;

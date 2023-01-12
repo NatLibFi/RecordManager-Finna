@@ -346,7 +346,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             'title_sub' => '1',
             'title_short' => 'Sundvall Gustaf Edvard S 1:a) 1 (1881)',
             'title' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
-            'title_sort' => '1 sundvall gustaf edvard s 1:a) 1 (1881)',
+            'title_sort' => '1 sundvall gustaf edvard s 1 a 1 (1881)',
             'title_full' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
             'language' => [
                 'fin',
