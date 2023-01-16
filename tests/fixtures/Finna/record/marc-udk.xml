@@ -1,0 +1,39 @@
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+    <leader>00000cas a22000004i 4500</leader>
+    <controlfield tag="001">123</controlfield>
+    <controlfield tag="008">220916d19311943fi |||||||||||||||||fin c</controlfield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">fennica080</subfield>
+        <subfield code="2">1974/fin/fennica</subfield>
+    </datafield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">finuc-s080</subfield>
+        <subfield code="2">1974/fin/finuc-s</subfield>
+    </datafield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">new080-1</subfield>
+        <subfield code="2">2009</subfield>
+    </datafield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">new080-2</subfield>
+        <subfield code="2">2017</subfield>
+    </datafield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">unknown080-1</subfield>
+    </datafield>
+    <datafield tag="080" ind1=" " ind2=" ">
+        <subfield code="a">unknown080-2</subfield>
+        <subfield code="2">foo</subfield>
+    </datafield>
+    <datafield tag="245" ind1="1" ind2="0">
+        <subfield code="a">Lentolehti</subfield>
+        <subfield code="c">Pienviljelijäin rakennuskysymyksiä.</subfield>
+    </datafield>
+    <datafield tag="264" ind1=" " ind2="1">
+        <subfield code="a">Helsinki :</subfield>
+        <subfield code="b">[Maatalousseurojen keskusliitto],</subfield>
+        <subfield code="c">1940 [vuosien 1931 ja 1943 välillä?]</subfield>
+    </datafield>
+</record>
+</collection>

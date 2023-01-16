@@ -326,10 +326,14 @@ class Marc extends \RecordManager\Base\Record\Marc
                 }
                 $vocab = 'udk';
                 $version = $this->getSubfields($field080, ['2']);
-                if ($version && preg_match('/(\d{4})/', $version, $matches)
-                    && 2017 <= $matches[1]
+                if (in_array($version, ['1974/fin/fennica', '1974/fin/finuc-s'])) {
+                    $vocab .= 'f';
+                } elseif ($version && preg_match('/(\d{4})/', $version, $matches)
+                    && (int)$matches[1] >= 2009
                 ) {
-                    $vocab .= '2017';
+                    $vocab .= '2';
+                } else {
+                    $vocab .= 'x';
                 }
                 $data['classification_txt_mv'][] = "$vocab $classification";
 

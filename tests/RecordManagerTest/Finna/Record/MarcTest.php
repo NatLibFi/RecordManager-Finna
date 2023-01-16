@@ -755,11 +755,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [],
             'classification_txt_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'major_genre_str_mv' => 'nonfiction',
             'classification_str_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
@@ -893,11 +893,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [],
             'classification_txt_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'major_genre_str_mv' => 'nonfiction',
             'classification_str_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
@@ -1026,5 +1026,36 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
+    }
+
+    /**
+     * Test MARC UDK classification
+     *
+     * @return void
+     */
+    public function testMarcUDK()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-udk.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'udkf fennica080',
+                'udkf finuc-s080',
+                'udk2 new080-1',
+                'udk2 new080-2',
+                'udkx unknown080-1',
+                'udkx unknown080-2',
+            ],
+            $fields['classification_txt_mv']
+        );
     }
 }
