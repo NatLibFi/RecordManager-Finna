@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2020.
+ * Copyright (C) The National Library of Finland 2020-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -82,6 +82,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '9789513148362',
                 '2345',
                 'FOO',
+                'doi1',
+                'doi',
                 'Hirsjärvi, Sirkka',
                 'Tutki ja kirjoita',
                 'Sirkka Hirsjärvi, Pirkko Remes, Paula Sajavaara',
@@ -166,6 +168,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '9789513148362',
             ],
             'issn' => [],
+            'doi_str_mv' => [
+                'doi1',
+                'doi2',
+                'doi:3',
+                'doi4',
+            ],
             'callnumber-first' => '38.04',
             'callnumber-raw' => [
                 '38.04',
@@ -204,7 +212,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
-            'url' => [],
+            'url' => [
+                'urn:doi:doi2',
+                'urn:doif:not-doi',
+                'http://doi.org/doi%3a3',
+                'https://dx.doi.org/doi4',
+            ],
             'illustrated' => 'Not Illustrated',
             'main_date_str' => '2013',
             'main_date' => '2013-01-01T00:00:00Z',
@@ -398,6 +411,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '9780534514006',
             ],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
             'topic' => [
@@ -558,6 +572,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'edition' => '',
             'contents' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '42.02',
             'callnumber-raw' => [
                 '42.02',
@@ -723,6 +738,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'edition' => '',
             'contents' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
                 '614.8',
@@ -861,6 +877,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'edition' => '',
             'contents' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
                 '614.8',
@@ -986,6 +1003,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'edition' => '',
             'contents' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
             'callnumber-sort' => '',
