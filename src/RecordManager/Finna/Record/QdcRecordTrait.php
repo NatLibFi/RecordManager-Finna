@@ -192,8 +192,9 @@ trait QdcRecordTrait
         if (strlen($needle) > 1024) {
             return false;
         }
+        $needle = mb_strtolower($needle);
         foreach ($haystack as $pattern) {
-            if (fnmatch($pattern, $needle)) {
+            if (fnmatch(mb_strtolower($pattern), $needle)) {
                 return true;
             }
         }
