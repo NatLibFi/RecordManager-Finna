@@ -1186,10 +1186,10 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
-        // Overdrive audio books (intentionally before 977 since it's less granular)
+        // OverDrive audio books (intentionally before 977 since it's less granular)
         foreach ($this->record->getFieldsSubfields('380', ['a'], null) as $sub) {
             if (mb_strtolower($sub, 'UTF-8') === 'eaudiobook') {
-                return 'AudioBookOverdrive';
+                return 'AudioBookOverDrive';
             }
         }
 

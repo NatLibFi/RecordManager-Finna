@@ -1,7 +1,7 @@
 Article = Journal/Article
 Atlas = Map/Atlas
 AudioBookDaisy = Book/AudioBook/Daisy
-AudioBookOverdrive = Book/AudioBook/Online
+AudioBookOverDrive = Book/AudioBook/Online
 BachelorsThesis = Thesis/Bachelors
 BachelorsThesisPolytechnic = Thesis/BachelorsPolytechnic
 BluRay = Video/BluRay

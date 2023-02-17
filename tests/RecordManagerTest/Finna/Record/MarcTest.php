@@ -1106,7 +1106,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'marc-daisy5.xml',
             ],
             [
-                'AudioBookOverdrive',
+                'AudioBookOverDrive',
                 'marc-overdrive1.xml',
             ],
         ];
