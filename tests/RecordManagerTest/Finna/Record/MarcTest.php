@@ -1076,4 +1076,72 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             $fields['classification_txt_mv']
         );
     }
+
+    /**
+     * Data provider for testMarcAudioBooks
+     *
+     * @return array
+     */
+    public function marcAudioBooksProvider(): array
+    {
+        return [
+            [
+                'AudioBookDaisy',
+                'marc-daisy1.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy2.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy3.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy4.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy5.xml',
+            ],
+            [
+                'AudioBookOverDrive',
+                'marc-overdrive1.xml',
+            ],
+        ];
+    }
+
+    /**
+     * Test MARC audio book formats
+     *
+     * @dataProvider marcAudioBooksProvider
+     *
+     * @return void
+     */
+    public function testMarcAudioBooks()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-udk.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'udkf fennica080',
+                'udkf finuc-s080',
+                'udk2 new080-1',
+                'udk2 new080-2',
+                'udkx unknown080-1',
+                'udkx unknown080-2',
+            ],
+            $fields['classification_txt_mv']
+        );
+    }
 }

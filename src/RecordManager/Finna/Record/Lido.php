@@ -304,21 +304,34 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
             // Handle a hierarchical place
             foreach ($subject->subjectPlace as $subjectPlace) {
-                foreach ($subjectPlace->place as $place) {
-                    if ($place->namePlaceSet->appellationValue) {
-                        $mainPlace
-                            = (string)$place->namePlaceSet->appellationValue;
-                        $subLocation = $this->getSubLocation($place);
-                        if ($mainPlace && !$subLocation) {
-                            $subjectLocations[] = $mainPlace;
-                        } else {
-                            foreach (preg_split('/( tai |\. )/', $subLocation)
-                                as $subPart
-                            ) {
-                                $subjectLocations[] = "$mainPlace $subPart";
-                            }
+                if ($mainPlace = trim(
+                    (string)(
+                        $subjectPlace->place->namePlaceSet->appellationValue ?? ''
+                    )
+                )
+                ) {
+                    $subLocation = $this->getSubLocation($subjectPlace->place);
+                    if (!$subLocation) {
+                        $subjectLocations[] = $mainPlace;
+                    } else {
+                        foreach (preg_split('/( tai |\. )/', $subLocation)
+                            as $subPart
+                        ) {
+                            $subjectLocations[] = "$mainPlace $subPart";
                         }
                     }
+                } elseif ($displayPlace = trim(
+                    (string)($subjectPlace->displayPlace ?? '')
+                )
+                ) {
+                    // Split multiple locations separated with a slash
+                    $subjectLocations = [
+                        ...$subjectLocations,
+                        ...preg_split(
+                            '/[\/;]/',
+                            $displayPlace
+                        )
+                    ];
                 }
             }
         }

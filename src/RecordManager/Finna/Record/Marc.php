@@ -1159,6 +1159,40 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     protected function getFormatFunc()
     {
+        // Get 008
+        $field008 = $this->record->getControlField('008');
+
+        // Daisy audio books (intentionally before 977 since it's less granular)
+        if (substr($field008, 22, 1) === 'f') {
+            foreach ($this->record->getFieldsSubfields('347', ['b'], null) as $sub) {
+                if (mb_strtolower($sub, 'UTF-8') === 'daisy') {
+                    return 'AudioBookDaisy';
+                }
+            }
+        }
+        $daisyRules = [
+            ['020', 'q', 'daisy'],
+            ['028', 'b', 'celia'],
+            ['245', 'b', 'daisy-äänikirja'],
+            ['300', 'a', 'daisy'],
+        ];
+        foreach ($daisyRules as [$field, $subfield, $search]) {
+            foreach ($this->record->getFieldsSubfields($field, [$subfield], null)
+                as $sub
+            ) {
+                if (mb_stristr($sub, $search, false, 'UTF-8') !== false) {
+                    return 'AudioBookDaisy';
+                }
+            }
+        }
+
+        // OverDrive audio books (intentionally before 977 since it's less granular)
+        foreach ($this->record->getFieldsSubfields('380', ['a'], null) as $sub) {
+            if (mb_strtolower($sub, 'UTF-8') === 'eaudiobook') {
+                return 'AudioBookOverDrive';
+            }
+        }
+
         // Custom predefined type in 977a
         $field977a = $this->getFieldSubfields('977', ['a']);
         if ($field977a) {
@@ -1224,15 +1258,11 @@ class Marc extends \RecordManager\Base\Record\Marc
         // Get the bibliographic level from leader position 7
         $bibliographicLevel = substr($leader, 7, 1);
 
-        // Get 008
-        $field008 = $this->record->getControlField('008');
-
         // Board games and video games
-        $self = $this;
         $termsIn655 = null;
-        $termIn655 = function (string $term) use ($self, &$termsIn655) {
+        $termIn655 = function (string $term) use (&$termsIn655) {
             if (null === $termsIn655) {
-                $termsIn655 = $self->getFieldsSubfields(
+                $termsIn655 = $this->getFieldsSubfields(
                     [[MarcHandler::GET_NORMAL, '655', ['a']]]
                 );
                 $termsIn655 = array_map(
