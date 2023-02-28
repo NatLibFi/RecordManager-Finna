@@ -321,7 +321,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                         }
                     }
                 } elseif ($displayPlace = trim(
-                    (string)$subjectPlace->displayPlace ?? ''
+                    (string)($subjectPlace->displayPlace ?? '')
                 )
                 ) {
                     // Split multiple locations separated with a slash
