@@ -73,6 +73,29 @@ trait DateSupportTrait
      *
      * @return array [startYear, endYear] or empty array if not found.
      */
+    protected function getYearRangeFromString(string $dateString): array
+    {
+        if ($years = $this->getYearsFromString($dateString)) {
+            $result = [
+                'startYear' => $years[0],
+                'endYear' => $years[1] ?? $years[0]
+            ];
+            // Turn the years into numbers and compare them.
+            if ((int)$result['startYear'] > (int)$result['endYear']) {
+                $result['endYear'] = $result['startYear'];
+            }
+            return $result;
+        }
+        return [];
+    }
+
+    /**
+     * Get years from a string. Returns array containing all found 4 digit years.
+     *
+     * @param string $dateString String to check for years.
+     *
+     * @return array
+     */
     protected function getYearsFromString(string $dateString): array
     {
         if (preg_match_all(
@@ -81,15 +104,7 @@ trait DateSupportTrait
             $matches
         )
         ) {
-            $result = [
-                'startYear' => $matches[1][0],
-                'endYear' => $matches[1][1] ?? $matches[1][0]
-            ];
-            // Turn the years into numbers and compare them.
-            if ((int)$result['startYear'] > (int)$result['endYear']) {
-                $result['endYear'] = $result['startYear'];
-            }
-            return $result;
+            return $matches[1];
         }
         return [];
     }

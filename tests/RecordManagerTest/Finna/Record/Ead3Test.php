@@ -257,76 +257,197 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
     /**
      * Data provider for testTitleYearRange
      *
-     * @return Generator
+     * @return Array
      */
     public function getTestTitleYearRange()
     {
         $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
         $mdash = html_entity_decode('&#x2014;', ENT_NOQUOTES, 'UTF-8');
-        $this->modifyAhaa14Fixture(
-            "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)"
-        );
-        $record = $this->createRecord(Ead3::class, 'ahaa14.xml', [], 'Finna')
-            ->toSolrArray();
-        yield 'test ndash' => [
-            "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
-            $record['title']
+
+        $noYear = [
+            'test ndash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'test mdash' => [
+                'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+                'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+            ],
+            'test dash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+            ],
+            'test dash without whitespaces' => [
+                'title' => "Opintokirja. Helsingin yliopisto 1932-1935",
+                'expected' => "Opintokirja. Helsingin yliopisto 1932-1935",
+            ],
+            'test without year range' => [
+                'title' => "Opintokirja. Helsingin yliopisto",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
         ];
 
-        $this->modifyAhaa14Fixture(
-            "Opintokirja. Helsingin yliopisto 1932{$mdash}1935"
-        );
-        $record = $this->createRecord(Ead3::class, 'ahaa14.xml', [], 'Finna')
-            ->toSolrArray();
-        yield 'test mdash' => [
-            "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
-            $record['title']
+        $never = [
+            'test ndash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'test without year range' => [
+                'title' => "Opintokirja. Helsingin yliopisto",
+                'expected' => "Opintokirja. Helsingin yliopisto",
+            ]
         ];
 
-        $this->modifyAhaa14Fixture(
-            "Opintokirja. Helsingin yliopisto (1932 - 1935)"
-        );
-        $record = $this->createRecord(Ead3::class, 'ahaa14.xml', [], 'Finna')
-            ->toSolrArray();
-        yield 'test dash' => [
-            "Opintokirja. Helsingin yliopisto (1932 - 1935)",
-            $record['title']
+        $noMatch = [
+            'test ndash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'test mdash' => [
+                'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+                'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+            ],
+            'test dash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+            ],
+            'test dash without whitespaces' => [
+                'title' => "Opintokirja. 1932 Helsingin yliopisto",
+                'expected' => "Opintokirja. 1932 Helsingin yliopisto",
+            ],
+            'test without year range' => [
+                'title' => "Opintokirja. Helsingin yliopisto",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
         ];
 
-        $this->modifyAhaa14Fixture(
-            "Opintokirja. Helsingin yliopisto 1932-1935"
-        );
-        $record = $this->createRecord(Ead3::class, 'ahaa14.xml', [], 'Finna')
-            ->toSolrArray();
-        yield 'test dash without whitespaces' => [
-            "Opintokirja. Helsingin yliopisto 1932-1935",
-            $record['title']
+        $noMatches = [
+            'no matches ndash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'no matches mdash' => [
+                'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+                'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+            ],
+            'no matches dash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932)",
+                'expected'
+                    => "Opintokirja. Helsingin yliopisto (1932) (1932{$ndash}1935)",
+            ],
+            'no matches with years' => [
+                'title' => "Opintokirja. 1932 Helsingin yliopisto 1935",
+                'expected' => "Opintokirja. 1932 Helsingin yliopisto 1935 (1932{$ndash}1935)",
+            ],
+            'no matches without years' => [
+                'title' => "Opintokirja. Helsingin yliopisto",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
         ];
 
-        $this->modifyAhaa14Fixture("Opintokirja. Helsingin yliopisto");
-        $record = $this->createRecord(Ead3::class, 'ahaa14.xml', [], 'Finna')
-            ->toSolrArray();
-        yield 'test without year range' => [
-            "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
-            $record['title']
+        $always = [
+            'always ndash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'always mdash' => [
+                'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
+                'expected'
+                    => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935 (1932{$ndash}1935)",
+            ],
+            'always dash' => [
+                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'expected' =>
+                    "Opintokirja. Helsingin yliopisto (1932 - 1935) (1932{$ndash}1935)",
+            ],
+            'always title with a year' => [
+                'title' => "Opintokirja. 1932 Helsingin yliopisto",
+                'expected'
+                    => "Opintokirja. 1932 Helsingin yliopisto (1932{$ndash}1935)",
+            ],
+            'always without year' => [
+                'title' => "Opintokirja. Helsingin yliopisto",
+                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+            ],
         ];
-        // Set the fixture title to its original state after tests
-        $this->modifyAhaa14Fixture("%%title%%");
+
+        return [
+            [
+                'dsSettings' => [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'enrichTitleWithYearRange=noyearexists'
+                        ]
+                    ]
+                ],
+                'tests' => $noYear
+            ],
+            [
+                'dsSettings' => [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'enrichTitleWithYearRange=never'
+                        ]
+                    ]
+                ],
+                'tests' => $never
+            ],
+            [
+                'dsSettings' => [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'enrichTitleWithYearRange=nomatchexists'
+                        ]
+                    ]
+                ],
+                'tests' => $noMatch
+            ],
+            [
+                'dsSettings' => [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'enrichTitleWithYearRange=nomatchesexists'
+                        ]
+                    ]
+                ],
+                'tests' => $noMatches
+            ],
+            [
+                'dsSettings' => [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'enrichTitleWithYearRange=always'
+                        ]
+                    ]
+                ],
+                'tests' => $always
+            ],
+        ];
     }
 
     /**
      * Test AHAA EAD3 title year range handling
      *
-     * @param array $expected Expected results
-     * @param array $input    Input
+     * @param array $dsSettings Datasource settings
+     * @param array $tests      Titles and results
      *
      * @dataProvider getTestTitleYearRange
      *
      * @return void
      */
-    public function testTitleYearRange($expected, $input)
+    public function testTitleYearRange($dsSettings, $tests)
     {
-        $this->assertEquals($expected, $input);
+        foreach ($tests as $test) {
+            $this->modifyAhaa14Fixture($test['title']);
+            $record = $this->createRecord(
+                Ead3::class,
+                'ahaa14.xml',
+                $dsSettings,
+                'Finna'
+            )->toSolrArray();
+            $this->assertEquals($test['expected'], $record['title']);
+        }
+        $this->modifyAhaa14Fixture("%%title%%");
     }
 
     /**

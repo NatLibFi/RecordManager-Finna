@@ -96,45 +96,15 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $first = true;
         foreach ($this->getDateRanges() as $unitDateRange) {
-            $startDateUnknown = $unitDateRange['startDateUnknown'];
-            $unitDateRange = $unitDateRange['date'];
-
+            $range = $unitDateRange['date'];
             $data['search_daterange_mv'][] = $data['unit_daterange']
-                = $this->dateRangeToStr($unitDateRange);
+                = $this->dateRangeToStr($range);
 
             if ($first) {
                 $data['main_date_str'] = $data['era_facet']
-                    = $this->metadataUtils->extractYear($unitDateRange[0]);
-                $data['main_date'] = $this->validateDate($unitDateRange[0]);
-
-                if (!$startDateUnknown) {
-                    // When startDate is known, Append year range to title
-                    // (only years, not the full dates)
-                    $startYear
-                        = $this->metadataUtils->extractYear($unitDateRange[0]);
-                    $endYear = $this->metadataUtils->extractYear($unitDateRange[1]);
-                    $yearRange = '';
-                    $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
-                    if ($startYear != '-9999') {
-                        $yearRange = $startYear;
-                    }
-                    if ($endYear != $startYear) {
-                        $yearRange .= $ndash;
-                        if ($endYear != '9999') {
-                            $yearRange .= $endYear;
-                        }
-                    }
-                    if ($yearRange) {
-                        foreach (
-                            ['title_full', 'title_sort', 'title', 'title_short']
-                            as $field
-                        ) {
-                            if (!$this->getYearsFromString($data[$field])) {
-                                $data[$field] .= " ($yearRange)";
-                            }
-                        }
-                    }
-                }
+                    = $this->metadataUtils->extractYear($range[0]);
+                $data['main_date'] = $this->validateDate($range[0]);
+                $data = $this->enrichTitlesWithYearRanges($data, $unitDateRange);
                 $first = false;
             }
         }
@@ -309,6 +279,80 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
+        return $data;
+    }
+
+    /**
+     * Enrich titles with year ranges.
+     *
+     * @param array $data          Record as a solr array
+     * @param array $unitDateRange Date range to append as years
+     *
+     * @return array
+     */
+    protected function enrichTitlesWithYearRanges(
+        array $data,
+        array $unitDateRange
+    ): array {
+        /**
+         * Type of enrichment for driver.
+         * always = always add year range to end of a title
+         * never = Do not add year range to end of a title
+         * noyearexists = If any year is found from the title then do not add
+         * nomatchexists = If any of the given years in unitDateRange are
+         * found from the title, then do not add
+         * nomatchesexists = if all of the given years in unitDateRange are
+         * found from the title, then do not add
+         */
+        $type = $this->getDriverParam('enrichTitleWithYearRange', 'noyearexists');
+        if ('never' === $type) {
+            return $data;
+        }
+
+        $startDateUnknown = $unitDateRange['startDateUnknown'];
+        $range = $unitDateRange['date'];
+
+        if (!$startDateUnknown) {
+            // When startDate is known, Append year range to title
+            // (only years, not the full dates)
+            $startYear
+                = $this->metadataUtils->extractYear($range[0]);
+            $endYear = $this->metadataUtils->extractYear($range[1]);
+            $yearRange[] = $startYear !== '-9999' ? $startYear : '';
+            $yearRange[] = $endYear !== '9999' ? $endYear : '';
+            $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
+            $yearRangeStr = trim(implode($ndash, array_unique($yearRange)));
+            if (!$yearRangeStr) {
+                return $data;
+            }
+            $yearRangeStr = " ($yearRangeStr)";
+            foreach (
+                ['title_full', 'title_sort', 'title', 'title_short']
+                as $field
+            ) {
+                $yearsFound = $this->getYearsFromString($data[$field]);
+                switch ($type) {
+                case 'always':
+                    $data[$field] .= $yearRangeStr;
+                    break;
+                case 'noyearexists':
+                    if (!$yearsFound) {
+                        $data[$field] .= $yearRangeStr;
+                    }
+                    break;
+                case 'nomatchexists':
+                    if (!array_intersect($yearRange, $yearsFound)) {
+                        $data[$field] .= $yearRangeStr;
+                    }
+                    break;
+                case 'nomatchesexists':
+                    if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
+                        $data[$field] .= $yearRangeStr;
+                    }
+                    break;
+                }
+            }
+        }
         return $data;
     }
 
