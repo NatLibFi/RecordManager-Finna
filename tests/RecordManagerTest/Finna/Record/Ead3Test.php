@@ -310,6 +310,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
             $record['title']
         ];
+        // Set the fixture title to its original state after tests
+        $this->modifyAhaa14Fixture("%%title%%");
     }
 
     /**

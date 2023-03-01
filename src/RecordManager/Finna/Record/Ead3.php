@@ -115,7 +115,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     $endYear = $this->metadataUtils->extractYear($unitDateRange[1]);
                     $yearRange = '';
                     $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
-                    $mdash = html_entity_decode('&#x2014;', ENT_NOQUOTES, 'UTF-8');
                     if ($startYear != '-9999') {
                         $yearRange = $startYear;
                     }
@@ -126,13 +125,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                         }
                     }
                     if ($yearRange) {
-                        $reg = '/(\(?)(\d{4})[\p{Pd}'
-                            . $ndash . $mdash . '\h]+(\d{4})(\)?)$/';
                         foreach (
                             ['title_full', 'title_sort', 'title', 'title_short']
                             as $field
                         ) {
-                            if (!preg_match($reg, $data[$field])) {
+                            if (!$this->getYearsFromString($data[$field])) {
                                 $data[$field] .= " ($yearRange)";
                             }
                         }
