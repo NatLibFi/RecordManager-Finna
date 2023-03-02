@@ -296,7 +296,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     ): array {
         /**
          * Type of enrichment for driver.
-         * always = always add year range to end of a title
+         * always = Always add year range to end of a title
          * never = Do not add year range to end of a title
          * noyearexists = If any year is found from the title then do not add
          * nomatchexists = If any of the given years in unitDateRange are
@@ -304,17 +304,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
          * nomatchesexists = if all of the given years in unitDateRange are
          * found from the title, then do not add
          */
-        $type = $this->getDriverParam('enrichTitleWithYearRange', 'noyearexists');
+        $type = $this->getDriverParam('enrichTitleWithYearRange', 'nomatchesexists');
         if ('never' === $type) {
             return $data;
         }
-
-        $startDateUnknown = $unitDateRange['startDateUnknown'];
-        $range = $unitDateRange['date'];
-
-        if (!$startDateUnknown) {
-            // When startDate is known, Append year range to title
-            // (only years, not the full dates)
+        if (!$unitDateRange['startDateUnknown']) {
+            $range = $unitDateRange['date'];
             $startYear
                 = $this->metadataUtils->extractYear($range[0]);
             $endYear = $this->metadataUtils->extractYear($range[1]);
