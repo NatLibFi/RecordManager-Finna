@@ -341,6 +341,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     }
                     break;
                 case 'nomatchesexists':
+                    $yearRange = array_filter(array_unique($yearRange));
                     if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
                         $data[$field] .= $yearRangeStr;
                     }
