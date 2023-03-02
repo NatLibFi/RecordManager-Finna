@@ -301,7 +301,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
          * noyearexists = If any year is found from the title then do not add
          * nomatchexists = If any of the given years in unitDateRange are
          * found from the title, then do not add
-         * nomatchesexists = if all of the given years in unitDateRange are
+         * nomatchesexists = If all of the given years in unitDateRange are
          * found from the title, then do not add
          */
         $type = $this->getDriverParam('enrichTitleWithYearRange', 'nomatchesexists');
