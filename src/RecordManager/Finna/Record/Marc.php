@@ -1196,6 +1196,36 @@ class Marc extends \RecordManager\Base\Record\Marc
         // Custom predefined type in 977a
         $field977a = $this->getFieldSubfields('977', ['a']);
         if ($field977a) {
+            if (in_array($field977a, ['3', 't'])) {
+                // The format will be mapped to Book/AudioBook/... but keep
+                // NonMusical... here for consistency with other types below e.g.
+                // for deduplication:
+                $possibleFormat = '3' === $field977a
+                    ? 'NonmusicalCD' : 'NonmusicalRecording';
+                // Helmet audio books
+                foreach ($this->record->getFields('336') as $f336) {
+                    foreach ($this->record->getSubfields($f336, 'a') as $subA) {
+                        if (in_array(mb_strtolower($subA, 'UTF-8'), ['puhe', 'tal'])
+                        ) {
+                            return $possibleFormat;
+                        }
+                    }
+                    foreach ($this->record->getSubfields($f336, 'b') as $subB) {
+                        if (mb_strtolower($subB, 'UTF-8') === 'spw') {
+                            return $possibleFormat;
+                        }
+                    }
+                }
+                $f655a = array_map(
+                    function ($s) {
+                        return mb_strtolower($s, 'UTF-8');
+                    },
+                    $this->record->getFieldsSubfields('655', ['a'], null)
+                );
+                if (array_intersect($f655a, ['äänikirjat', 'ljudböcker'])) {
+                    return $possibleFormat;
+                }
+            }
             return $field977a;
         }
 
