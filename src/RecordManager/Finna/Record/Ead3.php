@@ -298,13 +298,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
          * Type of enrichment for driver.
          * always = Always add year range to end of a title
          * never = Do not add year range to end of a title
-         * noyearexists = If any year is found from the title then do not add
-         * nomatchexists = If any of the given years in unitDateRange are
+         * no_year_exist = If any year is found from the title then do not add
+         * no_match_exist = If any of the given years in unitDateRange are
          * found from the title, then do not add
-         * nomatchesexists = If all of the given years in unitDateRange are
+         * no_matches_exist = If all of the given years in unitDateRange are
          * found from the title, then do not add
          */
-        $type = $this->getDriverParam('enrichTitleWithYearRange', 'nomatchesexists');
+        $type = $this->getDriverParam(
+            'enrichTitleWithYearRange',
+            'no_matches_exist'
+        );
         if ('never' === $type) {
             return $data;
         }
@@ -330,17 +333,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 case 'always':
                     $data[$field] .= $yearRangeStr;
                     break;
-                case 'noyearexists':
+                case 'no_year_exist':
                     if (!$yearsFound) {
                         $data[$field] .= $yearRangeStr;
                     }
                     break;
-                case 'nomatchexists':
+                case 'no_match_exist':
                     if (!array_intersect($yearRange, $yearsFound)) {
                         $data[$field] .= $yearRangeStr;
                     }
                     break;
-                case 'nomatchesexists':
+                case 'no_matches_exist':
                     $yearRange = array_filter(array_unique($yearRange));
                     if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
                         $data[$field] .= $yearRangeStr;
