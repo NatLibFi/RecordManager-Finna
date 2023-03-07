@@ -306,7 +306,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
          */
         $type = $this->getDriverParam(
             'enrichTitleWithYearRange',
-            'no_matches_exist'
+            'no_match_exist'
         );
         if ('never' === $type) {
             return $data;
