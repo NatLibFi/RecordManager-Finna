@@ -380,7 +380,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
         return [
             [
                 'driverParams' => [
-                    'enrichTitleWithYearRange=no_year_exist'
+                    'enrichTitleWithYearRange=no_year_exists'
                 ],
                 'tests' => $noYear
             ],
@@ -392,7 +392,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             ],
             [
                 'driverParams' => [
-                    'enrichTitleWithYearRange=no_match_exist'
+                    'enrichTitleWithYearRange=no_match_exists'
                 ],
                 'tests' => $noMatch
             ],

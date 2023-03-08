@@ -298,15 +298,15 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
          * Type of enrichment for driver.
          * always = Always add year range to end of a title
          * never = Do not add year range to end of a title
-         * no_year_exist = If any year is found from the title then do not add
-         * no_match_exist = If any of the given years in unitDateRange are
+         * no_year_exists = If any year is found from the title then do not add
+         * no_match_exists = If any of the given years in unitDateRange are
          * found from the title, then do not add
          * no_matches_exist = If all of the given years in unitDateRange are
          * found from the title, then do not add
          */
         $type = $this->getDriverParam(
             'enrichTitleWithYearRange',
-            'no_match_exist'
+            'no_match_exists'
         );
         if ('never' === $type) {
             return $data;
@@ -333,12 +333,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 case 'always':
                     $data[$field] .= $yearRangeStr;
                     break;
-                case 'no_year_exist':
+                case 'no_year_exists':
                     if (!$yearsFound) {
                         $data[$field] .= $yearRangeStr;
                     }
                     break;
-                case 'no_match_exist':
+                case 'no_match_exists':
                     if (!array_intersect($yearRange, $yearsFound)) {
                         $data[$field] .= $yearRangeStr;
                     }
