@@ -255,7 +255,7 @@ trait QdcRecordTrait
         $result = [];
         foreach ([$this->doc->date, $this->doc->issued] as $arr) {
             foreach ($arr as $date) {
-                $years = $this->getYearsFromString($date);
+                $years = $this->getYearRangeFromString($date);
                 if (isset($years['startYear'])) {
                     $result[] = [
                         $years['startYear'] . '-01-01T00:00:00Z',

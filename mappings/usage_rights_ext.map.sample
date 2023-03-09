@@ -1,55 +1,55 @@
-; Regexp map. Note: the order is important since first match will rule over others.
+; Regexp map. Note: the order is ixmportant since first match will rule over others.
 
-^CC0.*$ = A Free/CC0
+^CC0.*$ = A Free/A CC0
 
-^CC[ -]*BY[ -]*NC[ -]*ND.* = B Conditional/NC-ND
-^https?://creativecommons\.org/licenses/by-nc-nd/.* = B Conditional/NC-ND
-^Creative Commons Attribution-NonCommercial-NoDerivs.* = B Conditional/NC-ND
+^CC[ -]*BY[ -]*NC[ -]*ND.* = E NC-ND/A CC BY-NC-ND
+^https?://creativecommons\.org/licenses/by-nc-nd/.* = E NC-ND/A CC BY-NC-ND
+^Creative Commons Attribution-NonCommercial-NoDerivs.* = E NC-ND/A CC BY-NC-ND
 
-^CC[ -]*BY[ -]*NC[ -]*SA.* = B Conditional/NC/CC BY-NC-SA
-^https?://creativecommons\.org/licenses/by-nc-sa/.* = B Conditional/NC/CC BY-NC-SA
-^Creative Commons Attribution-NonCommercial-ShareAlike.* = B Conditional/NC/CC BY-NC-SA
+^CC[ -]*BY[ -]*NC[ -]*SA.* = C NC/B CC BY-NC-SA
+^https?://creativecommons\.org/licenses/by-nc-sa/.* = C NC/B CC BY-NC-SA
+^Creative Commons Attribution-NonCommercial-ShareAlike.* = C NC/B CC BY-NC-SA
 
-^CC[ -]*BY[ -]*SA.* = B Conditional/BY/CC BY-SA
-^https?://creativecommons\.org/licenses/by-sa/.* = B Conditional/BY/CC BY-SA
-^Creative Commons Attribution-ShareAlike.*/ = B Conditional/BY/CC BY-SA
+^CC[ -]*BY[ -]*NC.* = C NC/A CC BY-NC
+^https?://creativecommons\.org/licenses/by-nc/.* = C NC/A CC BY-NC
+^Creative Commons Attribution-NonCommercial.* = C NC/A CC BY-NC
 
-^CC[ -]*BY[ -]*ND.* = B Conditional/ND
-^https?://creativecommons\.org/licenses/by-nd/.* = B Conditional/ND
-^Creative Commons Attribution-NoDerivs.* = B Conditional/ND
+^CC[ -]*BY[ -]*ND.* = D ND/A CC BY-ND
+^https?://creativecommons\.org/licenses/by-nd/.* = D ND/A CC BY-ND
+^Creative Commons Attribution-NoDerivs.* = D ND/A CC BY-ND
 
-^CC[ -]*BY[ -]*NC.* = B Conditional/NC/CC BY-NC
-^https?://creativecommons\.org/licenses/by-nc/.* = B Conditional/NC/CC BY-NC
-^Creative Commons Attribution-NonCommercial.* = B Conditional/NC/CC BY-NC
+^CC[ -]*BY[ -]*SA.* = B BY/B CC BY-SA
+^https?://creativecommons\.org/licenses/by-sa/.* = B BY/B CC BY-SA
+^Creative Commons Attribution-ShareAlike.*/ = B BY/B CC BY-SA
 
-^CC[ -]*BY *\d[\.\d]+.* = B Conditional/BY/CC BY
-^https?://creativecommons\.org/licenses/by/.* = B Conditional/BY/CC BY
-^Creative Commons Attribution.* = B Conditional/BY/CC BY
+^CC[ -]*BY *\d[\.\d]+.* = B BY/A CC BY
+^https?://creativecommons\.org/licenses/by/.* = B BY/A CC BY
+^Creative Commons Attribution.* = B BY/A CC BY
 
-^No known copyright restrictions$ = C Restricted/Unknown
+^No known copyright restrictions$ = H Unknown
 
-^[Pp]ublic [Dd]omain.* = A Free/PD
-^https?://creativecommons\.org/publicdomain/.* = A Free/PD
-^Creative Commons Public Domain.* = A Free/PD
+^[Pp]ublic [Dd]omain.* = A Free/B PD
+^https?://creativecommons\.org/publicdomain/.* = A Free/B PD
+^Creative Commons Public Domain = A Free/B PD
 
-^InC-EDU.* = B Conditional/EDU
-^http://rightsstatements.org/page/InC-EDU/.* = B Conditional/EDU
+^InC-EDU.* = F EDU/A InC-EDU
+^http://rightsstatements.org/page/InC-EDU/.* = F EDU/A InC-EDU
 
-^InC-OW-EU = C Restricted/InC/InC-OW-EU
-^http://rightsstatements.org/page/InC-OW-EU/.* = C Restricted/InC/InC-OW-EU
+^InC-OW-EU = G InC/B InC-OW-EU
+^http://rightsstatements.org/vocaB Conditional/InC-OW-EU/.* = G InC/B InC-OW-EU
 
-^http://rightsstatements.org/page/InC/.* = C Restricted/InC/InC
-^InC.* = C Restricted/InC/InC
+^http://rightsstatements.org/page/InC/.* = G InC/A InC
+^InC.* = G InC/A InC
 
-^NC-NCUP.* = B Conditional/NC/NC-NCUP
+^NC-NCUP.* = C NC/C NC-NCUP
 
-^[Cc]opyright not evaluated.* = C Restricted/Unknown
-^CNE.* = C Restricted/Unknown
+^[Cc]opyright not evaluated.* = H Unknown
+^CNE.* = H Unknown
 
-^[Rr]estricted$ = C Restricted/Unknown
-^Ei lisensiointia$ = C Restricted/Unknown
+^[Rr]estricted$ = H Unknown
+^Ei lisensiointia$ = H Unknown
 
 ; By default map to empty value:
 ##default =
 ; If mappings of all values results in empty, use the following:
-##mappedemptyarray = C Restricted/Unknown
+##mappedemptyarray = H Unknown

@@ -1260,6 +1260,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     return 'LaudaturThesis';
                 case 'lisensiaatintyö':
                 case 'lic.avh':
+                case 'licentiatavhandling':
                     return 'LicentiateThesis';
                 case 'diplomityö':
                 case 'diplomarbete':
