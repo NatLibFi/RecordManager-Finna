@@ -1531,13 +1531,22 @@ class SolrUpdater
     /**
      * Check Solr index for orphaned records
      *
+     * @param bool    $reportOnly Whether to just print record IDs instead of
+     *                            deleting them from the index.
+     * @param ?string $query      Query to use for Solr records (use null for default
+     *                            '*:*')
+     *
      * @return void
      */
-    public function checkIndexedRecords()
+    public function checkIndexedRecords(bool $reportOnly, ?string $query)
     {
+        if (null === $query) {
+            $query = '*:*';
+        }
         $request = $this->initSolrRequest(\HTTP_Request2::METHOD_GET);
         $baseUrl = $this->config['Solr']['search_url']
-            . '?q=*:*&sort=id+asc&wt=json&fl=id,record_format&rows=1000';
+            . '?q=' . urlencode($query)
+            . '&sort=id+asc&wt=json&fl=id,record_format&rows=1000';
 
         $this->initBufferedUpdate();
         $count = 0;
@@ -1564,17 +1573,33 @@ class SolrUpdater
 
             foreach ($records as $record) {
                 $id = $record['id'];
-                if ('merged' === ($record['record_format'] ?? $record['recordtype'])
-                ) {
+                $format = $record['record_format'] ?? $record['recordtype'];
+                $merged = 'merged' === $format;
+                if ($merged) {
                     $dbRecord = $this->db->getDedup($id);
                 } else {
                     $dbRecord = $this->db->getRecord($id);
                 }
                 if (!$dbRecord || !empty($dbRecord['deleted'])) {
-                    $this->bufferedDelete((string)$id);
-                    ++$orphanRecordCount;
-                    if ('merged' === $record['record_format']) {
-                        ++$orphanDedupCount;
+                    if ($reportOnly) {
+                        $msg = 'Found orphan ' . ($merged ? 'merged' : 'single')
+                            . " record $id in index (database record ";
+                        if ($dbRecord) {
+                            $ts = $this->db->getUnixTime(
+                                $dbRecord[$merged ? 'changed' : 'updated']
+                            );
+                            $msg .= 'deleted ' . date('Y-m-d H:i:s', $ts);
+                        } else {
+                            $msg .= 'missing';
+                        }
+                        $msg .= ')';
+                        $this->log->logWarning('SolrCheck', $msg);
+                    } else {
+                        $this->bufferedDelete((string)$id);
+                        ++$orphanRecordCount;
+                        if ($merged) {
+                            ++$orphanDedupCount;
+                        }
                     }
                 }
             }
