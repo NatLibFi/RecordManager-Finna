@@ -42,6 +42,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Rights statements indicating open access
@@ -117,6 +118,7 @@ trait QdcRecordTrait
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source
             ];
+            $this->checkLinkMimeType($url, trim($file->attributes()->format));
             $data['online_urls_str_mv'][] = json_encode($link);
             if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])
@@ -181,6 +183,7 @@ trait QdcRecordTrait
         $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = $data['format'];
+        $data['mimetype_str_mv'] = $this->mimeTypes;
 
         return $data;
     }

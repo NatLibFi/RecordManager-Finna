@@ -84,6 +84,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
                     'source' => $this->source
                 ];
                 $data['online_urls_str_mv'][] = json_encode($link);
+                $this->checkLinkMimeType($url, trim($material->format ?? ''));
             }
         }
 
@@ -112,6 +113,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
         // Topic ids
         $data['topic_id_str_mv'] = $this->getTopicIds();
+        $data['mimetype_str_mv'] = $this->mimeTypes;
 
         return $data;
     }

@@ -263,6 +263,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'fi',
                 'sv',
                 'en'
+            ],
+            'mimetype_str_mv' => [
+                'image/jpeg'
             ]
         ];
 

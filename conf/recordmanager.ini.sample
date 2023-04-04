@@ -261,6 +261,7 @@ dewey-tens = dewey_tens.map
 dewey-ones = dewey_ones.map
 ;usage_rights_str_mv = usage_rights.map
 ;language = language_codes.map
+;mime_type_str_mv = mime_type_default.map
 
 [NominatimGeocoder]
 ; Please see http://wiki.openstreetmap.org/wiki/Nominatim_usage_policy before using

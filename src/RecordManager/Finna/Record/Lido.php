@@ -44,6 +44,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -250,6 +251,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['language'] = $this->getLanguages();
+        $data['mimetype_str_mv'] = $this->getMimeTypes();
         return $data;
     }
 
@@ -1933,5 +1935,27 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return array_unique($result);
+    }
+
+    /**
+     * Get mime types
+     *
+     * @return array
+     */
+    protected function getMimeTypes(): array
+    {
+        foreach ($this->getResourceSetNodes() as $set) {
+            foreach ($set->resourceRepresentation as $node) {
+                if (empty($node->linkResource)) {
+                    continue;
+                }
+                $this->checkLinkMimeType(
+                    trim($node->linkResource),
+                    trim($node->linkResource->attributes()->formatResource),
+                    trim($node->attributes()->type)
+                );
+            }
+        }
+        return $this->mimeTypes;
     }
 }

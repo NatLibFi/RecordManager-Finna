@@ -52,6 +52,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Record plugin manager
@@ -2519,6 +2520,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             if (!$text) {
                 $text = $this->record->getSubfield($field, 'z');
             }
+            $this->checkLinkMimeType($url, $this->record->getSubfield($field, 'q'));
             $result[] = compact('url', 'text');
         }
 
