@@ -251,7 +251,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['language'] = $this->getLanguages();
-        $data['mimetype_str_mv'] = $this->getMimeTypes();
+        $data['mime_type_str_mv'] = $this->getMimeTypes();
         return $data;
     }
 

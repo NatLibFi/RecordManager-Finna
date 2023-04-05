@@ -183,7 +183,7 @@ trait QdcRecordTrait
         $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = $data['format'];
-        $data['mimetype_str_mv'] = $this->mimeTypes;
+        $data['mime_type_str_mv'] = $this->mimeTypes;
 
         return $data;
     }

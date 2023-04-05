@@ -113,7 +113,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
         // Topic ids
         $data['topic_id_str_mv'] = $this->getTopicIds();
-        $data['mimetype_str_mv'] = $this->mimeTypes;
+        $data['mime_type_str_mv'] = $this->mimeTypes;
 
         return $data;
     }
