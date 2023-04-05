@@ -2,9 +2,9 @@
 <dc schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
   <id>oai:aoe.fi:11</id>
   <material>
-    <name lang="fi">A Video Learning design</name>
-    <name lang="sv">A Video Learning design</name>
-    <name lang="en">A Video Learning design</name>
+    <name lang="fi">A Quicktime Video Learning design</name>
+    <name lang="sv">A Quicktime Video Learning design</name>
+    <name lang="en">A Quicktime Video Learning design</name>
     <url>https://aoe.fi/api/download/AVideoLearningdesign-1576572679231.mov</url>
     <position>6</position>
     <format>video/quicktime</format>
@@ -12,9 +12,9 @@
     <inLanguage>en</inLanguage>
   </material>
   <material>
-    <name lang="fi">A Video Planering av undervisning och la&#x308;rande</name>
-    <name lang="sv">A Video Planering av undervisning och la&#x308;rande</name>
-    <name lang="en">A Video Planering av undervisning och la&#x308;rande</name>
+    <name lang="fi">En Audio Planering av undervisning och la&#x308;rande</name>
+    <name lang="sv">En Audio Planering av undervisning och la&#x308;rande</name>
+    <name lang="en">En Audio Planering av undervisning och la&#x308;rande</name>
     <url>https://aoe.fi/api/download/AVideoPlaneringavundervisningochlarande-1576572679208.wav</url>
     <position>3</position>
     <format>unknown</format>
