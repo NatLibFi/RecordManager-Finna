@@ -804,7 +804,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 (array)$fieldData
             );
         }
-
+        $data['mime_type_str_mv'] = $this->mimeTypes;
         return $data;
     }
 

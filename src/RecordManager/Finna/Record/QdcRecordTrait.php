@@ -118,7 +118,7 @@ trait QdcRecordTrait
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source
             ];
-            $this->checkLinkMimeType($url, trim($file->attributes()->format));
+            $this->checkLinkMimeType($url, trim($file->attributes()->type));
             $data['online_urls_str_mv'][] = json_encode($link);
             if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
                 && !isset($data['thumbnail'])

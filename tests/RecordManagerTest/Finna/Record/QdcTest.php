@@ -85,4 +85,27 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
         $fields = $fields->toSolrArray()['search_daterange_mv'];
         $this->assertEquals($expected, $fields);
     }
+
+    /**
+     * Test mime types
+     *
+     * @return void
+     */
+    public function testMimeTypes()
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_mime_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class)
+            ]
+        );
+        $fields = $fields->toSolrArray();
+        $this->assertContains("application/vnd.ms-powerpoint", $fields['mime_type_str_mv']);
+        $this->assertContains("image/jpeg", $fields['mime_type_str_mv']);
+        $this->assertContains("image/png", $fields['mime_type_str_mv']);
+        $this->assertContains("video/mp4", $fields['mime_type_str_mv']);
+    }
 }

@@ -1,0 +1,15 @@
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+    <leader>00000cam a22000004i 4500</leader>
+    <controlfield tag="001">123</controlfield>
+    <controlfield tag="008">220916d19311943fi |||||||||||||||||fin c</controlfield>
+    <datafield tag="856" ind1="1" ind2="0">
+        <subfield code="u">http://www.medialinkki.verkossa.org/tiedosto.wav</subfield>
+        <subfield code="q">audio/wav-x</subfield>
+    </datafield>
+    <datafield tag="856" ind1="1" ind2="0">
+        <subfield code="u">http://www.medialinkki.verkossa.org/tiedosto.pdf</subfield>
+        <subfield code="q"></subfield>
+    </datafield>
+</record>
+</collection>

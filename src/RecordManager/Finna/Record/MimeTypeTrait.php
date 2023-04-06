@@ -54,9 +54,16 @@ trait MimeTypeTrait
      * @var array
      */
     protected $displayImageTypes = [
+        'fullres',
         'image_small',
+        'image_thumb',
         'image_medium',
         'image_large',
+        'large',
+        'medium',
+        'square',
+        'thumb',
+        'zoomview',
     ];
 
     protected $defaultImageMimeType = 'image/jpeg';
