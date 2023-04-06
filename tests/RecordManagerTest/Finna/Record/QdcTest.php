@@ -103,7 +103,10 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
             ]
         );
         $fields = $fields->toSolrArray();
-        $this->assertContains("application/vnd.ms-powerpoint", $fields['mime_type_str_mv']);
+        $this->assertContains(
+            "application/vnd.ms-powerpoint",
+            $fields['mime_type_str_mv']
+        );
         $this->assertContains("image/jpeg", $fields['mime_type_str_mv']);
         $this->assertContains("image/png", $fields['mime_type_str_mv']);
         $this->assertContains("video/mp4", $fields['mime_type_str_mv']);
