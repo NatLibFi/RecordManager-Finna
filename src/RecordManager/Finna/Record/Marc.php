@@ -453,11 +453,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             $link['source'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
-        $data['mime_type_str_mv'] = array_filter(
-            array_unique(
-                array_column($onlineUrls, 'mimeType')
-            )
-        );
+        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;

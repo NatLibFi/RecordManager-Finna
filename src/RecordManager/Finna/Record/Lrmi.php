@@ -81,11 +81,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         foreach ($this->getOnlineUrls() as $url) {
             $data['online_urls_str_mv'][] = json_encode($url);
         }
-        $data['mime_type_str_mv'] = array_filter(
-            array_unique(
-                array_column($onlineUrls, 'mimeType')
-            )
-        );
+        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
         // Facets
         foreach ($doc->educationalAudience as $audience) {
             $data['educational_audience_str_mv'][]

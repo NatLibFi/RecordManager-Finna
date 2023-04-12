@@ -105,11 +105,8 @@ trait QdcRecordTrait
         foreach ($this->getOnlineUrls() as $url) {
             $data['online_urls_str_mv'][] = json_encode($url);
         }
-        $data['mime_type_str_mv'] = array_filter(
-            array_unique(
-                array_column($onlineUrls, 'mimeType')
-            )
-        );
+        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+
         // Get thumbnail from files
         foreach ($this->doc->file as $file) {
             $url = (string)$file->attributes()->href
