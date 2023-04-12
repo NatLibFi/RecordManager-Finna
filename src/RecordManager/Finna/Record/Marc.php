@@ -446,11 +446,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // URLs
-        foreach ($this->getLinkData() as $link) {
+        $onlineUrls = $this->getLinkData();
+        foreach ($onlineUrls as $link) {
             $link['source'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
-
+        $data['mime_type_str_mv'] = array_filter(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;
@@ -804,7 +809,6 @@ class Marc extends \RecordManager\Base\Record\Marc
                 (array)$fieldData
             );
         }
-        $data['mime_type_str_mv'] = $this->mimeTypes;
         return $data;
     }
 
@@ -2520,8 +2524,11 @@ class Marc extends \RecordManager\Base\Record\Marc
             if (!$text) {
                 $text = $this->record->getSubfield($field, 'z');
             }
-            $this->checkLinkMimeType($url, $this->record->getSubfield($field, 'q'));
-            $result[] = compact('url', 'text');
+            $mimeType = $this->getLinkMimeType(
+                $url,
+                $this->record->getSubfield($field, 'q')
+            );
+            $result[] = compact('url', 'text', 'mimeType');
         }
 
         $this->resultCache[__FUNCTION__] = $result;

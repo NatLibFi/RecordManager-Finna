@@ -99,31 +99,23 @@ trait QdcRecordTrait
                 $data['search_daterange_mv'][] = $stringDate;
             }
         }
-
-        foreach ($this->getRelationUrls() as $url) {
-            $link = [
-                'url' => $url,
-                'text' => '',
-                'source' => $this->source
-            ];
-            $data['online_urls_str_mv'][] = json_encode($link);
+        $onlineUrls = $this->getOnlineUrls();
+        foreach ($this->getOnlineUrls() as $url) {
+            $data['online_urls_str_mv'][] = json_encode($url);
         }
-
+        $data['mime_type_str_mv'] = array_filter(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
+        // Get thumbnail from files
         foreach ($this->doc->file as $file) {
             $url = (string)$file->attributes()->href
                 ? trim((string)$file->attributes()->href)
                 : trim((string)$file);
-            $link = [
-                'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
-                'source' => $this->source
-            ];
-            $this->checkLinkMimeType($url, trim($file->attributes()->type));
-            $data['online_urls_str_mv'][] = json_encode($link);
-            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
-                && !isset($data['thumbnail'])
-            ) {
+            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0) {
                 $data['thumbnail'] = $url;
+                break;
             }
         }
 
@@ -183,7 +175,6 @@ trait QdcRecordTrait
         $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = $data['format'];
-        $data['mime_type_str_mv'] = $this->mimeTypes;
 
         return $data;
     }
@@ -213,13 +204,13 @@ trait QdcRecordTrait
     }
 
     /**
-     * Get URLs from the relation field
+     * Get online URLs
      *
      * @return array
      */
-    protected function getRelationUrls(): array
+    protected function getOnlineUrls(): array
     {
-        $result = [];
+        $results = [];
         foreach ($this->doc->relation as $relation) {
             $url = trim((string)$relation);
             // Ignore too long fields. Require at least one dot surrounded by valid
@@ -230,9 +221,31 @@ trait QdcRecordTrait
             ) {
                 continue;
             }
-            $result[] = $url;
+            $results[] = [
+                'url' => $url,
+                'text' => '',
+                'source' => $this->source,
+                'mimeType' => ''
+            ];
         }
-        return $result;
+        foreach ($this->doc->file as $file) {
+            $url = (string)$file->attributes()->href
+                ? trim((string)$file->attributes()->href)
+                : trim((string)$file);
+            if (!$url) {
+                continue;
+            }
+            $results[] = [
+                'url' => $url,
+                'text' => trim((string)$file->attributes()->name),
+                'source' => $this->source,
+                'mimeType' => $this->getLinkMimeType(
+                    $url,
+                    trim($file->attributes()->type)
+                )
+            ];
+        }
+        return $results;
     }
 
     /**
@@ -360,7 +373,7 @@ trait QdcRecordTrait
         }
         // Note: Make sure not to use `empty()` for the file check since the element
         // will be empty.
-        if (!empty($this->getRelationUrls()) || $this->doc->file) {
+        if (!empty($this->getOnlineUrls()) || $this->doc->file) {
             return true;
         }
         return false;

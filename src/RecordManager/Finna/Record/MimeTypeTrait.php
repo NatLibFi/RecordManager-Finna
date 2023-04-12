@@ -42,13 +42,6 @@ use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 trait MimeTypeTrait
 {
     /**
-     * Array containing all found mimetypes.
-     *
-     * @var array
-     */
-    protected $mimeTypes = [];
-
-    /**
      * Array containing types which can be counted as image/jpeg
      *
      * @var array
@@ -66,24 +59,29 @@ trait MimeTypeTrait
         'zoomview',
     ];
 
+    /**
+     * As default, displayable and loadable images are converted into jpeg format.
+     *
+     * @var string
+     */
     protected $defaultImageMimeType = 'image/jpeg';
 
     /**
-     * Try to detect mimetype from link, format or the type of representation.
+     * Try to get mimetype from link, format or the type of representation.
      *
      * @param string $link   Link to check
      * @param string $format Format to check i.e jpg or image/jpg
      * @param string $type   Type to check i.e image_large or image_small
      *
-     * @return void
+     * @return string Found mimetype or an empty string.
      */
-    protected function checkLinkMimeType(
+    protected function getLinkMimeType(
         string $link,
         string $format = "",
         string $type = ""
-    ): void {
+    ): string {
         if (empty($link)) {
-            return;
+            return '';
         }
         $mimeType = '';
         if (!empty($format)) {
@@ -105,12 +103,9 @@ trait MimeTypeTrait
         }
         if (!$mimeType
             && in_array(mb_strtolower($type), $this->displayImageTypes)
-            && !in_array($this->defaultImageMimeType, $this->mimeTypes)
         ) {
-            $this->mimeTypes[] = $this->defaultImageMimeType;
+            $mimeType = $this->defaultImageMimeType;
         }
-        if ($mimeType && !in_array($mimeType, $this->mimeTypes)) {
-            $this->mimeTypes[] = $mimeType;
-        }
+        return $mimeType ?: '';
     }
 }

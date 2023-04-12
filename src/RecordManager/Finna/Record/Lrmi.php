@@ -59,6 +59,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
     use QdcRecordTrait {
         toSolrArray as _toSolrArray;
+        getOnlineUrls as _getOnlineUrls;
     }
 
     /**
@@ -74,20 +75,15 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         $data = $this->_toSolrArray();
 
         $doc = $this->doc;
-
-        // Materials
-        foreach ($doc->material ?? [] as $material) {
-            if ($url = (string)($material->url ?? '')) {
-                $link = [
-                    'url' => $url,
-                    'text' => trim((string)($material->name ?? $url)),
-                    'source' => $this->source
-                ];
-                $data['online_urls_str_mv'][] = json_encode($link);
-                $this->checkLinkMimeType($url, trim($material->format ?? ''));
-            }
+        $onlineUrls = $this->getOnlineUrls();
+        foreach ($this->getOnlineUrls() as $url) {
+            $data['online_urls_str_mv'][] = json_encode($url);
         }
-
+        $data['mime_type_str_mv'] = array_filter(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         // Facets
         foreach ($doc->educationalAudience as $audience) {
             $data['educational_audience_str_mv'][]
@@ -113,9 +109,32 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
         // Topic ids
         $data['topic_id_str_mv'] = $this->getTopicIds();
-        $data['mime_type_str_mv'] = $this->mimeTypes;
-
         return $data;
+    }
+
+    /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    public function getOnlineUrls(): array
+    {
+        $results = [];
+        // Materials
+        foreach ($this->doc->material ?? [] as $material) {
+            if ($url = (string)($material->url ?? '')) {
+                $results[] = [
+                    'url' => $url,
+                    'text' => trim((string)($material->name ?? $url)),
+                    'source' => $this->source,
+                    'mimeType' => $this->getLinkMimeType(
+                        $url,
+                        trim($material->format ?? '')
+                    )
+                ];
+            }
+        }
+        return $results;
     }
 
     /**

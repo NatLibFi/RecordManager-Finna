@@ -1168,7 +1168,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ]
         );
         $fields = $record->toSolrArray();
-        $this->assertContains('audio/wav-x', $fields['mime_type_str_mv']);
-        $this->assertContains('application/pdf', $fields['mime_type_str_mv']);
+        $this->assertEquals(
+            [
+                'audio/wav-x',
+                'application/pdf'
+            ],
+            $fields['mime_type_str_mv']
+        );
     }
 }

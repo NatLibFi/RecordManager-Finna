@@ -251,7 +251,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['language'] = $this->getLanguages();
-        $data['mime_type_str_mv'] = $this->getMimeTypes();
+        // do not index online urls as they display extra information in Finna
+        $onlineUrls = $this->getOnlineUrls();
+        $data['mime_type_str_mv'] = array_filter(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         return $data;
     }
 
@@ -1942,20 +1948,26 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @return array
      */
-    protected function getMimeTypes(): array
+    protected function getOnlineUrls(): array
     {
+        $results = [];
         foreach ($this->getResourceSetNodes() as $set) {
             foreach ($set->resourceRepresentation as $node) {
                 if (empty($node->linkResource)) {
                     continue;
                 }
-                $this->checkLinkMimeType(
-                    trim($node->linkResource),
-                    trim($node->linkResource->attributes()->formatResource),
-                    trim($node->attributes()->type)
-                );
+                $results[] = [
+                    'url' => trim($node->linkResource),
+                    'desc' => trim($set->resourceDescription),
+                    'source' => $this->source,
+                    'mimeType' => $this->getLinkMimeType(
+                        trim($node->linkResource),
+                        trim($node->linkResource->attributes()->formatResource),
+                        trim($node->attributes()->type)
+                    )
+                ];
             }
         }
-        return $this->mimeTypes;
+        return $results;
     }
 }

@@ -55,8 +55,13 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTest
             [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
         );
         $fields = $record->toSolrArray();
-        $this->assertContains('video/mp4', $fields['mime_type_str_mv']);
-        $this->assertContains('audio/x-wav', $fields['mime_type_str_mv']);
-        $this->assertContains('video/quicktime', $fields['mime_type_str_mv']);
+        $this->assertEquals(
+            [
+                'video/quicktime',
+                'audio/x-wav',
+                'video/mp4',
+            ],
+            $fields['mime_type_str_mv']
+        );
     }
 }

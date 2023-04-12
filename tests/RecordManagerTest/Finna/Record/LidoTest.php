@@ -113,7 +113,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('Utsjoki, Lappi', $fields['allfields']);
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
-        $this->assertContains('image/jpeg', $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
@@ -304,12 +304,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'pituus 65 cm, leveys 55 cm, korkeus enimmillään 26 cm',
             $fields['measurements']
         );
-        $this->assertContains(
-            'image/png',
-            $fields['mime_type_str_mv']
-        );
-        $this->assertContains(
-            'image/tiff',
+        $this->assertEquals(
+            [
+                'image/tiff',
+                'image/png',
+            ],
             $fields['mime_type_str_mv']
         );
     }
@@ -352,7 +351,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1911-01-01 TO 1911-12-31]',
             $fields['creation_daterange']
         );
-        $this->assertContains('image/jpeg', $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
@@ -425,7 +424,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1930-01-01 TO 1930-12-31]',
             $fields['creation_daterange']
         );
-        $this->assertContains('image/jpeg', $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
