@@ -143,7 +143,6 @@ class Qdc extends \RecordManager\Base\Record\Qdc
         }
     }
 
-
     /**
      * Get online URLs
      *
