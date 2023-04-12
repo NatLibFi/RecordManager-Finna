@@ -30,6 +30,9 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Lrmi record class
@@ -62,6 +65,38 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
     use QdcRecordTrait {
         toSolrArray as _toSolrArray;
         getOnlineUrls as _getOnlineUrls;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param ClientManager $httpManager      HTTP client manager
+     * @param ?Database     $db               Database
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        ClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->extensionDetector
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->extensionMapper
+            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
     }
 
     /**

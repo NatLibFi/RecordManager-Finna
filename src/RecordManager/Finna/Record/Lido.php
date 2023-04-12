@@ -30,6 +30,9 @@ namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
 /**
  * Lido record class
  *
@@ -47,6 +50,32 @@ class Lido extends \RecordManager\Base\Record\Lido
     use AuthoritySupportTrait;
     use DateSupportTrait;
     use MimeTypeTrait;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->extensionDetector
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->extensionMapper
+            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
+    }
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.

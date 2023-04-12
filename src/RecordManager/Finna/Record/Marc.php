@@ -160,6 +160,10 @@ class Marc extends \RecordManager\Base\Record\Marc
         );
 
         $this->recordPluginManager = $recordPluginManager;
+        $this->extensionDetector
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->extensionMapper
+            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
     }
 
     /**
@@ -812,6 +816,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 (array)$fieldData
             );
         }
+
         return $data;
     }
 

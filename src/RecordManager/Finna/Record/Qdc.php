@@ -28,6 +28,11 @@
  */
 namespace RecordManager\Finna\Record;
 
+use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
 /**
  * Qdc record class
  *
@@ -43,6 +48,38 @@ namespace RecordManager\Finna\Record;
 class Qdc extends \RecordManager\Base\Record\Qdc
 {
     use QdcRecordTrait;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param ClientManager $httpManager      HTTP client manager
+     * @param ?Database     $db               Database
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        ClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->extensionDetector
+            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
+        $this->extensionMapper
+            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
+    }
 
     /**
      * Get primary authors

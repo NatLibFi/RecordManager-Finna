@@ -42,6 +42,20 @@ use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 trait MimeTypeTrait
 {
     /**
+     * Generated extension to Mime type mapper
+     *
+     * @var GeneratedExtensionToMimeTypeMap
+     */
+    protected $extensionMapper;
+
+    /**
+     * Extension MIME Type Detector
+     *
+     * @var ExtensionMimeTypeDetector
+     */
+    protected $extensionDetector;
+
+    /**
      * Array containing types which can be counted as image/jpeg
      *
      * @var array
@@ -90,16 +104,16 @@ trait MimeTypeTrait
             $exploded = explode("/", $format);
             // try to find MIME type only from subtype
             if (empty($exploded[1])) {
-                $map = new GeneratedExtensionToMimeTypeMap();
-                $mimeType = $map->lookupMimeType($exploded[0]);
+                $mimeType
+                    = $this->extensionMapper->lookupMimeType($exploded[0]);
             } else {
                 $mimeType = $format;
             }
         }
 
         if (!$mimeType) {
-            $detector = new ExtensionMimeTypeDetector();
-            $mimeType = $detector->detectMimeTypeFromPath(trim($link));
+            $mimeType
+                = $this->extensionDetector->detectMimeTypeFromPath(trim($link));
         }
         if (!$mimeType
             && in_array(mb_strtolower($type), $this->displayImageTypes)
