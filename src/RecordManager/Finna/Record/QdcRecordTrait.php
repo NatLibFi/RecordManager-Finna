@@ -105,7 +105,11 @@ trait QdcRecordTrait
         foreach ($this->getOnlineUrls() as $url) {
             $data['online_urls_str_mv'][] = json_encode($url);
         }
-        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
 
         // Get thumbnail from files
         foreach ($this->doc->file as $file) {
@@ -224,7 +228,6 @@ trait QdcRecordTrait
                 'url' => $url,
                 'text' => '',
                 'source' => $this->source,
-                'mimeType' => ''
             ];
         }
         foreach ($this->doc->file as $file) {
@@ -234,15 +237,19 @@ trait QdcRecordTrait
             if (!$url) {
                 continue;
             }
-            $results[] = [
+            $result = [
                 'url' => $url,
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source,
-                'mimeType' => $this->getLinkMimeType(
-                    $url,
-                    trim($file->attributes()->type)
-                )
             ];
+            $mimeType = $this->getLinkMimeType(
+                $url,
+                trim($file->attributes()->type)
+            );
+            if ($mimeType) {
+                $result['mimeType'] = $mimeType;
+            }
+            $results[] = $result;
         }
         return $results;
     }

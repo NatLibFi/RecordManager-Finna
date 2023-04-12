@@ -255,7 +255,11 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
-        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         return $data;
     }
 
@@ -1954,16 +1958,20 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if (empty($node->linkResource)) {
                     continue;
                 }
-                $results[] = [
+                $result = [
                     'url' => trim($node->linkResource),
                     'desc' => trim($set->resourceDescription),
                     'source' => $this->source,
-                    'mimeType' => $this->getLinkMimeType(
-                        trim($node->linkResource),
-                        trim($node->linkResource->attributes()->formatResource),
-                        trim($node->attributes()->type)
-                    )
                 ];
+                $mimeType = $this->getLinkMimeType(
+                    trim($node->linkResource),
+                    trim($node->linkResource->attributes()->formatResource),
+                    trim($node->attributes()->type)
+                );
+                if ($mimeType) {
+                    $result['mimeType'] = $mimeType;
+                }
+                $results[] = $result;
             }
         }
         return $results;

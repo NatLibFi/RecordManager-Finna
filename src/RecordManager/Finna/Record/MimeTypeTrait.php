@@ -108,22 +108,4 @@ trait MimeTypeTrait
         }
         return $mimeType ?: '';
     }
-
-    /**
-     * Get mimetypes from an array and remove empty/multiple values
-     *
-     * @param array $urls URLs to look for mime types
-     *
-     * @return array Filtered and reindexed array of mimetypes
-     */
-    protected function getMimeTypesFromURLs(array $urls): array
-    {
-        return array_values(
-            array_filter(
-                array_unique(
-                    array_column($urls, 'mimeType')
-                )
-            )
-        );
-    }
 }

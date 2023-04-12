@@ -453,7 +453,11 @@ class Marc extends \RecordManager\Base\Record\Marc
             $link['source'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
-        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
 
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
@@ -2498,7 +2502,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             return $this->resultCache[__FUNCTION__];
         }
 
-        $result = [];
+        $results = [];
         $fields = $this->record->getFields('856');
         foreach ($fields as $field) {
             if ($this->record->getSubfield($field, '3')) {
@@ -2519,19 +2523,26 @@ class Marc extends \RecordManager\Base\Record\Marc
             ) {
                 continue;
             }
+            $result = [
+                'url' => $url
+            ];
             $text = $this->record->getSubfield($field, 'y');
             if (!$text) {
                 $text = $this->record->getSubfield($field, 'z');
             }
+            $result['text'] = $text;
             $mimeType = $this->getLinkMimeType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            $result[] = compact('url', 'text', 'mimeType');
+            if ($mimeType) {
+                $result['mimeType'] = $mimeType;
+            }
+            $results[] = $result;
         }
 
-        $this->resultCache[__FUNCTION__] = $result;
-        return $result;
+        $this->resultCache[__FUNCTION__] = $results;
+        return $results;
     }
 
     /**

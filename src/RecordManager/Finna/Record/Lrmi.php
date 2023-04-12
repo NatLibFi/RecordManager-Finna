@@ -81,7 +81,11 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         foreach ($this->getOnlineUrls() as $url) {
             $data['online_urls_str_mv'][] = json_encode($url);
         }
-        $data['mime_type_str_mv'] = $this->getMimeTypesFromURLs($onlineUrls);
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         // Facets
         foreach ($doc->educationalAudience as $audience) {
             $data['educational_audience_str_mv'][]
@@ -121,15 +125,19 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         // Materials
         foreach ($this->doc->material ?? [] as $material) {
             if ($url = (string)($material->url ?? '')) {
-                $results[] = [
+                $result = [
                     'url' => $url,
                     'text' => trim((string)($material->name ?? $url)),
                     'source' => $this->source,
-                    'mimeType' => $this->getLinkMimeType(
-                        $url,
-                        trim($material->format ?? '')
-                    )
                 ];
+                $mimeType = $this->getLinkMimeType(
+                    $url,
+                    trim($material->format ?? '')
+                );
+                if ($mimeType) {
+                    $result['mimeType'] = $mimeType;
+                }
+                $results[] = $result;
             }
         }
         return $results;
