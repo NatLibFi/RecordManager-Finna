@@ -64,7 +64,6 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
 
     use QdcRecordTrait {
         toSolrArray as _toSolrArray;
-        getOnlineUrls as _getOnlineUrls;
     }
 
     /**
@@ -112,15 +111,6 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         $data = $this->_toSolrArray();
 
         $doc = $this->doc;
-        $onlineUrls = $this->getOnlineUrls();
-        foreach ($this->getOnlineUrls() as $url) {
-            $data['online_urls_str_mv'][] = json_encode($url);
-        }
-        $data['mime_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mimeType')
-            )
-        );
         // Facets
         foreach ($doc->educationalAudience as $audience) {
             $data['educational_audience_str_mv'][]

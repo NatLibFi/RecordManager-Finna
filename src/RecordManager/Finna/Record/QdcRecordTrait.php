@@ -207,54 +207,6 @@ trait QdcRecordTrait
     }
 
     /**
-     * Get online URLs
-     *
-     * @return array
-     */
-    protected function getOnlineUrls(): array
-    {
-        $results = [];
-        foreach ($this->doc->relation as $relation) {
-            $url = trim((string)$relation);
-            // Ignore too long fields. Require at least one dot surrounded by valid
-            // characters or a familiar scheme
-            if (strlen($url) > 4096
-                || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
-                && !preg_match('/^https?:\/\//', $url))
-            ) {
-                continue;
-            }
-            $results[] = [
-                'url' => $url,
-                'text' => '',
-                'source' => $this->source,
-            ];
-        }
-        foreach ($this->doc->file as $file) {
-            $url = (string)$file->attributes()->href
-                ? trim((string)$file->attributes()->href)
-                : trim((string)$file);
-            if (!$url) {
-                continue;
-            }
-            $result = [
-                'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
-                'source' => $this->source,
-            ];
-            $mimeType = $this->getLinkMimeType(
-                $url,
-                trim($file->attributes()->type)
-            );
-            if ($mimeType) {
-                $result['mimeType'] = $mimeType;
-            }
-            $results[] = $result;
-        }
-        return $results;
-    }
-
-    /**
      * Get secondary authors
      *
      * @return array
