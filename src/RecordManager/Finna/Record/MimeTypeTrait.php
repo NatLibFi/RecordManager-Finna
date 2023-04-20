@@ -105,7 +105,7 @@ trait MimeTypeTrait
     {
         $this->extensionMapper = new GeneratedExtensionToMimeTypeMap();
         if (!empty($config['MimeType']['excluded_file_extensions'])) {
-            $this->disallowedFileTypesForLinks
+            $this->excludedFileExtensions
                 = $config['MimeType']['excluded_file_extensions'];
         }
     }
