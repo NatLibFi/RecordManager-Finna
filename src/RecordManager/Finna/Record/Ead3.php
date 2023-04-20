@@ -30,6 +30,8 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * EAD 3 Record Class
@@ -48,6 +50,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -80,6 +83,29 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      * @return string
      */
     protected $undefinedType = 'Määrittämätön';
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMimeTypeTrait($config);
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -162,7 +188,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         } elseif (isset($doc->did->accessrestrict->p)) {
             $data['rights'] = (string)$doc->did->accessrestrict->p;
         }
-
+        $onlineUrls = $this->getOnlineURLs();
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
@@ -582,6 +613,39 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             }
         }
         return false;
+    }
+
+    /**
+     * Get URLs
+     *
+     * @return array
+     */
+    protected function getOnlineURLs(): array
+    {
+        $results = [];
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            foreach ($set->dao as $dao) {
+                $attrs = $dao->attributes();
+                $url = trim((string)$attrs->href);
+                if (empty($url)) {
+                    continue;
+                }
+                $result = [
+                    'url' => $url,
+                    'desc' => trim($attrs->linktitle),
+                    'source' => $this->source,
+                ];
+                $mimeType = $this->getLinkMimeType(
+                    $url,
+                    trim((string)$attrs->linkrole),
+                );
+                if ($mimeType) {
+                    $result['mimeType'] = $mimeType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
     }
 
     /**

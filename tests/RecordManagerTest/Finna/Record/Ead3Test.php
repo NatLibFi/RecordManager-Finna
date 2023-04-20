@@ -716,6 +716,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p105341',
                 'http://www.yso.fi/onto/yso/p105341',
             ],
+            'mime_type_str_mv' => [
+                'image/tiff'
+            ]
         ];
 
         $this->assertEquals(

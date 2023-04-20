@@ -5,7 +5,7 @@
     <controlfield tag="008">220916d19311943fi |||||||||||||||||fin c</controlfield>
     <datafield tag="856" ind1="1" ind2="0">
         <subfield code="u">http://www.medialinkki.verkossa.org/tiedosto.wav</subfield>
-        <subfield code="q">audio/wav-x</subfield>
+        <subfield code="q">audio/x-wav</subfield>
     </datafield>
     <datafield tag="856" ind1="1" ind2="0">
         <subfield code="u">http://www.medialinkki.verkossa.org/tiedosto.pdf</subfield>

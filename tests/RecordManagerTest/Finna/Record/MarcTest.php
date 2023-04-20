@@ -1172,7 +1172,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
         $fields = $record->toSolrArray();
         $this->assertEquals(
             [
-                'audio/wav-x',
+                'audio/x-wav',
                 'application/pdf'
             ],
             $fields['mime_type_str_mv']

@@ -75,10 +75,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $httpManager,
             $db
         );
-        $this->extensionDetector
-            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
-        $this->extensionMapper
-            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
+        $this->initMimeTypeTrait($config);
     }
 
     /**

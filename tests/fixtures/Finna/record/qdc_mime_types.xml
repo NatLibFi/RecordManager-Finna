@@ -1,9 +1,13 @@
 <?xml version="1.0"?>
 <qualifieddc schemaLocation="http://kk/1.0/qdcfinna.xsd">
-  <file bundle="ORIGINAL" href="https://www.testi.linkki.tiedosto.ppt" type="application/vnd.ms-powerpoint"/>
-  <file bundle="ORIGINAL" href="https://www.testi.linkki.tiedosto.jpg" type="image/jpeg"/>
-  <file bundle="ORIGINAL" href="https://www.testi.linkki.tiedosto.png"/>
-  <file bundle="ORIGINAL" href="https://www.testi.linkki.tiedosto.mp4" type="video/mp4"/>
-  <file bundle="ORIGINAL" href="https://www.testi.linkki.tiedosto2.mp4" type="video/mp4"/>
+  <file bundle="ORIGINAL" href="https://www.testi.linkki/tiedosto.ppt" type="application/vnd.ms-powerpoint"/>
+  <file bundle="ORIGINAL" href="https://www.testi.linkki/tiedosto.jpg" type="image/jpeg"/>
+  <file bundle="ORIGINAL" href="https://www.testi.linkki/tiedosto.png"/>
+  <file bundle="ORIGINAL" href="https://www.testi.linkki/tiedosto.mp4" type="video/mp4"/>
+  <file bundle="ORIGINAL" href="https://www.testi.linkki/tiedosto2.mp4" type="video/mp4"/>
+  <!-- The next links should not appear as mimetypes -->
+  <file bundle="page" href="https://www.testi.linkki.es"/>
+  <file bundle="page" href="https://www.testi/index.php"/>
+  <file bundle="page" href="https://www.testi/index.phtml"/>
   <recordID>10024_72136</recordID>
 </qualifieddc>

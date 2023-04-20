@@ -71,10 +71,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             $logger,
             $metadataUtils
         );
-        $this->extensionDetector
-            = new \League\MimeTypeDetection\ExtensionMimeTypeDetector();
-        $this->extensionMapper
-            = new \League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap();
+        $this->initMimeTypeTrait($config);
     }
 
     /**

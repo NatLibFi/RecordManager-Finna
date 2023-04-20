@@ -27,7 +27,6 @@
  */
 namespace RecordManager\Finna\Record;
 
-use League\MimeTypeDetection\ExtensionMimeTypeDetector;
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 
 /**
@@ -49,13 +48,6 @@ trait MimeTypeTrait
     protected $extensionMapper;
 
     /**
-     * Extension MIME Type Detector
-     *
-     * @var ExtensionMimeTypeDetector
-     */
-    protected $extensionDetector;
-
-    /**
      * Array containing types which can be counted as image/jpeg
      *
      * @var array
@@ -70,7 +62,29 @@ trait MimeTypeTrait
         'medium',
         'square',
         'thumb',
-        'zoomview',
+        'zoomview'
+    ];
+
+    /**
+     * These values are not to be checked from a link, as they
+     * can return a false mime type.
+     *
+     * @var array
+     */
+    protected $excludedFileExtensions = [
+        'php',
+        'pl',
+        'phtml',
+        'pht',
+        'asp',
+        'rb',
+        'py',
+        'js',
+        'phtml',
+        'aspx',
+        'asmx',
+        'ashx',
+        'swf'
     ];
 
     /**
@@ -79,6 +93,22 @@ trait MimeTypeTrait
      * @var string
      */
     protected $defaultImageMimeType = 'image/jpeg';
+
+    /**
+     * Initialize MimeTypeTrait.
+     *
+     * @param array $config RecordManager config
+     *
+     * @return void
+     */
+    protected function initMimeTypeTrait(array $config): void
+    {
+        $this->extensionMapper = new GeneratedExtensionToMimeTypeMap();
+        if (!empty($config['MimeType']['excluded_file_extensions'])) {
+            $this->disallowedFileTypesForLinks
+                = $config['MimeType']['excluded_file_extensions'];
+        }
+    }
 
     /**
      * Try to get mimetype from link, format or the type of representation.
@@ -94,6 +124,7 @@ trait MimeTypeTrait
         string $format = "",
         string $type = ""
     ): string {
+        $link = trim($link);
         if (empty($link)) {
             return '';
         }
@@ -103,17 +134,23 @@ trait MimeTypeTrait
             // type/subtype
             $exploded = explode("/", $format);
             // try to find MIME type only from subtype
-            if (empty($exploded[1])) {
+            if (!empty($exploded[1])) {
+                // This can be returned instantly as it is a full mimetype
+                return $format;
+            } else {
                 $mimeType
                     = $this->extensionMapper->lookupMimeType($exploded[0]);
-            } else {
-                $mimeType = $format;
             }
         }
-
         if (!$mimeType) {
-            $mimeType
-                = $this->extensionDetector->detectMimeTypeFromPath(trim($link));
+            $parsedURL = parse_url($link);
+            if (!empty($parsedURL['path'])) {
+                $ext = pathinfo($parsedURL['path'], PATHINFO_EXTENSION);
+                if ($ext && !in_array($ext, $this->excludedFileExtensions)) {
+                    $mimeType
+                        = $this->extensionMapper->lookupMimeType($ext);
+                }
+            }
         }
         if (!$mimeType
             && in_array(mb_strtolower($type), $this->displayImageTypes)

@@ -28,6 +28,8 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Ead record class
@@ -44,6 +46,7 @@ class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Field for geographic data
@@ -58,6 +61,29 @@ class Ead extends \RecordManager\Base\Record\Ead
      * @var string
      */
     protected $geoCenterField = 'center_coords';
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMimeTypeTrait($config);
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -176,7 +202,12 @@ class Ead extends \RecordManager\Base\Record\Ead
         if ($this->hasImages()) {
             $data['format_ext_str_mv'][] = 'Image';
         }
-
+        $onlineUrls = $this->getOnlineURLs();
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         return $data;
     }
 
@@ -359,6 +390,35 @@ class Ead extends \RecordManager\Base\Record\Ead
         }
 
         return [$startDate, $endDate];
+    }
+
+    /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    protected function getOnlineURLs(): array
+    {
+        $results = [];
+        foreach ($this->doc->did->daogrp ?? [] as $daogrp) {
+            foreach ($daogrp->daoloc as $daoloc) {
+                $url = trim($daoloc->attributes()->href);
+                if (empty($url)) {
+                    continue;
+                }
+                $result = [
+                    'url' => $url,
+                    'desc' => '',
+                    'source' => $this->source
+                ];
+                $mimeType = $this->getLinkMimeType($url);
+                if ($mimeType) {
+                    $result['mimeType'] = $mimeType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
     }
 
     /**
