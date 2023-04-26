@@ -1741,6 +1741,12 @@ class Marc extends \RecordManager\Base\Record\Marc
             if ($sub3 == 'Metadata' || strncasecmp($sub3, 'metadata', 8) == 0) {
                 continue;
             }
+            $subF = $this->metadataUtils->stripTrailingPunctuation(
+                $this->record->getSubfield($field, 'f')
+            );
+            if ($subF) {
+                $rights[] = $subF;
+            }
             $subC = $this->metadataUtils->stripTrailingPunctuation(
                 $this->record->getSubfield($field, 'c')
             );
