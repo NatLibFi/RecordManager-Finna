@@ -67,7 +67,8 @@ trait MimeTypeTrait
 
     /**
      * These values are not to be checked from a link, as they
-     * can return a false mime type.
+     * can return an invalid mime type (e.g. an address ending in .php is probably
+     * executed server-side and could return anything)
      *
      * @var array
      */

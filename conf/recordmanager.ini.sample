@@ -235,13 +235,6 @@ disable_proxy_hosts[] = "127.0.0.1"
 disable_proxy_hosts[] = "localhost"
 disable_proxy_hosts[] = "::1"
 
-[MimeType]
-; The following setting can be used to exclude file extensions taken from
-; pathinfo when checking for the mime type
-;excluded_file_extensions[] = "mp3"
-;excluded_file_extensions[] = "css"
-;excluded_file_extensions[] = "sib"
-
 [MarcRecord]
 ; The following setting can be used to override the default RDA relator codes that
 ; are used to classify authors between primary and secondary
