@@ -117,7 +117,7 @@ class Lido extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -134,9 +134,7 @@ class Lido extends AbstractRecord
         }
         $data['title'] = $data['title_short'] = $data['title_full'] = $title;
         // Create sort title from the title that may have been split above:
-        $data['title_sort'] = $this->metadataUtils->stripLeadingArticle(
-            $this->metadataUtils->stripPunctuation($title)
-        );
+        $data['title_sort'] = $this->metadataUtils->createSortTitle($title);
         $data['title_alt'] = $this->getAltTitles();
 
         $description = $this->getDescription();
@@ -256,7 +254,7 @@ class Lido extends AbstractRecord
                             ...preg_split(
                                 '/[\/;]/',
                                 (string)$placeNode->displayPlace
-                            )
+                            ) ?: []
                         ];
                     }
                 }
@@ -1521,7 +1519,7 @@ class Lido extends AbstractRecord
                 continue;
             }
 
-            $type = (string)$relatedWork['type'];
+            $type = (string)($relatedWork->object->objectType->term ?? '');
             if ('collection' === $type) {
                 $data['hierarchy_top_id'] = $relatedId;
                 $data['hierarchy_top_title'] = $relatedTitle;

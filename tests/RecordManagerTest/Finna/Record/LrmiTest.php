@@ -1,10 +1,10 @@
 <?php
 /**
- * Aipa record class
+ * LRMI Record Driver Test Class
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2022.
+ * Copyright (C) The National Library of Finland 2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -21,58 +21,49 @@
  *
  * @category DataManagement
  * @package  RecordManager
- * @author   Aleksi Peebles <aleksi.peebles@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-namespace RecordManager\Finna\Record;
+namespace RecordManagerTest\Finna\Record;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Record\Qdc;
+use RecordManager\Finna\Record\Lrmi;
 
 /**
- * Aipa record class
+ * LRMI Record Driver Test Class
  *
  * @category DataManagement
  * @package  RecordManager
- * @author   Aleksi Peebles <aleksi.peebles@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class Aipa extends Qdc
+class LrmiTest extends \RecordManagerTest\Base\Record\RecordTest
 {
     /**
-     * Return fields to be indexed in Solr
+     * Test LRMI mime types
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
-     *
-     * @return array<string, mixed>
+     * @return void
      */
-    public function toSolrArray(Database $db = null)
+    public function testMimeTypes()
     {
-        $data = parent::toSolrArray($db);
-        $data['record_format'] = 'aipa';
-        return $data;
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        return 'AIPA';
-    }
-
-    /**
-     * Return URLs associated with object
-     *
-     * @return array
-     */
-    protected function getUrls()
-    {
-        return [];
+        $record = $this->createRecord(
+            Lrmi::class,
+            'lrmi_mime_types.xml',
+            [],
+            'Finna',
+            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'video/quicktime',
+                'audio/x-wav',
+                'video/mp4',
+            ],
+            $fields['mime_type_str_mv']
+        );
     }
 }

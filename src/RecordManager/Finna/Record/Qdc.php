@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2020.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,10 +22,16 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 namespace RecordManager\Finna\Record;
+
+use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Qdc record class
@@ -35,12 +41,42 @@ namespace RecordManager\Finna\Record;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 class Qdc extends \RecordManager\Base\Record\Qdc
 {
     use QdcRecordTrait;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param ClientManager $httpManager      HTTP client manager
+     * @param ?Database     $db               Database
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        ClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->initMimeTypeTrait($config);
+    }
 
     /**
      * Get primary authors
@@ -102,5 +138,53 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                 $data['hierarchy_parent_title'][] = trim((string)$rel);
             }
         }
+    }
+
+    /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    protected function getOnlineUrls(): array
+    {
+        $results = [];
+        foreach ($this->doc->relation as $relation) {
+            $url = trim((string)$relation);
+            // Ignore too long fields. Require at least one dot surrounded by valid
+            // characters or a familiar scheme
+            if (strlen($url) > 4096
+                || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
+                && !preg_match('/^https?:\/\//', $url))
+            ) {
+                continue;
+            }
+            $results[] = [
+                'url' => $url,
+                'text' => '',
+                'source' => $this->source,
+            ];
+        }
+        foreach ($this->doc->file as $file) {
+            $url = (string)$file->attributes()->href
+                ? trim((string)$file->attributes()->href)
+                : trim((string)$file);
+            if (!$url) {
+                continue;
+            }
+            $result = [
+                'url' => $url,
+                'text' => trim((string)$file->attributes()->name),
+                'source' => $this->source,
+            ];
+            $mimeType = $this->getLinkMimeType(
+                $url,
+                trim($file->attributes()->type)
+            );
+            if ($mimeType) {
+                $result['mimeType'] = $mimeType;
+            }
+            $results[] = $result;
+        }
+        return $results;
     }
 }

@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2022.
+ * Copyright (C) The National Library of Finland 2022-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -84,5 +84,34 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
         );
         $fields = $fields->toSolrArray()['search_daterange_mv'];
         $this->assertEquals($expected, $fields);
+    }
+
+    /**
+     * Test mime types
+     *
+     * @return void
+     */
+    public function testMimeTypes()
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_mime_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class)
+            ]
+        );
+        $fields = $fields->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'application/vnd.ms-powerpoint',
+                'image/jpeg',
+                'image/png',
+                'video/mp4'
+            ],
+            $fields['mime_type_str_mv']
+        );
     }
 }

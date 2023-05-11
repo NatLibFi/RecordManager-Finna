@@ -188,6 +188,12 @@ class NominatimGeocoder extends AbstractEnrichment
                 ];
             }
         }
+
+        // Allow overriding of default cache expiration:
+        $expiration = $settings['cache_expiration'] ?? null;
+        if (null !== $expiration) {
+            $this->maxCacheAge = 60 * $expiration;
+        }
     }
 
     /**
@@ -217,8 +223,9 @@ class NominatimGeocoder extends AbstractEnrichment
     /**
      * Enrich using an array of location strings
      *
-     * @param array $locations Locations
-     * @param array $solrArray Metadata to be sent to Solr
+     * @param array                                    $locations Locations
+     * @param array<string, string|array<int, string>> $solrArray Metadata to be sent
+     *                                                            to Solr
      *
      * @return bool Whether locations were found
      */
@@ -289,7 +296,7 @@ class NominatimGeocoder extends AbstractEnrichment
                             $solrArray[$this->solrField] = $wkts;
                         } else {
                             $solrArray[$this->solrField] = [
-                                ...$solrArray[$this->solrField],
+                                ...(array)$solrArray[$this->solrField],
                                 ...$wkts
                             ];
                         }

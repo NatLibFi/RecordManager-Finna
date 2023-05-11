@@ -66,7 +66,7 @@ class Eaccpf extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -307,11 +307,11 @@ class Eaccpf extends AbstractRecord
      */
     protected function getHeadingLanguage()
     {
-        if (!isset($this->doc->cpfDescription->identity->nameEntry)) {
+        if (!isset($this->doc->control->languageDeclaration->language)) {
             return '';
         }
-        $attrs = $this->doc->cpfDescription->identity->nameEntry->attributes();
-        return (string)$attrs->language;
+        $attrs = $this->doc->control->languageDeclaration->language->attributes();
+        return trim((string)$attrs->languageCode);
     }
 
     /**

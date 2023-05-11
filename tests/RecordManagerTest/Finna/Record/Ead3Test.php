@@ -265,6 +265,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
     {
         $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
         $mdash = html_entity_decode('&#x2014;', ENT_NOQUOTES, 'UTF-8');
+        $ltr = "\u{200E}";
 
         $noYear = [
             'no year ndash' => [
@@ -285,7 +286,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'no year without year range' => [
                 'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto" .
+                "{$ltr} (1932{$ndash}1935)",
             ],
         ];
 
@@ -319,7 +321,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'no match without year range' => [
                 'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto" .
+                "{$ltr} (1932{$ndash}1935)",
             ],
         ];
 
@@ -335,7 +338,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             'no matches dash' => [
                 'title' => "Opintokirja. Helsingin yliopisto (1932)",
                 'expected'
-                    => "Opintokirja. Helsingin yliopisto (1932) (1932{$ndash}1935)",
+                    => "Opintokirja. Helsingin yliopisto (1932)" .
+                    "{$ltr} (1932{$ndash}1935)",
             ],
             'no matches with years' => [
                 'title' => "Opintokirja. 1932 Helsingin yliopisto 1935",
@@ -343,7 +347,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'no matches without years' => [
                 'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto" .
+                "{$ltr} (1932{$ndash}1935)",
             ],
         ];
 
@@ -352,28 +357,30 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
                 'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
                 'expected' =>
                     "Opintokirja. Helsingin yliopisto "
-                    . "(1932{$ndash}1935) (1932{$ndash}1935)",
+                    . "(1932{$ndash}1935){$ltr} (1932{$ndash}1935)",
             ],
             'always mdash' => [
                 'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
                 'expected'
                     => "Opintokirja. Helsingin yliopisto "
-                    . "1932{$mdash}1935 (1932{$ndash}1935)",
+                    . "1932{$mdash}1935{$ltr} (1932{$ndash}1935)",
             ],
             'always dash' => [
                 'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
                 'expected' =>
                     "Opintokirja. Helsingin yliopisto "
-                    . "(1932 - 1935) (1932{$ndash}1935)",
+                    . "(1932 - 1935){$ltr} (1932{$ndash}1935)",
             ],
             'always title with a year' => [
                 'title' => "Opintokirja. 1932 Helsingin yliopisto",
                 'expected'
-                    => "Opintokirja. 1932 Helsingin yliopisto (1932{$ndash}1935)",
+                    => "Opintokirja. 1932 Helsingin yliopisto" .
+                    "{$ltr} (1932{$ndash}1935)",
             ],
             'always without year' => [
                 'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
+                'expected' => "Opintokirja. Helsingin yliopisto" .
+                "{$ltr} (1932{$ndash}1935)",
             ],
         ];
 
@@ -502,6 +509,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
         $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
             ->toSolrArray();
         unset($fields['fullrecord']);
+        $ltr = "\u{200E}";
 
         $expected = [
             'record_format' => 'ead3',
@@ -619,10 +627,10 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
             'institution' => '102268433',
             'series' => 'Tekstit/Gustaf Edvard Sundvallin kokoelma',
             'title_sub' => '1',
-            'title_short' => 'Sundvall Gustaf Edvard S 1:a) 1 (1881)',
-            'title' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
-            'title_sort' => '1 sundvall gustaf edvard s 1 a 1 (1881)',
-            'title_full' => '1 Sundvall Gustaf Edvard S 1:a) 1 (1881)',
+            'title_short' => 'Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+            'title' => '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+            'title_sort' => '1 sundvall gustaf edvard s 1 a 1' . $ltr . ' (1881)',
+            'title_full' => '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
             'language' => [
                 'fin',
             ],
@@ -708,6 +716,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p105341',
                 'http://www.yso.fi/onto/yso/p105341',
             ],
+            'mime_type_str_mv' => [
+                'image/tiff'
+            ]
         ];
 
         $this->assertEquals(

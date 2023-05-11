@@ -22,6 +22,7 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -35,6 +36,7 @@ use RecordManager\Finna\Record\Marc;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -270,6 +272,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
+            'mime_type_str_mv' => []
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -471,6 +474,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
+            'mime_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -652,6 +656,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
+            'mime_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -793,6 +798,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'mime_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -932,6 +938,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'mime_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1041,22 +1048,29 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
+            'mime_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
     }
 
     /**
-     * Test MARC UDK classification
+     * Test MARC UDK and extra classifications
      *
      * @return void
      */
-    public function testMarcUDK()
+    public function testMarcUDKAndExtraClassifications()
     {
         $record = $this->createMarcRecord(
             Marc::class,
             'marc-udk.xml',
-            [],
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'classifications = "245a=title"',
+                    ],
+                ],
+            ],
             'Finna',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class)
@@ -1072,6 +1086,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'udk2 new080-2',
                 'udkx unknown080-1',
                 'udkx unknown080-2',
+                'title Lentolehti',
             ],
             $fields['classification_txt_mv']
         );
@@ -1142,6 +1157,32 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'udkx unknown080-2',
             ],
             $fields['classification_txt_mv']
+        );
+    }
+
+    /**
+     * Test MARC mime types
+     *
+     * @return void
+     */
+    public function testMarcMimeTypes(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc_mime_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'audio/x-wav',
+                'application/pdf'
+            ],
+            $fields['mime_type_str_mv']
         );
     }
 }

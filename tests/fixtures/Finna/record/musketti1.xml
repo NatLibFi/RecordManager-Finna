@@ -179,7 +179,7 @@
             <resourceWrap>
                 <resourceSet>
                     <resourceRepresentation>
-                        <linkResource>http://muisti.nba.fi/m/S3168_23/sa009218.jpg</linkResource>
+                        <linkResource formatResource="image/jpeg">http://muisti.nba.fi/m/S3168_23/sa009218.jpg</linkResource>
                     </resourceRepresentation>
                     <rightsResource>
                         <rightsType>

@@ -5,7 +5,7 @@
  * PHP version 7
  *
  * Copyright (C) Eero Heikkinen 2013.
- * Copyright (C) The National Library of Finland 2017-2022.
+ * Copyright (C) The National Library of Finland 2017-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -24,6 +24,7 @@
  * @package  RecordManager
  * @author   Eero Heikkinen <eero.heikkinen@gmail.com>
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -38,6 +39,7 @@ use RecordManager\Finna\Record\Lido;
  * @package  RecordManager
  * @author   Eero Heikkinen <eero.heikkinen@gmail.com>
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -113,6 +115,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('Utsjoki, Lappi', $fields['allfields']);
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
@@ -131,7 +134,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_full' => 'Imatrankoski',
             'title_short' => 'Imatrankoski',
             'title' => 'Imatrankoski',
-            'title_sort' => 'Imatrankoski',
+            'title_sort' => 'imatrankoski',
             'title_alt' => [],
             'format' => 'kuva',
             'institution' => 'Museoviraston kuva-arkisto/',
@@ -263,6 +266,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'fi',
                 'sv',
                 'en'
+            ],
+            'mime_type_str_mv' => [
+                'image/jpeg'
             ]
         ];
 
@@ -299,6 +305,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains(
             'pituus 65 cm, leveys 55 cm, korkeus enimmillään 26 cm',
             $fields['measurements']
+        );
+        $this->assertEquals(
+            [
+                'image/tiff',
+                'image/png',
+            ],
+            $fields['mime_type_str_mv']
         );
     }
 
@@ -340,6 +353,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1911-01-01 TO 1911-12-31]',
             $fields['creation_daterange']
         );
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
@@ -412,6 +426,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1930-01-01 TO 1930-12-31]',
             $fields['creation_daterange']
         );
+        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
     }
 
     /**
@@ -437,6 +452,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('ruostumaton teräs', $fields['material']);
 
         $this->assertEquals('Designmuseo', $fields['institution']);
+
+        $this->assertEquals([], $fields['mime_type_str_mv']);
     }
 
     /**

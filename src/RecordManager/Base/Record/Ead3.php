@@ -116,7 +116,7 @@ class Ead3 extends Ead
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -197,11 +197,7 @@ class Ead3 extends Ead
             : '';
 
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            // Again, just in case stripping the article affected this
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         }
 
         return $title;

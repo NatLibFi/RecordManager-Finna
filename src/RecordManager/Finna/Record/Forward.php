@@ -106,7 +106,9 @@ class Forward extends \RecordManager\Base\Record\Forward
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function toSolrArray(Database $db = null)
     {

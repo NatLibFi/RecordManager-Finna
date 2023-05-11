@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<dc schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+  <id>oai:aoe.fi:11</id>
+  <material>
+    <name lang="fi">A Quicktime Video Learning design</name>
+    <name lang="sv">A Quicktime Video Learning design</name>
+    <name lang="en">A Quicktime Video Learning design</name>
+    <url>https://aoe.fi/api/download/AVideoLearningdesign-1576572679231.mov</url>
+    <position>6</position>
+    <format>video/quicktime</format>
+    <filesize>31820850</filesize>
+    <inLanguage>en</inLanguage>
+  </material>
+  <material>
+    <name lang="fi">En Audio Planering av undervisning och la&#x308;rande</name>
+    <name lang="sv">En Audio Planering av undervisning och la&#x308;rande</name>
+    <name lang="en">En Audio Planering av undervisning och la&#x308;rande</name>
+    <url>https://aoe.fi/api/download/AVideoPlaneringavundervisningochlarande-1576572679208.wav</url>
+    <position>3</position>
+    <format>unknown</format>
+    <filesize>30562026</filesize>
+    <inLanguage>sv</inLanguage>
+  </material>
+  <material>
+    <name lang="fi">A Video Opetuksen ja oppimisen suunnittelu</name>
+    <name lang="sv">A Video Opetuksen ja oppimisen suunnittelu</name>
+    <name lang="en">A Video Opetuksen ja oppimisen suunnittelu</name>
+    <url>https://aoe.fi/api/download/AVideoOpetuksenjaoppimisensuunnittelu-1576572679174.mp4</url>
+    <position>0</position>
+    <format>video/mp4</format>
+    <filesize>31795910</filesize>
+    <inLanguage>fi</inLanguage>
+  </material>
+  <recordID>11</recordID>
+</dc>

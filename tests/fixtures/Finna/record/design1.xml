@@ -133,7 +133,7 @@
       <resourceWrap>
         <resourceSet>
           <resourceRepresentation>
-            <linkResource lido:label="Linkki kuvaan">http://oai-pmh.memoron.fi/designmuseo/Kuva.aspx?id=116854&amp;guid=WcfxRcyJpLM8LlMK271bPjhlctLMqxuqaIf5SoqKF%2fFIRWZ1Y2hBcmFjOHY%3d</linkResource>
+            <linkResource formatResource="notvalid" lido:label="Linkki kuvaan">http://oai-pmh.memoron.fi/designmuseo/Kuva.aspx?id=116854&amp;guid=WcfxRcyJpLM8LlMK271bPjhlctLMqxuqaIf5SoqKF%2fFIRWZ1Y2hBcmFjOHY%3d</linkResource>
           </resourceRepresentation>
         </resourceSet>
       </resourceWrap>

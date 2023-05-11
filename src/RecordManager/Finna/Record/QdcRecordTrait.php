@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2019-2020.
+ * Copyright (C) The National Library of Finland 2019-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,6 +22,7 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -36,12 +37,14 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 trait QdcRecordTrait
 {
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Rights statements indicating open access
@@ -77,7 +80,7 @@ trait QdcRecordTrait
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -98,30 +101,24 @@ trait QdcRecordTrait
                 $data['search_daterange_mv'][] = $stringDate;
             }
         }
-
-        foreach ($this->getRelationUrls() as $url) {
-            $link = [
-                'url' => $url,
-                'text' => '',
-                'source' => $this->source
-            ];
-            $data['online_urls_str_mv'][] = json_encode($link);
+        $onlineUrls = $this->getOnlineUrls();
+        foreach ($this->getOnlineUrls() as $url) {
+            $data['online_urls_str_mv'][] = json_encode($url);
         }
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
 
+        // Get thumbnail from files
         foreach ($this->doc->file as $file) {
             $url = (string)$file->attributes()->href
                 ? trim((string)$file->attributes()->href)
                 : trim((string)$file);
-            $link = [
-                'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
-                'source' => $this->source
-            ];
-            $data['online_urls_str_mv'][] = json_encode($link);
-            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0
-                && !isset($data['thumbnail'])
-            ) {
+            if (strcasecmp($file->attributes()->bundle, 'THUMBNAIL') == 0) {
                 $data['thumbnail'] = $url;
+                break;
             }
         }
 
@@ -207,29 +204,6 @@ trait QdcRecordTrait
             }
         }
         return false;
-    }
-
-    /**
-     * Get URLs from the relation field
-     *
-     * @return array
-     */
-    protected function getRelationUrls(): array
-    {
-        $result = [];
-        foreach ($this->doc->relation as $relation) {
-            $url = trim((string)$relation);
-            // Ignore too long fields. Require at least one dot surrounded by valid
-            // characters or a familiar scheme
-            if (strlen($url) > 4096
-                || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
-                && !preg_match('/^https?:\/\//', $url))
-            ) {
-                continue;
-            }
-            $result[] = $url;
-        }
-        return $result;
     }
 
     /**
@@ -357,7 +331,7 @@ trait QdcRecordTrait
         }
         // Note: Make sure not to use `empty()` for the file check since the element
         // will be empty.
-        if (!empty($this->getRelationUrls()) || $this->doc->file) {
+        if (!empty($this->getOnlineUrls()) || $this->doc->file) {
             return true;
         }
         return false;

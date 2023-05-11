@@ -55,7 +55,9 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function toSolrArray(Database $db = null)
     {
@@ -63,7 +65,7 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
 
         $data['allfields'][] = $this->getHeading();
         $data['allfields'] = [
-            ...$data['allfields'],
+            ...(array)$data['allfields'],
             ...$this->getAlternativeNames()
         ];
         return $data;

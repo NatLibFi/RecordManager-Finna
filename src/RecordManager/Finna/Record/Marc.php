@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2022.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,6 +22,7 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.1 GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -44,6 +45,7 @@ use RecordManager\Base\Utils\MetadataUtils;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -52,6 +54,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
 
     /**
      * Record plugin manager
@@ -157,6 +160,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         );
 
         $this->recordPluginManager = $recordPluginManager;
+        $this->initMimeTypeTrait($config);
     }
 
     /**
@@ -210,7 +214,10 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
+     *
+     * @psalm-suppress DuplicateArrayKey
+     * @psalm-suppress NoValue
      */
     public function toSolrArray(Database $db = null)
     {
@@ -400,6 +407,13 @@ class Marc extends \RecordManager\Base\Record\Marc
                 }
             }
         }
+        // Extra classifications
+        if ($extraClassifications = $this->getExtraClassifications()) {
+            $data['classification_txt_mv'] = [
+                ...(array)($data['classification_txt_mv'] ?? []),
+                ...$extraClassifications,
+            ];
+        }
 
         // Keep classification_str_mv for backward-compatibility for now
         if (isset($data['classification_txt_mv'])) {
@@ -408,7 +422,7 @@ class Marc extends \RecordManager\Base\Record\Marc
 
         // Original Study Number
         $data['ctrlnum'] = [
-            ...$data['ctrlnum'],
+            ...(array)$data['ctrlnum'],
             ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '036', ['a']]])
         ];
 
@@ -445,10 +459,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // URLs
-        foreach ($this->getLinkData() as $link) {
+        $onlineUrls = $this->getLinkData();
+        foreach ($onlineUrls as $link) {
             $link['source'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
 
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
@@ -742,9 +762,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 return preg_replace('/\s+/', ' ', $s);
             },
             [
-                ...$primaryAuthors['names'],
-                ...$secondaryAuthors['names'],
-                ...$corporateAuthors['names']
+                ...(array)$primaryAuthors['names'],
+                ...(array)$secondaryAuthors['names'],
+                ...(array)$corporateAuthors['names']
             ]
         );
 
@@ -1038,6 +1058,8 @@ class Marc extends \RecordManager\Base\Record\Marc
      *                                     component part set
      *
      * @return int Count of records merged
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function mergeComponentParts($componentParts, &$changeDate)
     {
@@ -1059,22 +1081,22 @@ class Marc extends \RecordManager\Base\Record\Marc
             if ($data['textIncipits']) {
                 $this->extraFields['allfields'] = [
                     ...(array)($this->extraFields['allfields'] ?? []),
-                    ...$data['textIncipits']
+                    ...(array)$data['textIncipits']
                 ];
                 // Text incipit is treated as an alternative title
                 $this->extraFields['title_alt'] = [
                     ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...$data['textIncipits']
+                    ...(array)$data['textIncipits']
                 ];
             }
             if ($data['varyingTitles']) {
                 $this->extraFields['allfields'] = [
                     ...(array)($this->extraFields['allfields'] ?? []),
-                    ...$data['varyingTitles']
+                    ...(array)$data['varyingTitles']
                 ];
                 $this->extraFields['title_alt'] = [
                     ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...$data['varyingTitles']
+                    ...(array)$data['varyingTitles']
                 ];
             }
 
@@ -1727,6 +1749,12 @@ class Marc extends \RecordManager\Base\Record\Marc
             );
             if ($sub3 == 'Metadata' || strncasecmp($sub3, 'metadata', 8) == 0) {
                 continue;
+            }
+            $subF = $this->metadataUtils->stripTrailingPunctuation(
+                $this->record->getSubfield($field, 'f')
+            );
+            if ($subF) {
+                $rights[] = $subF;
             }
             $subC = $this->metadataUtils->stripTrailingPunctuation(
                 $this->record->getSubfield($field, 'c')
@@ -2494,7 +2522,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             return $this->resultCache[__FUNCTION__];
         }
 
-        $result = [];
+        $results = [];
         $fields = $this->record->getFields('856');
         foreach ($fields as $field) {
             if ($this->record->getSubfield($field, '3')) {
@@ -2515,15 +2543,26 @@ class Marc extends \RecordManager\Base\Record\Marc
             ) {
                 continue;
             }
+            $result = [
+                'url' => $url
+            ];
             $text = $this->record->getSubfield($field, 'y');
             if (!$text) {
                 $text = $this->record->getSubfield($field, 'z');
             }
-            $result[] = compact('url', 'text');
+            $result['text'] = $text;
+            $mimeType = $this->getLinkMimeType(
+                $url,
+                $this->record->getSubfield($field, 'q')
+            );
+            if ($mimeType) {
+                $result['mimeType'] = $mimeType;
+            }
+            $results[] = $result;
         }
 
-        $this->resultCache[__FUNCTION__] = $result;
-        return $result;
+        $this->resultCache[__FUNCTION__] = $results;
+        return $results;
     }
 
     /**
@@ -2573,5 +2612,49 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         return $access !== 'onlineaccesswithauthorization';
+    }
+
+    /**
+     * Get extra classifications based on driver params
+     *
+     * @return array
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function getExtraClassifications(): array
+    {
+        if (!($extraFields = $this->getDriverParam('classifications', false))) {
+            return [];
+        }
+
+        $result = [];
+        foreach (explode(':', $extraFields) as $classSpec) {
+            $parts = explode('=', $classSpec);
+            $fieldSpec = $parts[0];
+            $prefix = $parts[1] ?? '';
+
+            $field = substr($fieldSpec, 0, 3);
+            $subfields = str_split(substr($fieldSpec, 3));
+            $fields = $this->record->getFieldsSubfields($field, $subfields);
+            if (!$fields) {
+                continue;
+            }
+            // Make sure there is a single space between subfields:
+            $fields = preg_replace('/\s{2,}/', ' ', $fields);
+            if ($prefix) {
+                $fields = array_map(
+                    function ($s) use ($prefix) {
+                        return "$prefix $s";
+                    },
+                    $fields
+                );
+            }
+            $result = [
+                ...$result,
+                ...$fields
+            ];
+        }
+
+        return $result;
     }
 }

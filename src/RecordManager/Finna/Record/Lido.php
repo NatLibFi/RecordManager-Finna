@@ -4,7 +4,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2022.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,12 +22,16 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Lido record class
@@ -37,6 +41,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -44,6 +49,30 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MimeTypeTrait;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMimeTypeTrait($config);
+    }
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -106,7 +135,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -250,6 +279,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['language'] = $this->getLanguages();
+        // do not index online urls as they display extra information in Finna
+        $onlineUrls = $this->getOnlineUrls();
+        $data['mime_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mimeType')
+            )
+        );
         return $data;
     }
 
@@ -330,7 +366,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                         ...preg_split(
                             '/[\/;]/',
                             $displayPlace
-                        )
+                        ) ?: []
                     ];
                 }
             }
@@ -406,7 +442,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                             ...preg_split(
                                 '/[\/;]/',
                                 (string)$placeNode->displayPlace
-                            )
+                            ) ?: []
                         ];
                     }
                 }
@@ -1933,5 +1969,37 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return array_unique($result);
+    }
+
+    /**
+     * Get mime types
+     *
+     * @return array
+     */
+    protected function getOnlineUrls(): array
+    {
+        $results = [];
+        foreach ($this->getResourceSetNodes() as $set) {
+            foreach ($set->resourceRepresentation as $node) {
+                if (empty($node->linkResource)) {
+                    continue;
+                }
+                $result = [
+                    'url' => trim($node->linkResource),
+                    'desc' => trim($set->resourceDescription),
+                    'source' => $this->source,
+                ];
+                $mimeType = $this->getLinkMimeType(
+                    trim($node->linkResource),
+                    trim($node->linkResource->attributes()->formatResource),
+                    trim($node->attributes()->type)
+                );
+                if ($mimeType) {
+                    $result['mimeType'] = $mimeType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
     }
 }
