@@ -67,8 +67,8 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
 
         $data['allfields'][] = $this->getHeading();
         $data['allfields'] = [
-            ...(array)$data['allfields'],
-            ...$this->getAlternativeNames(),
+            ...$data['allfields'],
+            ...$this->getAlternativeNames(['500', '510']),
         ];
         return $data;
     }
@@ -80,10 +80,11 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
      *
      * @return array<int, string>
      */
-    public function getAlternativeNames($additional = [])
-    {
+    public function getAlternativeNames(
+        $additional = [],
+    ) {
         $result = [];
-        $defaultFields = ['400', '410', '500', '510'];
+        $defaultFields = ['400', '410'];
         foreach ([...$defaultFields, ...$additional] as $code) {
             $subfields = in_array($code, ['400', '500'])
                 ? ['a', 'b', 'c']
