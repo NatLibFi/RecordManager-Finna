@@ -66,10 +66,10 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
         $data = parent::toSolrArray($db);
 
         $data['allfields'][] = $this->getHeading();
-        $data['allfields'] = [
-            ...$data['allfields'],
-            ...$this->getAlternativeNames(['500', '510']),
-        ];
+        $data['allfields'] = array_merge(
+            $data['allfields'],
+            $this->getAlternativeNames(['500', '510'])
+        );
         return $data;
     }
 
