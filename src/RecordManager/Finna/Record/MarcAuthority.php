@@ -80,9 +80,7 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
      *
      * @return array<int, string>
      */
-    public function getAlternativeNames(
-        $additional = [],
-    ) {
+    public function getAlternativeNames($additional = []) {
         $result = [];
         $defaultFields = ['400', '410'];
         foreach ([...$defaultFields, ...$additional] as $code) {
