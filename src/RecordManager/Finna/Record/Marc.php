@@ -844,6 +844,25 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
+     * Get ids for described authors.
+     *
+     * @return array
+     */
+    public function getAuthorTopicIDs(): array
+    {
+        $fieldTags = ['600', '610', '611'];
+        $result = [];
+        foreach ($fieldTags as $tag) {
+            foreach ($this->record->getFields($tag) as $field) {
+                if ($id = $this->getIDFromField($field)) {
+                    $result[] = $id;
+                }
+            }
+        }
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
+    }
+
+    /**
      * Get all non-specific topics
      *
      * @return array
