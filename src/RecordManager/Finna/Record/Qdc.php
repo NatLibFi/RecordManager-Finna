@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Qdc record class
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -152,7 +154,8 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $url = trim((string)$relation);
             // Ignore too long fields. Require at least one dot surrounded by valid
             // characters or a familiar scheme
-            if (strlen($url) > 4096
+            if (
+                strlen($url) > 4096
                 || (!preg_match('/^[A-Za-z0-9]\.[A-Za-z0-9]$/', $url)
                 && !preg_match('/^https?:\/\//', $url))
             ) {

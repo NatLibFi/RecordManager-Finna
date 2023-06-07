@@ -1,4 +1,5 @@
 <?php
+
 /**
  * LRMI Record Driver Test Class
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Lrmi;
@@ -40,7 +42,7 @@ use RecordManager\Finna\Record\Lrmi;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class LrmiTest extends \RecordManagerTest\Base\Record\RecordTest
+class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test LRMI mime types

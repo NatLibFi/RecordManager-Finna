@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Finna LIDO Record Driver Test Class
  *
@@ -28,6 +29,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Lido;
@@ -43,7 +45,7 @@ use RecordManager\Finna\Record\Lido;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
+class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test Musketti LIDO record handling
@@ -149,10 +151,10 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'material' => [],
             'material_str_mv' => [],
             'era_facet' => [
-                '1897', '1898'
+                '1897', '1898',
             ],
             'era' => [
-                '1897', '1898'
+                '1897', '1898',
             ],
             'geographic_facet' => [
                 'Ruokolahti',
@@ -257,7 +259,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Kansatieteen kuvakokoelma',
             ],
             'category_str_mv' => [
-                'Luonto'
+                'Luonto',
             ],
             'ctrlnum' => [],
             'isbn' => [],
@@ -265,11 +267,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'language' => [
                 'fi',
                 'sv',
-                'en'
+                'en',
             ],
             'mime_type_str_mv' => [
-                'image/jpeg'
-            ]
+                'image/jpeg',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -472,11 +474,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                     ['type' => 'title', 'value' => 'Shore Stones'],
                 ],
                 'authors' => [
-                    ['type' => 'author', 'value' => 'Halonen, Pekka']
+                    ['type' => 'author', 'value' => 'Halonen, Pekka'],
                 ],
                 'titlesAltScript' => [],
-                'authorsAltScript' => []
-            ]
+                'authorsAltScript' => [],
+            ],
         ];
 
         $this->compareArray(
@@ -509,7 +511,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'allfields' => [
                 'M123',
                 'lierihattu',
-                ''
+                '',
             ],
             'measurements' => [
                 'korkeus 8.50 cm',
@@ -524,8 +526,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => '__unit_test_no_source__',
             'format_ext_str_mv' => [
-                ''
-            ]
+                '',
+            ],
         ];
 
         $result = array_filter($record->toSolrArray());

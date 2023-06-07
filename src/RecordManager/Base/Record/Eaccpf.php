@@ -1,8 +1,9 @@
 <?php
+
 /**
  * EAC-CPF Record Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2020.
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -134,15 +136,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getBirthDate()
     {
-        $hasDates = isset(
-            $this->doc->cpfDescription->description->existDates->dateSet->date
-        );
-        if (!$hasDates) {
-            return '';
-        }
-        foreach ($this->doc->cpfDescription->description->existDates->dateSet->date
-            as $date
-        ) {
+        foreach ($this->doc->cpfDescription->description->existDates->dateSet->date ?? [] as $date) {
             $attrs = $date->attributes();
             $type = (string)$attrs->localType;
             if ('http://rdaregistry.info/Elements/a/P50121' === $type) {
@@ -162,10 +156,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getBirthPlace()
     {
-        if (!isset($this->doc->cpfDescription->description->places->place)) {
-            return '';
-        }
-        foreach ($this->doc->cpfDescription->description->places->place as $place) {
+        foreach ($this->doc->cpfDescription->description->places->place ?? [] as $place) {
             $attrs = $place->attributes();
             $type = $attrs->localType;
             if ('http://rdaregistry.info/Elements/a/P50119' == $type) {
@@ -184,15 +175,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getDeathDate()
     {
-        $hasDates = isset(
-            $this->doc->cpfDescription->description->existDates->dateSet->date
-        );
-        if (!$hasDates) {
-            return '';
-        }
-        foreach ($this->doc->cpfDescription->description->existDates->dateSet->date
-            as $date
-        ) {
+        foreach ($this->doc->cpfDescription->description->existDates->dateSet->date ?? [] as $date) {
             $attrs = $date->attributes();
             $type = (string)$attrs->localType;
             if ('http://rdaregistry.info/Elements/a/P50120' === $type) {
@@ -212,10 +195,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getDeathPlace()
     {
-        if (!isset($this->doc->cpfDescription->description->places->place)) {
-            return '';
-        }
-        foreach ($this->doc->cpfDescription->description->places->place as $place) {
+        foreach ($this->doc->cpfDescription->description->places->place ?? [] as $place) {
             $attrs = $place->attributes();
             $type = $attrs->localType;
             if ('http://rdaregistry.info/Elements/a/P50118' == $type) {
@@ -234,7 +214,7 @@ class Eaccpf extends AbstractRecord
      *
      * @return null|string
      */
-    protected function parseYear(string $date) : ?string
+    protected function parseYear(string $date): ?string
     {
         return $this->metadataUtils->extractYear($date) ?: null;
     }
@@ -246,13 +226,8 @@ class Eaccpf extends AbstractRecord
      */
     protected function getFieldsOfActivity()
     {
-        if (!isset($this->doc->cpfDescription->description->functions->function)) {
-            return [];
-        }
         $result = [];
-        foreach ($this->doc->cpfDescription->description->functions->function
-            as $function
-        ) {
+        foreach ($this->doc->cpfDescription->description->functions->function ?? [] as $function) {
             $attrs = $function->attributes();
             $type = $attrs->localType;
             if ('TJ37' == $type && $function->descriptiveNote->p) {
@@ -277,9 +252,7 @@ class Eaccpf extends AbstractRecord
     {
         $name1 = '';
         $name2 = '';
-        foreach (($this->doc->cpfDescription->identity->nameEntry->part ?? [])
-            as $part
-        ) {
+        foreach ($this->doc->cpfDescription->identity->nameEntry->part ?? [] as $part) {
             $type = $part->attributes()->localType;
             if ('TONI1' == $type) {
                 $name1 = (string)$part;
@@ -307,10 +280,10 @@ class Eaccpf extends AbstractRecord
      */
     protected function getHeadingLanguage()
     {
-        if (!isset($this->doc->control->languageDeclaration->language)) {
+        if (!($language = $this->doc->control->languageDeclaration->language ?? null)) {
             return '';
         }
-        $attrs = $this->doc->control->languageDeclaration->language->attributes();
+        $attrs = $language->attributes();
         return trim((string)$attrs->languageCode);
     }
 
@@ -321,13 +294,9 @@ class Eaccpf extends AbstractRecord
      */
     protected function getOccupations()
     {
-        if (!isset($this->doc->cpfDescription->description->occupations->occupation)
-        ) {
-            return [];
-        }
         $result = [];
-        foreach ($this->doc->cpfDescription->description->occupations->occupation
-            as $occupation
+        foreach (
+            $this->doc->cpfDescription->description->occupations->occupation ?? [] as $occupation
         ) {
             if ($occupation->term) {
                 $result[] = (string)$occupation->term;
@@ -343,16 +312,14 @@ class Eaccpf extends AbstractRecord
      */
     protected function getRelatedPlaces()
     {
-        if (!isset($this->doc->cpfDescription->description->places->place)) {
-            return [];
-        }
         $result = [];
-        foreach ($this->doc->cpfDescription->description->places->place as $place) {
+        foreach ($this->doc->cpfDescription->description->places->place ?? [] as $place) {
             $attrs = $place->attributes();
-            $type = $attrs->localType;
+            $type = (string)$attrs->localType;
             // Not place of death or birth..
-            if ('http://rdaregistry.info/Elements/a/P50118' != $type
-                && 'http://rdaregistry.info/Elements/a/P50119' != $type
+            if (
+                'http://rdaregistry.info/Elements/a/P50118' !== $type
+                && 'http://rdaregistry.info/Elements/a/P50119' !== $type
             ) {
                 if ($place->placeEntry) {
                     $result[] = (string)$place->placeEntry;
@@ -369,10 +336,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getRecordSource()
     {
-        if ($name = trim(
-            (string)($this->doc->control->maintenanceAgency->agencyName ?? '')
-        )
-        ) {
+        if ($name = trim((string)($this->doc->control->maintenanceAgency->agencyName ?? ''))) {
             return $name;
         }
         return $this->source;
@@ -385,10 +349,7 @@ class Eaccpf extends AbstractRecord
      */
     protected function getRecordType()
     {
-        if (!isset($this->doc->cpfDescription->identity->entityType)) {
-            return 'undefined';
-        }
-        return (string)$this->doc->cpfDescription->identity->entityType;
+        return (string)($this->doc->cpfDescription->identity->entityType ?? 'undefined');
     }
 
     /**
@@ -398,11 +359,8 @@ class Eaccpf extends AbstractRecord
      */
     protected function getUseForHeadings()
     {
-        if (!isset($this->doc->cpfDescription->identity->nameEntryParallel)) {
-            return [];
-        }
         $result = [];
-        foreach ($this->doc->cpfDescription->identity->nameEntryParallel as $entry) {
+        foreach ($this->doc->cpfDescription->identity->nameEntryParallel ?? [] as $entry) {
             if (!isset($entry->nameEntry->part)) {
                 continue;
             }

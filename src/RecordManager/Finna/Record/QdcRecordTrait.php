@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Qdc record trait.
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -233,7 +235,7 @@ trait QdcRecordTrait
                 if (isset($years['startYear'])) {
                     $result[] = [
                         $years['startYear'] . '-01-01T00:00:00Z',
-                        $years['endYear'] . '-12-31T23:59:59Z'
+                        $years['endYear'] . '-12-31T23:59:59Z',
                     ];
                 }
             }
@@ -275,7 +277,7 @@ trait QdcRecordTrait
         $result = array_map(
             function ($s) {
                 // Convert lowercase CC rights to uppercase
-                if (strncmp($s, 'cc', 2) === 0) {
+                if (str_starts_with($s, 'cc')) {
                     $s = mb_strtoupper($s, 'UTF-8');
                 }
                 return $s;

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Marc record class
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.1 GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -69,7 +71,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @var array
      */
     protected $illustrationStrings = [
-        'ill.', 'illus.', 'kuv.', 'kuvitettu', 'illustrated'
+        'ill.', 'illus.', 'kuv.', 'kuvitettu', 'illustrated',
     ];
 
     /**
@@ -244,7 +246,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $data['author2_id_str_mv'] = [
             ...$this->addNamespaceToAuthorityIds($primaryAuthors['ids'], 'author'),
             ...$this->addNamespaceToAuthorityIds($secondaryAuthors['ids'], 'author'),
-            ...$this->addNamespaceToAuthorityIds($corporateAuthors['ids'], 'author')
+            ...$this->addNamespaceToAuthorityIds($corporateAuthors['ids'], 'author'),
         ];
         $data['author2_id_role_str_mv'] = [
             ...$this->addNamespaceToAuthorityIds(
@@ -258,7 +260,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             ...$this->addNamespaceToAuthorityIds(
                 $corporateAuthors['idRoles'],
                 'author'
-            )
+            ),
         ];
 
         if (isset($data['publishDate'])) {
@@ -274,7 +276,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $data['publication_place_txt_mv'] = $this->metadataUtils->arrayTrim(
             $this->getFieldsSubfields(
                 [
-                    [MarcHandler::GET_NORMAL, '260', ['a']]
+                    [MarcHandler::GET_NORMAL, '260', ['a']],
                 ]
             ),
             ' []'
@@ -296,18 +298,20 @@ class Marc extends \RecordManager\Base\Record\Marc
 
         // 979cd = component part authors
         // 900, 910, 911 = Finnish reference field
-        foreach ($this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_BOTH, '979', ['c']],
-                [MarcHandler::GET_BOTH, '979', ['d']],
-                [MarcHandler::GET_BOTH, '900', ['a']],
-                [MarcHandler::GET_BOTH, '910', ['a', 'b']],
-                [MarcHandler::GET_BOTH, '911', ['a', 'e']]
-            ],
-            false,
-            true,
-            true
-        ) as $field) {
+        foreach (
+            $this->getFieldsSubfields(
+                [
+                    [MarcHandler::GET_BOTH, '979', ['c']],
+                    [MarcHandler::GET_BOTH, '979', ['d']],
+                    [MarcHandler::GET_BOTH, '900', ['a']],
+                    [MarcHandler::GET_BOTH, '910', ['a', 'b']],
+                    [MarcHandler::GET_BOTH, '911', ['a', 'e']],
+                ],
+                false,
+                true,
+                true
+            ) as $field
+        ) {
             $field = trim($field);
             if ($field) {
                 $data['author2'][] = $field;
@@ -318,8 +322,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         foreach ($this->record->getFields('979') as $field) {
             $ids = $this->getSubfieldsArray($field, ['l']);
             $data['author2_id_str_mv'] = [
-                ...($data['author2_id_str_mv'] ?? []),
-                ...$this->addNamespaceToAuthorityIds($ids, 'author')
+                ...$data['author2_id_str_mv'],
+                ...$this->addNamespaceToAuthorityIds($ids, 'author'),
             ];
         }
 
@@ -335,7 +339,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $version = $this->getSubfields($field080, ['2']);
                 if (in_array($version, ['1974/fin/fennica', '1974/fin/finuc-s'])) {
                     $vocab .= 'f';
-                } elseif ($version && preg_match('/(\d{4})/', $version, $matches)
+                } elseif (
+                    $version
+                    && preg_match('/(\d{4})/', $version, $matches)
                     && (int)$matches[1] >= 2009
                 ) {
                     $vocab .= '2';
@@ -346,10 +352,14 @@ class Marc extends \RecordManager\Base\Record\Marc
 
                 [$mainClass] = explode('.', $classification, 2);
                 $mainClass = ".$mainClass";
-                if (is_numeric($mainClass) && (!isset($data['major_genre_str_mv'])
+                if (
+                    is_numeric($mainClass)
+                    && (!isset($data['major_genre_str_mv'])
                     || $data['major_genre_str_mv'] == 'nonfiction')
                 ) {
-                    if ($mainClass >= 0.82 && $mainClass < 0.9
+                    if (
+                        $mainClass >= 0.82
+                        && $mainClass < 0.9
                         && in_array($aux, ['-1', '-2', '-3', '-4', '-5', '-6', '-8'])
                     ) {
                         $data['major_genre_str_mv'] = 'fiction';
@@ -386,24 +396,26 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $data['classification_txt_mv'][] = "$source $classification";
             }
             // Major genre
-            if ($source == 'ykl' && (!isset($data['major_genre_str_mv'])
+            if (
+                $source == 'ykl'
+                && (!isset($data['major_genre_str_mv'])
                 || $data['major_genre_str_mv'] == 'nonfiction')
             ) {
                 switch (substr($classification, 0, 2)) {
-                case '78':
-                    $data['major_genre_str_mv'] = 'music';
-                    break;
-                case '80':
-                case '81':
-                case '82':
-                case '83':
-                case '84':
-                case '85':
-                    $data['major_genre_str_mv'] = 'fiction';
-                    break;
-                default:
-                    $data['major_genre_str_mv'] = 'nonfiction';
-                    break;
+                    case '78':
+                        $data['major_genre_str_mv'] = 'music';
+                        break;
+                    case '80':
+                    case '81':
+                    case '82':
+                    case '83':
+                    case '84':
+                    case '85':
+                        $data['major_genre_str_mv'] = 'fiction';
+                        break;
+                    default:
+                        $data['major_genre_str_mv'] = 'nonfiction';
+                        break;
                 }
             }
         }
@@ -423,7 +435,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // Original Study Number
         $data['ctrlnum'] = [
             ...(array)$data['ctrlnum'],
-            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '036', ['a']]])
+            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '036', ['a']]]),
         ];
 
         // Source
@@ -445,7 +457,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [MarcHandler::GET_NORMAL, '490', ['x']],
                     [MarcHandler::GET_NORMAL, '730', ['x']],
                     [MarcHandler::GET_NORMAL, '776', ['x']],
-                    [MarcHandler::GET_NORMAL, '830', ['x']]
+                    [MarcHandler::GET_NORMAL, '830', ['x']],
                 ]
             );
         foreach ($data['other_issn_str_mv'] as &$value) {
@@ -483,7 +495,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $data['holdings_txtP_mv'] = $this->getFieldsSubfields(
             [
                 [MarcHandler::GET_NORMAL, '852', ['a', 'b', 'h', 'z']],
-                [MarcHandler::GET_NORMAL, '952', ['b', 'c', 'o', 'h']]
+                [MarcHandler::GET_NORMAL, '952', ['b', 'c', 'o', 'h']],
             ]
         );
         if (!empty($data['holdings_txtP_mv'])) {
@@ -547,63 +559,65 @@ class Marc extends \RecordManager\Base\Record\Marc
         foreach ($this->record->getFields('024') as $field024) {
             $ind1 = $this->record->getIndicator($field024, 1);
             switch ($ind1) {
-            case '0':
-                $isrc = $this->record->getSubfield($field024, 'a');
-                $data['isrc_isn_mv'][] = $isrc;
-                break;
-            case '1':
-                $upc = $this->record->getSubfield($field024, 'a');
-                $data['upc_isn_mv'][] = $upc;
-                break;
-            case '2':
-                $ismn = $this->record->getSubfield($field024, 'a');
-                $ismn = str_replace('-', '', $ismn);
-                if (!preg_match('{([0-9]{13})}', $ismn, $matches)) {
-                    continue 2; // foreach
-                }
-                $data['ismn_isn_mv'][] = $matches[1];
-                break;
-            case '3':
-                $ean = $this->record->getSubfield($field024, 'a');
-                $ean = str_replace('-', '', $ean);
-                if (!preg_match('{([0-9]{13})}', $ean, $matches)) {
-                    continue 2; // foreach
-                }
-                $data['ean_isn_mv'][] = $matches[1];
-                break;
+                case '0':
+                    $isrc = $this->record->getSubfield($field024, 'a');
+                    $data['isrc_isn_mv'][] = $isrc;
+                    break;
+                case '1':
+                    $upc = $this->record->getSubfield($field024, 'a');
+                    $data['upc_isn_mv'][] = $upc;
+                    break;
+                case '2':
+                    $ismn = $this->record->getSubfield($field024, 'a');
+                    $ismn = str_replace('-', '', $ismn);
+                    if (!preg_match('{([0-9]{13})}', $ismn, $matches)) {
+                        continue 2; // foreach
+                    }
+                    $data['ismn_isn_mv'][] = $matches[1];
+                    break;
+                case '3':
+                    $ean = $this->record->getSubfield($field024, 'a');
+                    $ean = str_replace('-', '', $ean);
+                    if (!preg_match('{([0-9]{13})}', $ean, $matches)) {
+                        continue 2; // foreach
+                    }
+                    $data['ean_isn_mv'][] = $matches[1];
+                    break;
             }
         }
 
         // Identifiers from component parts (type as a leading string)
-        foreach ($this->getFieldsSubfields(
-            [[MarcHandler::GET_NORMAL, '979', ['k']]],
-            false,
-            true,
-            true
-        ) as $identifier) {
+        foreach (
+            $this->getFieldsSubfields(
+                [[MarcHandler::GET_NORMAL, '979', ['k']]],
+                false,
+                true,
+                true
+            ) as $identifier
+        ) {
             $parts = explode(' ', $identifier, 2);
             if (!isset($parts[1])) {
                 continue;
             }
             switch ($parts[0]) {
-            case 'ISBN':
-                $data['isbn'][] = $parts[1];
-                break;
-            case 'ISSN':
-                $data['issn'][] = $parts[1];
-                break;
-            case 'ISRC':
-                $data['isrc_isn_mv'][] = $parts[1];
-                break;
-            case 'UPC':
-                $data['upc_isn_mv'][] = $parts[1];
-                break;
-            case 'ISMN':
-                $data['ismn_isn_mv'][] = $parts[1];
-                break;
-            case 'EAN':
-                $data['ean_isn_mv'][] = $parts[1];
-                break;
+                case 'ISBN':
+                    $data['isbn'][] = $parts[1];
+                    break;
+                case 'ISSN':
+                    $data['issn'][] = $parts[1];
+                    break;
+                case 'ISRC':
+                    $data['isrc_isn_mv'][] = $parts[1];
+                    break;
+                case 'UPC':
+                    $data['upc_isn_mv'][] = $parts[1];
+                    break;
+                case 'ISMN':
+                    $data['ismn_isn_mv'][] = $parts[1];
+                    break;
+                case 'EAN':
+                    $data['ean_isn_mv'][] = $parts[1];
+                    break;
             }
         }
 
@@ -611,14 +625,15 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ($this->getDriverParam('projectIdIn960', false)) {
             $data['project_id_str_mv'] = $this->getFieldsSubfields(
                 [
-                    [MarcHandler::GET_NORMAL, '960', ['a']]
+                    [MarcHandler::GET_NORMAL, '960', ['a']],
                 ]
             );
         }
 
         // Hierarchical Categories (database records in Voyager)
         foreach ($this->record->getFields('886') as $field886) {
-            if ($this->record->getIndicator($field886, 1) != '2'
+            if (
+                $this->record->getIndicator($field886, 1) != '2'
                 || $this->record->getSubfield($field886, '2') != 'local'
             ) {
                 continue;
@@ -641,13 +656,13 @@ class Marc extends \RecordManager\Base\Record\Marc
                     'NFKC'
                 );
                 switch ($access) {
-                case 'unrestricted':
-                case 'unrestrictedonlineaccess':
-                    // no restrictions
-                    break;
-                default:
-                    $data['restricted_str'] = 'restricted';
-                    break;
+                    case 'unrestricted':
+                    case 'unrestrictedonlineaccess':
+                        // no restrictions
+                        break;
+                    default:
+                        $data['restricted_str'] = 'restricted';
+                        break;
                 }
             }
             if (in_array($type, ['kategoria', 'kategori'])) {
@@ -697,7 +712,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [
                         [MarcHandler::GET_NORMAL, '080', ['a', 'b']],
                         [MarcHandler::GET_NORMAL, '084', ['a', 'b']],
-                        [MarcHandler::GET_NORMAL, '050', ['a', 'b']]
+                        [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
                     ]
                 )
             )
@@ -719,14 +734,14 @@ class Marc extends \RecordManager\Base\Record\Marc
             'strtoupper',
             $this->getFieldsSubfields(
                 [
-                    [MarcHandler::GET_NORMAL, '050', ['a', 'b']]
+                    [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
                 ]
             )
         );
         if ($lccn) {
             $data['callnumber-raw'] = [
                 ...$data['callnumber-raw'],
-                ...$lccn
+                ...$lccn,
             ];
             if (empty($data['callnumber-sort'])) {
                 // Try to find a valid call number
@@ -764,7 +779,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             [
                 ...(array)$primaryAuthors['names'],
                 ...(array)$secondaryAuthors['names'],
-                ...(array)$corporateAuthors['names']
+                ...(array)$corporateAuthors['names'],
             ]
         );
 
@@ -779,7 +794,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         } elseif ('Dissertation' === $data['format']) {
             if ('m' === substr($this->record->getLeader(), 7, 1)) {
                 $data['format_ext_str_mv'] = (array)$data['format'];
-                if ('o' === substr($this->record->getControlField('008'), 23, 1)
+                if (
+                    'o' === substr($this->record->getControlField('008'), 23, 1)
                     || 'cr' === substr($this->record->getControlField('007'), 0, 2)
                 ) {
                     $data['format_ext_str_mv'][] = 'eBook';
@@ -828,6 +844,25 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
+     * Get ids for described authors.
+     *
+     * @return array
+     */
+    public function getAuthorTopicIDs(): array
+    {
+        $fieldTags = ['600', '610', '611'];
+        $result = [];
+        foreach ($fieldTags as $tag) {
+            foreach ($this->record->getFields($tag) as $field) {
+                if ($id = $this->getIDFromField($field)) {
+                    $result[] = $id;
+                }
+            }
+        }
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
+    }
+
+    /**
      * Get all non-specific topics
      *
      * @return array
@@ -856,8 +891,9 @@ class Marc extends \RecordManager\Base\Record\Marc
     protected function getIdFromField(array $field): string
     {
         if ($id = $this->record->getSubfield($field, '0')) {
-            if (!preg_match('/^https?:/', $id)
-                && $srcId = $this->getThesaurusId($field)
+            if (
+                !preg_match('/^https?:/', $id)
+                && ($srcId = $this->getThesaurusId($field))
             ) {
                 $id = "($srcId)$id";
             }
@@ -880,7 +916,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             't2' => 'MSH',
             't3' => 'NAL',
             't5' => 'CanSH',
-            't6' => 'RVM'
+            't6' => 'RVM',
         ];
         $ind2 = $this->record->getIndicator($field, 2);
         if ($src = ($map["t$ind2"] ?? '')) {
@@ -906,7 +942,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         $additionalTitles = $this->getFieldsSubfields(
             [
-                [MarcHandler::GET_NORMAL, '740', ['a']]
+                [MarcHandler::GET_NORMAL, '740', ['a']],
             ]
         );
         $varyingTitles = $this->getFieldsSubfields(
@@ -915,13 +951,13 @@ class Marc extends \RecordManager\Base\Record\Marc
         $authors = $this->getFieldsSubfields(
             [
                 [MarcHandler::GET_NORMAL, '100', ['a', 'e']],
-                [MarcHandler::GET_NORMAL, '110', ['a', 'e']]
+                [MarcHandler::GET_NORMAL, '110', ['a', 'e']],
             ]
         );
         $additionalAuthors = $this->getFieldsSubfields(
             [
                 [MarcHandler::GET_NORMAL, '700', ['a', 'e']],
-                [MarcHandler::GET_NORMAL, '710', ['a', 'e']]
+                [MarcHandler::GET_NORMAL, '710', ['a', 'e']],
             ]
         );
         $authorIds = $this->getFieldsSubfields(
@@ -934,7 +970,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         );
         $durations = $this->getFieldsSubfields(
             [
-                [MarcHandler::GET_NORMAL, '306', ['a']]
+                [MarcHandler::GET_NORMAL, '306', ['a']],
             ]
         );
         $languages = [substr($this->record->getControlField('008'), 35, 3)];
@@ -944,18 +980,18 @@ class Marc extends \RecordManager\Base\Record\Marc
                 ...$this->getFieldsSubfields(
                     [
                         [MarcHandler::GET_NORMAL, '041', ['a']],
-                        [MarcHandler::GET_NORMAL, '041', ['d']]
+                        [MarcHandler::GET_NORMAL, '041', ['d']],
                     ],
                     false,
                     true,
                     true
-                )
+                ),
             ]
         );
         $languages = $this->metadataUtils->normalizeLanguageStrings($languages);
         $originalLanguages = $this->getFieldsSubfields(
             [
-                [MarcHandler::GET_NORMAL, '041', ['h']]
+                [MarcHandler::GET_NORMAL, '041', ['h']],
             ],
             false,
             true,
@@ -965,7 +1001,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             = $this->metadataUtils->normalizeLanguageStrings($originalLanguages);
         $subtitleLanguages = $this->getFieldsSubfields(
             [
-                [MarcHandler::GET_NORMAL, '041', ['j']]
+                [MarcHandler::GET_NORMAL, '041', ['j']],
             ],
             false,
             true,
@@ -998,37 +1034,36 @@ class Marc extends \RecordManager\Base\Record\Marc
         foreach ($this->record->getFields('024') as $field024) {
             $ind1 = $this->record->getIndicator($field024, 1);
             switch ($ind1) {
-            case '0':
-                $isrc = $this->record->getSubfield($field024, 'a');
-                $identifiers[] = "ISRC $isrc";
-                break;
-            case '1':
-                $upc = $this->record->getSubfield($field024, 'a');
-                $identifiers[] = "UPC $upc";
-                break;
-            case '2':
-                $ismn = $this->record->getSubfield($field024, 'a');
-                $ismn = str_replace('-', '', $ismn);
-                if (!preg_match('{([0-9]{13})}', $ismn, $matches)) {
-                    continue 2; // foreach
-                }
-                $identifiers[] = 'ISMN ' . $matches[1];
-                break;
-            case '3':
-                $ean = $this->record->getSubfield($field024, 'a');
-                $ean = str_replace('-', '', $ean);
-                if (!preg_match('{([0-9]{13})}', $ean, $matches)) {
-                    continue 2; // foreach
-                }
-                $identifiers[] = 'EAN ' . $matches[1];
-                break;
+                case '0':
+                    $isrc = $this->record->getSubfield($field024, 'a');
+                    $identifiers[] = "ISRC $isrc";
+                    break;
+                case '1':
+                    $upc = $this->record->getSubfield($field024, 'a');
+                    $identifiers[] = "UPC $upc";
+                    break;
+                case '2':
+                    $ismn = $this->record->getSubfield($field024, 'a');
+                    $ismn = str_replace('-', '', $ismn);
+                    if (!preg_match('{([0-9]{13})}', $ismn, $matches)) {
+                        continue 2; // foreach
+                    }
+                    $identifiers[] = 'ISMN ' . $matches[1];
+                    break;
+                case '3':
+                    $ean = $this->record->getSubfield($field024, 'a');
+                    $ean = str_replace('-', '', $ean);
+                    if (!preg_match('{([0-9]{13})}', $ean, $matches)) {
+                        continue 2; // foreach
+                    }
+                    $identifiers[] = 'EAN ' . $matches[1];
+                    break;
             }
         }
 
         $textIncipits = [];
         foreach ($this->record->getFields('031') as $field031) {
-            foreach ($this->getSubfieldsArray($field031, ['t']) as $textIncipit
-            ) {
+            foreach ($this->getSubfieldsArray($field031, ['t']) as $textIncipit) {
                 $textIncipits[] = $textIncipit;
             }
         }
@@ -1081,30 +1116,30 @@ class Marc extends \RecordManager\Base\Record\Marc
             if ($data['textIncipits']) {
                 $this->extraFields['allfields'] = [
                     ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['textIncipits']
+                    ...(array)$data['textIncipits'],
                 ];
                 // Text incipit is treated as an alternative title
                 $this->extraFields['title_alt'] = [
                     ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['textIncipits']
+                    ...(array)$data['textIncipits'],
                 ];
             }
             if ($data['varyingTitles']) {
                 $this->extraFields['allfields'] = [
                     ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['varyingTitles']
+                    ...(array)$data['varyingTitles'],
                 ];
                 $this->extraFields['title_alt'] = [
                     ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['varyingTitles']
+                    ...(array)$data['varyingTitles'],
                 ];
             }
 
             $id = $componentPart['_id'];
             $newField = [
                 'subfields' => [
-                    ['a' => $id]
-                ]
+                    ['a' => $id],
+                ],
             ];
 
             if ($data['title']) {
@@ -1199,9 +1234,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             ['300', 'a', 'daisy'],
         ];
         foreach ($daisyRules as [$field, $subfield, $search]) {
-            foreach ($this->record->getFieldsSubfields($field, [$subfield], null)
-                as $sub
-            ) {
+            foreach ($this->record->getFieldsSubfields($field, [$subfield], null) as $sub) {
                 if (mb_stristr($sub, $search, false, 'UTF-8') !== false) {
                     return 'AudioBookDaisy';
                 }
@@ -1227,8 +1260,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 // Helmet audio books
                 foreach ($this->record->getFields('336') as $f336) {
                     foreach ($this->record->getSubfields($f336, 'a') as $subA) {
-                        if (in_array(mb_strtolower($subA, 'UTF-8'), ['puhe', 'tal'])
-                        ) {
+                        if (in_array(mb_strtolower($subA, 'UTF-8'), ['puhe', 'tal'])) {
                             return $possibleFormat;
                         }
                     }
@@ -1269,36 +1301,36 @@ class Marc extends \RecordManager\Base\Record\Marc
                     'UTF-8'
                 );
                 switch ($dissType) {
-                case 'kandidaatintutkielma':
-                case 'kandidaatintyö':
-                case 'kandidatarbete':
-                    return 'BachelorsThesis';
-                case 'pro gradu -tutkielma':
-                case 'pro gradu -työ':
-                case 'pro gradu':
-                    return 'ProGradu';
-                case 'laudaturtyö':
-                case 'laudaturavh':
-                    return 'LaudaturThesis';
-                case 'lisensiaatintyö':
-                case 'lic.avh':
-                case 'licentiatavhandling':
-                    return 'LicentiateThesis';
-                case 'diplomityö':
-                case 'diplomarbete':
-                    return 'MastersThesis';
-                case 'erikoistyö':
-                case 'vicenot.ex':
-                    return 'Thesis';
-                case 'lopputyö':
-                case 'rättsnot.ex':
-                    return 'Thesis';
-                case 'amk-opinnäytetyö':
-                case 'yh-examensarbete':
-                    return 'BachelorsThesisPolytechnic';
-                case 'ylempi amk-opinnäytetyö':
-                case 'högre yh-examensarbete':
-                    return 'MastersThesisPolytechnic';
+                    case 'kandidaatintutkielma':
+                    case 'kandidaatintyö':
+                    case 'kandidatarbete':
+                        return 'BachelorsThesis';
+                    case 'pro gradu -tutkielma':
+                    case 'pro gradu -työ':
+                    case 'pro gradu':
+                        return 'ProGradu';
+                    case 'laudaturtyö':
+                    case 'laudaturavh':
+                        return 'LaudaturThesis';
+                    case 'lisensiaatintyö':
+                    case 'lic.avh':
+                    case 'licentiatavhandling':
+                        return 'LicentiateThesis';
+                    case 'diplomityö':
+                    case 'diplomarbete':
+                        return 'MastersThesis';
+                    case 'erikoistyö':
+                    case 'vicenot.ex':
+                        return 'Thesis';
+                    case 'lopputyö':
+                    case 'rättsnot.ex':
+                        return 'Thesis';
+                    case 'amk-opinnäytetyö':
+                    case 'yh-examensarbete':
+                        return 'BachelorsThesisPolytechnic';
+                    case 'ylempi amk-opinnäytetyö':
+                    case 'högre yh-examensarbete':
+                        return 'MastersThesisPolytechnic';
                 }
             }
             return 'Thesis';
@@ -1346,185 +1378,186 @@ class Marc extends \RecordManager\Base\Record\Marc
             $formatCode = strtoupper(substr($contents, 0, 1));
             $formatCode2 = strtoupper(substr($contents, 1, 1));
             switch ($formatCode) {
-            case 'A':
-                switch ($formatCode2) {
-                case 'D':
-                    return 'Atlas';
-                default:
-                    return 'Map';
-                }
-                // @phpstan-ignore-next-line
-                break;
-            case 'C':
-                switch ($formatCode2) {
                 case 'A':
-                    return 'TapeCartridge';
-                case 'B':
-                    return 'ChipCartridge';
-                case 'C':
-                    return 'DiscCartridge';
-                case 'F':
-                    return 'TapeCassette';
-                case 'H':
-                    return 'TapeReel';
-                case 'J':
-                    return 'FloppyDisk';
-                case 'M':
-                case 'O':
-                    return 'CDROM';
-                case 'R':
-                    // Do not return - this will cause anything with an
-                    // 856 field to be labeled as "Electronic"
-                    $online = true;
+                    switch ($formatCode2) {
+                        case 'D':
+                            return 'Atlas';
+                        default:
+                            return 'Map';
+                    }
+                    // @phpstan-ignore-next-line
                     break;
-                default:
-                    return 'Electronic';
-                }
-                break;
-            case 'D':
-                return 'Globe';
-            case 'F':
-                return 'Braille';
-            case 'G':
-                switch ($formatCode2) {
                 case 'C':
+                    switch ($formatCode2) {
+                        case 'A':
+                            return 'TapeCartridge';
+                        case 'B':
+                            return 'ChipCartridge';
+                        case 'C':
+                            return 'DiscCartridge';
+                        case 'F':
+                            return 'TapeCassette';
+                        case 'H':
+                            return 'TapeReel';
+                        case 'J':
+                            return 'FloppyDisk';
+                        case 'M':
+                        case 'O':
+                            return 'CDROM';
+                        case 'R':
+                            // Do not return - this will cause anything with an
+                            // 856 field to be labeled as "Electronic"
+                            $online = true;
+                            break;
+                        default:
+                            return 'Electronic';
+                    }
+                    break;
                 case 'D':
-                    return 'Filmstrip';
-                case 'T':
-                    return 'Transparency';
-                default:
-                    return 'Slide';
-                }
-                // @phpstan-ignore-next-line
-                break;
-            case 'H':
-                return 'Microfilm';
-            case 'K':
-                switch ($formatCode2) {
-                case 'C':
-                    return 'Collage';
-                case 'D':
-                    return 'Drawing';
-                case 'E':
-                    return 'Painting';
+                    return 'Globe';
                 case 'F':
-                    return 'Print';
+                    return 'Braille';
                 case 'G':
-                    return 'Photonegative';
-                case 'J':
-                    return 'Print';
-                case 'L':
-                    return 'TechnicalDrawing';
+                    switch ($formatCode2) {
+                        case 'C':
+                        case 'D':
+                            return 'Filmstrip';
+                        case 'T':
+                            return 'Transparency';
+                        default:
+                            return 'Slide';
+                    }
+                    // @phpstan-ignore-next-line
+                    break;
+                case 'H':
+                    return 'Microfilm';
+                case 'K':
+                    switch ($formatCode2) {
+                        case 'C':
+                            return 'Collage';
+                        case 'D':
+                            return 'Drawing';
+                        case 'E':
+                            return 'Painting';
+                        case 'F':
+                            return 'Print';
+                        case 'G':
+                            return 'Photonegative';
+                        case 'J':
+                            return 'Print';
+                        case 'L':
+                            return 'TechnicalDrawing';
+                        case 'O':
+                            return 'FlashCard';
+                        case 'N':
+                            return 'Chart';
+                        default:
+                            return 'Photo';
+                    }
+                    // @phpstan-ignore-next-line
+                    break;
+                case 'M':
+                    switch ($formatCode2) {
+                        case 'F':
+                            return 'VideoCassette';
+                        case 'R':
+                            return 'Filmstrip';
+                        default:
+                            return 'MotionPicture';
+                    }
+                    // @phpstan-ignore-next-line
+                    break;
                 case 'O':
-                    return 'FlashCard';
-                case 'N':
-                    return 'Chart';
-                default:
-                    return 'Photo';
-                }
-                // @phpstan-ignore-next-line
-                break;
-            case 'M':
-                switch ($formatCode2) {
-                case 'F':
-                    return 'VideoCassette';
+                    return 'Kit';
+                case 'Q':
+                    return 'MusicalScore';
                 case 'R':
-                    return 'Filmstrip';
-                default:
-                    return 'MotionPicture';
-                }
-                // @phpstan-ignore-next-line
-                break;
-            case 'O':
-                return 'Kit';
-            case 'Q':
-                return 'MusicalScore';
-            case 'R':
-                return 'SensorImage';
-            case 'S':
-                switch ($formatCode2) {
-                case 'D':
-                    $size = strtoupper(substr($contents, 6, 1));
-                    $material = strtoupper(substr($contents, 10, 1));
-                    $soundTech = strtoupper(substr($contents, 13, 1));
-                    if ($soundTech == 'D'
-                        || ($size == 'G' && $material == 'M')
-                    ) {
-                        return 'i' === $typeOfRecord ? 'NonmusicalCD' : 'CD';
-                    }
-                    return 'i' === $typeOfRecord ? 'NonmusicalDisc' : 'SoundDisc';
+                    return 'SensorImage';
                 case 'S':
-                    return 'i' === $typeOfRecord
-                        ? 'NonmusicalCassette' : 'SoundCassette';
-                case 'R':
-                    return 'i' === $typeOfRecord
-                        ? 'NonmusicalRecordingOnline' : 'SoundRecordingOnline';
-                default:
-                    if ('i' === $typeOfRecord) {
-                        return 'NonmusicalRecording';
+                    switch ($formatCode2) {
+                        case 'D':
+                            $size = strtoupper(substr($contents, 6, 1));
+                            $material = strtoupper(substr($contents, 10, 1));
+                            $soundTech = strtoupper(substr($contents, 13, 1));
+                            if (
+                                $soundTech == 'D'
+                                || ($size == 'G' && $material == 'M')
+                            ) {
+                                return 'i' === $typeOfRecord ? 'NonmusicalCD' : 'CD';
+                            }
+                            return 'i' === $typeOfRecord ? 'NonmusicalDisc' : 'SoundDisc';
+                        case 'S':
+                            return 'i' === $typeOfRecord
+                                ? 'NonmusicalCassette' : 'SoundCassette';
+                        case 'R':
+                            return 'i' === $typeOfRecord
+                                ? 'NonmusicalRecordingOnline' : 'SoundRecordingOnline';
+                        default:
+                            if ('i' === $typeOfRecord) {
+                                return 'NonmusicalRecording';
+                            }
+                            if ('j' === $typeOfRecord) {
+                                return 'MusicRecording';
+                            }
+                            return $online ? 'SoundRecordingOnline' : 'SoundRecording';
                     }
-                    if ('j' === $typeOfRecord) {
-                        return 'MusicRecording';
-                    }
-                    return $online ? 'SoundRecordingOnline' : 'SoundRecording';
-                }
-                // @phpstan-ignore-next-line
-                break;
-            case 'V':
-                $videoFormat = strtoupper(substr($contents, 4, 1));
-                switch ($videoFormat) {
-                case 'S':
-                    return 'BluRay';
+                    // @phpstan-ignore-next-line
+                    break;
                 case 'V':
-                    return 'DVD';
-                }
-
-                switch ($formatCode2) {
-                case 'C':
-                    return 'VideoCartridge';
-                case 'D':
-                    return 'VideoDisc';
-                case 'F':
-                    return 'VideoCassette';
-                case 'R':
-                    return 'VideoReel';
-                case 'Z':
-                    if ($online) {
-                        return 'OnlineVideo';
+                    $videoFormat = strtoupper(substr($contents, 4, 1));
+                    switch ($videoFormat) {
+                        case 'S':
+                            return 'BluRay';
+                        case 'V':
+                            return 'DVD';
                     }
-                    return 'Video';
-                default:
-                    return 'Video';
-                }
-                // @phpstan-ignore-next-line
-                break;
+
+                    switch ($formatCode2) {
+                        case 'C':
+                            return 'VideoCartridge';
+                        case 'D':
+                            return 'VideoDisc';
+                        case 'F':
+                            return 'VideoCassette';
+                        case 'R':
+                            return 'VideoReel';
+                        case 'Z':
+                            if ($online) {
+                                return 'OnlineVideo';
+                            }
+                            return 'Video';
+                        default:
+                            return 'Video';
+                    }
+                    // @phpstan-ignore-next-line
+                    break;
             }
         }
 
         switch (strtoupper($typeOfRecord)) {
-        case 'C':
-        case 'D':
-            return 'MusicalScore';
-        case 'E':
-        case 'F':
-            return 'Map';
-        case 'G':
-            return 'Slide';
-        case 'I':
-            return 'SoundRecording';
-        case 'J':
-            return 'MusicRecording';
-        case 'K':
-            return 'Photo';
-        case 'M':
-            return 'Electronic';
-        case 'O':
-        case 'P':
-            return 'Kit';
-        case 'R':
-            return 'PhysicalObject';
-        case 'T':
-            return 'Manuscript';
+            case 'C':
+            case 'D':
+                return 'MusicalScore';
+            case 'E':
+            case 'F':
+                return 'Map';
+            case 'G':
+                return 'Slide';
+            case 'I':
+                return 'SoundRecording';
+            case 'J':
+                return 'MusicRecording';
+            case 'K':
+                return 'Photo';
+            case 'M':
+                return 'Electronic';
+            case 'O':
+            case 'P':
+                return 'Kit';
+            case 'R':
+                return 'PhysicalObject';
+            case 'T':
+                return 'Manuscript';
         }
 
         if (!$online) {
@@ -1532,45 +1565,44 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         switch (strtoupper($bibliographicLevel)) {
-        // Monograph
-        case 'M':
-            if ($online) {
-                return 'eBook';
-            } else {
-                return 'Book';
-            }
-            // @phpstan-ignore-next-line
-            break;
-        // Serial
-        case 'S':
-            // Look in 008 to determine what type of Continuing Resource
-            $formatCode = strtoupper(substr($field008, 21, 1));
-            switch ($formatCode) {
-            case 'N':
-                return $online ? 'eNewspaper' : 'Newspaper';
-            case 'P':
-                return $online ? 'eJournal' : 'Journal';
-            default:
-                return $online ? 'eSerial' : 'Serial';
-            }
-            // @phpstan-ignore-next-line
-            break;
-
-        case 'A':
-            // Component part in monograph
-            return $online ? 'eBookSection' : 'BookSection';
-        case 'B':
-            // Component part in serial
-            return $online ? 'eArticle' : 'Article';
-        case 'C':
-            // Collection
-            return 'Collection';
-        case 'D':
-            // Component part in collection (sub unit)
-            return 'SubUnit';
-        case 'I':
-            // Integrating resource
-            return 'ContinuouslyUpdatedResource';
+            case 'M':
+                // Monograph
+                if ($online) {
+                    return 'eBook';
+                } else {
+                    return 'Book';
+                }
+                // @phpstan-ignore-next-line
+                break;
+            case 'S':
+                // Serial
+                // Look in 008 to determine what type of Continuing Resource
+                $formatCode = strtoupper(substr($field008, 21, 1));
+                switch ($formatCode) {
+                    case 'N':
+                        return $online ? 'eNewspaper' : 'Newspaper';
+                    case 'P':
+                        return $online ? 'eJournal' : 'Journal';
+                    default:
+                        return $online ? 'eSerial' : 'Serial';
+                }
+                // @phpstan-ignore-next-line
+                break;
+            case 'A':
+                // Component part in monograph
+                return $online ? 'eBookSection' : 'BookSection';
+            case 'B':
+                // Component part in serial
+                return $online ? 'eArticle' : 'Article';
+            case 'C':
+                // Collection
+                return 'Collection';
+            case 'D':
+                // Component part in collection (sub unit)
+                return 'SubUnit';
+            case 'I':
+                // Integrating resource
+                return 'ContinuouslyUpdatedResource';
         }
         return 'Other';
     }
@@ -1659,15 +1691,15 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_ALT, '245', ['a', 'b']],
                 [MarcHandler::GET_BOTH, '130', [
                     'a', 'd', 'f', 'g', 'h', 'k', 'l', 'n', 'p', 'r', 's',
-                    't'
+                    't',
                 ]],
                 [MarcHandler::GET_BOTH, '240', [
                     'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
-                    'r', 's'
+                    'r', 's',
                 ]],
                 [MarcHandler::GET_BOTH, '243', [
                     'a', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'o', 'p',
-                    'r', 's'
+                    'r', 's',
                 ]],
                 [MarcHandler::GET_BOTH, '246', ['a', 'b', 'n', 'p']],
                 // Use only 700 fields that contain subfield 't'
@@ -1676,13 +1708,13 @@ class Marc extends \RecordManager\Base\Record\Marc
                     '700',
                     [
                         't', 'm', 'r', 'h', 'i', 'g', 'n', 'p', 's', 'l',
-                        'o', 'k'
+                        'o', 'k',
                     ],
-                    ['t']
+                    ['t'],
                 ],
                 [MarcHandler::GET_BOTH, '730', [
                     'a', 'd', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o',
-                    'p', 'r', 's', 't'
+                    'p', 'r', 's', 't',
                 ]],
                 [MarcHandler::GET_BOTH, '740', ['a']],
                 // 979b = component part title
@@ -1698,7 +1730,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             ...array_map(
                 [$this->metadataUtils, 'stripTrailingPunctuation'],
                 $this->record->getFieldsSubfields('505', ['t'], null)
-            )
+            ),
         ];
 
         return array_values(array_unique($altTitles));
@@ -1785,44 +1817,46 @@ class Marc extends \RecordManager\Base\Record\Marc
         $field008 = $this->record->getControlField('008');
         if ($field008) {
             switch (substr($field008, 6, 1)) {
-            case 'c':
-                $year = substr($field008, 7, 4);
-                $startDate = "$year-01-01T00:00:00Z";
-                $endDate = '9999-12-31T23:59:59Z';
-                break;
-            case 'd':
-            case 'i':
-            case 'k':
-            case 'm':
-            case 'q':
-                $year1 = substr($field008, 7, 4);
-                $year2 = substr($field008, 11, 4);
-                if (ctype_digit($year1) && ctype_digit($year2) && $year2 < $year1) {
-                    $startDate = "$year2-01-01T00:00:00Z";
-                    $endDate = "$year1-12-31T23:59:59Z";
-                } else {
-                    $startDate = "$year1-01-01T00:00:00Z";
-                    $endDate = "$year2-12-31T23:59:59Z";
-                }
-                break;
-            case 'e':
-                $year = substr($field008, 7, 4);
-                $mon = substr($field008, 11, 2);
-                $day = substr($field008, 13, 2);
-                $startDate = "$year-$mon-{$day}T00:00:00Z";
-                $endDate = "$year-$mon-{$day}T23:59:59Z";
-                break;
-            case 's':
-            case 't':
-            case 'u':
-                $year = substr($field008, 7, 4);
-                $startDate = "$year-01-01T00:00:00Z";
-                $endDate = "$year-12-31T23:59:59Z";
-                break;
+                case 'c':
+                    $year = substr($field008, 7, 4);
+                    $startDate = "$year-01-01T00:00:00Z";
+                    $endDate = '9999-12-31T23:59:59Z';
+                    break;
+                case 'd':
+                case 'i':
+                case 'k':
+                case 'm':
+                case 'q':
+                    $year1 = substr($field008, 7, 4);
+                    $year2 = substr($field008, 11, 4);
+                    if (ctype_digit($year1) && ctype_digit($year2) && $year2 < $year1) {
+                        $startDate = "$year2-01-01T00:00:00Z";
+                        $endDate = "$year1-12-31T23:59:59Z";
+                    } else {
+                        $startDate = "$year1-01-01T00:00:00Z";
+                        $endDate = "$year2-12-31T23:59:59Z";
+                    }
+                    break;
+                case 'e':
+                    $year = substr($field008, 7, 4);
+                    $mon = substr($field008, 11, 2);
+                    $day = substr($field008, 13, 2);
+                    $startDate = "$year-$mon-{$day}T00:00:00Z";
+                    $endDate = "$year-$mon-{$day}T23:59:59Z";
+                    break;
+                case 's':
+                case 't':
+                case 'u':
+                    $year = substr($field008, 7, 4);
+                    $startDate = "$year-01-01T00:00:00Z";
+                    $endDate = "$year-12-31T23:59:59Z";
+                    break;
             }
         }
 
-        if (!isset($startDate) || !isset($endDate)
+        if (
+            !isset($startDate)
+            || !isset($endDate)
             || $this->metadataUtils->validateISO8601Date($startDate) === false
             || $this->metadataUtils->validateISO8601Date($endDate) === false
         ) {
@@ -1835,7 +1869,9 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
-        if (!isset($startDate) || !isset($endDate)
+        if (
+            !isset($startDate)
+            || !isset($endDate)
             || $this->metadataUtils->validateISO8601Date($startDate) === false
             || $this->metadataUtils->validateISO8601Date($endDate) === false
         ) {
@@ -1856,7 +1892,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 }
             }
         }
-        if (isset($startDate) && isset($endDate)
+        if (
+            isset($startDate)
+            && isset($endDate)
             && $this->metadataUtils->validateISO8601Date($startDate) !== false
             && $this->metadataUtils->validateISO8601Date($endDate) !== false
         ) {
@@ -1938,7 +1976,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     protected function getAllFields(): array
     {
         $fieldFilter = [
-            '300' => 1, '336' => 1, '337' => 1, '338' => 1
+            '300' => 1, '336' => 1, '337' => 1, '338' => 1,
         ];
         $excludedSubfields = [
             '015' => ['q', 'z', '2', '6', '8'],
@@ -1947,7 +1985,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             '031' => [
                 'a', 'b', 'c', 'd', 'e', 'g', 'm',
                 'n', 'o', 'p', 'q', 'r', 's', 'u',
-                'y', 'z', '2', '6', '8'
+                'y', 'z', '2', '6', '8',
             ],
             '650' => ['0', '2', '6', '8'],
             '100' => ['0', '4'],
@@ -1956,18 +1994,16 @@ class Marc extends \RecordManager\Base\Record\Marc
             '711' => ['0', '4'],
             '773' => [
                 '0', '4', '6', '7', '8', 'g', 'q',
-                'w'
+                'w',
             ],
             '787' => ['i'],
             // Koha serial enumerations
             '952' => ['a', 'b', 'c', 'o'],
-            '979' => ['0', 'a', 'f']
+            '979' => ['0', 'a', 'f'],
         ];
         $allFields = [];
         // Include ISBNs, also normalized if possible
-        foreach ($this->getFieldsSubfields($this->isbnFields, false, true, true)
-            as $isbn
-        ) {
+        foreach ($this->getFieldsSubfields($this->isbnFields, false, true, true) as $isbn) {
             if (strlen($isbn) < 10) {
                 continue;
             }
@@ -1979,7 +2015,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         foreach ($this->record->getAllFields() as $field) {
             $tag = $field['tag'];
-            if (($tag >= 100 && $tag < 841 && !isset($fieldFilter[$tag]))
+            if (
+                ($tag >= 100 && $tag < 841 && !isset($fieldFilter[$tag]))
                 || in_array(
                     $tag,
                     [
@@ -1995,7 +2032,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                         '940',
                         '952',
                         // Component parts:
-                        '979'
+                        '979',
                     ]
                 )
             ) {
@@ -2033,7 +2070,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             [[MarcHandler::GET_NORMAL, '035', ['a']]]
         );
         foreach ($ebraryLocs as $field) {
-            if (strncmp($field, 'ebr', 3) == 0 && is_numeric(substr($field, 3))) {
+            if (str_starts_with($field, 'ebr') && is_numeric(substr($field, 3))) {
                 if (!in_array('EbraryDynamic', $building)) {
                     $building[] = 'EbraryDynamic';
                 }
@@ -2076,7 +2113,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = parent::getEraFacets();
         $result = [
             ...$result,
-            ...$this->getAdditionalEraFields()
+            ...$this->getAdditionalEraFields(),
         ];
         return $result;
     }
@@ -2091,7 +2128,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = parent::getEras();
         $result = [
             ...$result,
-            ...$this->getAdditionalEraFields()
+            ...$this->getAdditionalEraFields(),
         ];
         return $result;
     }
@@ -2108,7 +2145,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 ...$this->get653WithSecondInd('4'),
                 ...$this->getFieldsSubfields(
                     [[MarcHandler::GET_NORMAL, '388', ['a']]]
-                )
+                ),
             ];
         }
         return $this->resultCache[__METHOD__];
@@ -2124,7 +2161,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = parent::getGenreFacets();
         $result = [
             ...$result,
-            ...$this->get653WithSecondInd('6')
+            ...$this->get653WithSecondInd('6'),
         ];
         return $result;
     }
@@ -2139,7 +2176,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = parent::getGenres();
         $result = [
             ...$result,
-            ...$this->get653WithSecondInd('6')
+            ...$this->get653WithSecondInd('6'),
         ];
         return $result;
     }
@@ -2155,7 +2192,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = [
             ...$result,
             ...$this->get653WithSecondInd('5'),
-            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '370', ['g']]])
+            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '370', ['g']]]),
         ];
         return $result;
     }
@@ -2171,7 +2208,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = [
             ...$result,
             ...$this->get653WithSecondInd('5'),
-            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '370', ['g']]])
+            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '370', ['g']]]),
         ];
         return $result;
     }
@@ -2185,7 +2222,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     {
         $result = $this->getFieldsSubfields(
             [
-                [MarcHandler::GET_NORMAL, '651', ['0']]
+                [MarcHandler::GET_NORMAL, '651', ['0']],
             ]
         );
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
@@ -2210,7 +2247,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '651', ['x']],
                 [MarcHandler::GET_NORMAL, '655', ['x']],
                 [MarcHandler::GET_NORMAL, '385', ['a']],
-                [MarcHandler::GET_NORMAL, '386', ['a']]
+                [MarcHandler::GET_NORMAL, '386', ['a']],
             ],
             false,
             true,
@@ -2218,7 +2255,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         );
         $result = [
             ...$result,
-            ...$this->get653WithSecondInd([' ', '0', '1', '2', '3'])
+            ...$this->get653WithSecondInd([' ', '0', '1', '2', '3']),
         ];
         return $result;
     }
@@ -2237,9 +2274,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [
                     [MarcHandler::GET_NORMAL, '385', ['a']],
                     [MarcHandler::GET_NORMAL, '356', ['a']],
-                    [MarcHandler::GET_NORMAL, '567', ['b']]
+                    [MarcHandler::GET_NORMAL, '567', ['b']],
                 ]
-            )
+            ),
         ];
         return $result;
     }
@@ -2257,7 +2294,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '041', ['a']],
                 [MarcHandler::GET_NORMAL, '041', ['d']],
                 // 979h = component part language
-                [MarcHandler::GET_NORMAL, '979', ['h']]
+                [MarcHandler::GET_NORMAL, '979', ['h']],
             ],
             false,
             true,
@@ -2277,8 +2314,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'd', 'e'],
             '700' => [
-                'a', 'q', 'b', 'c', 'd', 'e'
-            ]
+                'a', 'q', 'b', 'c', 'd', 'e',
+            ],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2297,8 +2334,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         $fieldSpecs = [
             '100' => ['a', 'b', 'c'],
             '700' => [
-                'a', 'q', 'b', 'c'
-            ]
+                'a', 'q', 'b', 'c',
+            ],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2318,8 +2355,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'd', 'e'],
             '700' => [
-                'a', 'q', 'b', 'c', 'd', 'e'
-            ]
+                'a', 'q', 'b', 'c', 'd', 'e',
+            ],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2340,8 +2377,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         $fieldSpecs = [
             '100' => ['a', 'b', 'c'],
             '700' => [
-                'a', 'q', 'b', 'c'
-            ]
+                'a', 'q', 'b', 'c',
+            ],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2363,7 +2400,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             '110' => ['a', 'b', 'e'],
             '111' => ['a', 'b', 'e'],
             '710' => ['a', 'b', 'e'],
-            '711' => ['a', 'b', 'e']
+            '711' => ['a', 'b', 'e'],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2384,7 +2421,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             '110' => ['a', 'b'],
             '111' => ['a', 'b'],
             '710' => ['a', 'b'],
-            '711' => ['a', 'b']
+            '711' => ['a', 'b'],
         ];
         return $this->getAuthorsByRelator(
             $fieldSpecs,
@@ -2407,7 +2444,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // Melinda ID
         foreach ($this->record->getFields('035') as $field) {
             $id = $this->record->getSubfield($field, 'a');
-            if (strncmp('FCC', $id, 3) === 0) {
+            if (str_starts_with($id, 'FCC')) {
                 $idNumber = substr($id, 3);
                 if (ctype_digit($idNumber)) {
                     $result[] = "(FI-MELINDA)$idNumber";
@@ -2454,7 +2491,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             [
                 [MarcHandler::GET_NORMAL, '041', ['h']],
                 // 979i = component part original language
-                [MarcHandler::GET_NORMAL, '979', ['i']]
+                [MarcHandler::GET_NORMAL, '979', ['i']],
             ],
             false,
             true,
@@ -2463,8 +2500,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // If not a translation, take also language from 041a and 041d.
         foreach ($this->record->getFields('041') as $f041) {
             if ($this->record->getIndicator($f041, 1) === '0') {
-                foreach ($this->getSubfieldsArray($f041, ['a', 'd']) as $s
-                ) {
+                foreach ($this->getSubfieldsArray($f041, ['a', 'd']) as $s) {
                     $languages[] = $s;
                 }
             }
@@ -2483,7 +2519,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             [
                 [MarcHandler::GET_NORMAL, '041', ['j']],
                 // 979j = component part subtitle language
-                [MarcHandler::GET_NORMAL, '979', ['j']]
+                [MarcHandler::GET_NORMAL, '979', ['j']],
             ],
             false,
             true,
@@ -2504,9 +2540,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_BOTH, '440', ['a']],
                 [MarcHandler::GET_BOTH, '490', ['a']],
                 [MarcHandler::GET_BOTH, '800', [
-                    'a', 'b', 'c', 'd', 'f', 'p', 'q', 't'
+                    'a', 'b', 'c', 'd', 'f', 'p', 'q', 't',
                 ]],
-                [MarcHandler::GET_BOTH, '830', ['a', 'v', 'n', 'p']]
+                [MarcHandler::GET_BOTH, '830', ['a', 'v', 'n', 'p']],
             ]
         );
     }
@@ -2538,13 +2574,14 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
             // Require at least one dot surrounded by valid characters or a
             // familiar scheme
-            if (!preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
+            if (
+                !preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
                 && !preg_match('/^https?:\/\//', $url)
             ) {
                 continue;
             }
             $result = [
-                'url' => $url
+                'url' => $url,
             ];
             $text = $this->record->getSubfield($field, 'y');
             if (!$text) {
@@ -2651,7 +2688,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
             $result = [
                 ...$result,
-                ...$fields
+                ...$fields,
             ];
         }
 

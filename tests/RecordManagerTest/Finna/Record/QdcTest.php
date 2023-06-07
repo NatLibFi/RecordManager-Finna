@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Finna QDC Record Driver Test Class
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Qdc;
@@ -38,7 +40,7 @@ use RecordManager\Finna\Record\Qdc;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
+class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test dateranges.
@@ -71,7 +73,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
             '[0004-01-01 TO 0004-12-31]',
             '[3006-01-01 TO 3006-12-31]',
             '[0008-01-01 TO 0008-12-31]',
-            '[3010-01-01 TO 3010-12-31]'
+            '[3010-01-01 TO 3010-12-31]',
         ];
         $fields = $this->createRecord(
             Qdc::class,
@@ -79,7 +81,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Http\ClientManager::class)
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
             ]
         );
         $fields = $fields->toSolrArray()['search_daterange_mv'];
@@ -99,7 +101,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Http\ClientManager::class)
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
             ]
         );
         $fields = $fields->toSolrArray();
@@ -109,7 +111,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'application/vnd.ms-powerpoint',
                 'image/jpeg',
                 'image/png',
-                'video/mp4'
+                'video/mp4',
             ],
             $fields['mime_type_str_mv']
         );

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * MIME type handling support trait.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
@@ -62,7 +64,7 @@ trait MimeTypeTrait
         'medium',
         'square',
         'thumb',
-        'zoomview'
+        'zoomview',
     ];
 
     /**
@@ -85,7 +87,7 @@ trait MimeTypeTrait
         'aspx',
         'asmx',
         'ashx',
-        'swf'
+        'swf',
     ];
 
     /**
@@ -153,7 +155,8 @@ trait MimeTypeTrait
                 }
             }
         }
-        if (!$mimeType
+        if (
+            !$mimeType
             && in_array(mb_strtolower($type), $this->displayImageTypes)
         ) {
             $mimeType = $this->defaultImageMimeType;

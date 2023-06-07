@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Delete Records
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -84,9 +86,8 @@ class DeleteSource extends AbstractBase
         $sourceId = $input->getArgument('source');
         $force = $input->getOption('force');
 
-        if (isset($this->dataSourceConfig[$sourceId])) {
-            $settings = $this->dataSourceConfig[$sourceId];
-            if (isset($settings['dedup']) && $settings['dedup']) {
+        if ($settings = $this->dataSourceConfig[$sourceId] ?? null) {
+            if ($settings['dedup'] ?? false) {
                 if ($force) {
                     $this->logger->logWarning(
                         'deleteSource',

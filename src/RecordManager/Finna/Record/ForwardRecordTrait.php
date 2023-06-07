@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Forward record trait.
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 /**
@@ -63,7 +65,7 @@ trait ForwardRecordTrait
                 $parts[] = [
                     'xml' => $child,
                     'order' => empty($child->Title->PartDesignation->Value)
-                        ? 0 : (int)$child->Title->PartDesignation->Value
+                        ? 0 : (int)$child->Title->PartDesignation->Value,
                 ];
             }
             ++$count;

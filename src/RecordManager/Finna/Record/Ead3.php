@@ -1,4 +1,5 @@
 <?php
+
 /**
  * EAD 3 Record Class
  *
@@ -27,6 +28,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -223,34 +225,34 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                         'UTF-8'
                     );
                     switch ($localtype) {
-                    case self::NAME_TYPE_PRIMARY:
-                        $data['author'][] = (string)$part;
-                        if (! isset($part->attributes()->lang)
-                            || (string)$part->attributes()->lang === 'fin'
-                        ) {
-                            $data['author_facet'][] = (string)$part;
-                        }
-                        if ($id) {
-                            $author2Ids[] = $id;
-                            if ($role) {
-                                $author2IdRoles[]
-                                    = $this->formatAuthorIdWithRole($id, $role);
+                        case self::NAME_TYPE_PRIMARY:
+                            $data['author'][] = (string)$part;
+                            if (
+                                !isset($part->attributes()->lang)
+                                || (string)$part->attributes()->lang === 'fin'
+                            ) {
+                                $data['author_facet'][] = (string)$part;
                             }
-                        }
-                        break;
-                    case self::NAME_TYPE_VARIANT:
-                    case self::NAME_TYPE_ALTERNATIVE:
-                    case self::NAME_TYPE_OUTDATED:
-                        $data['author_variant'][] = (string)$part;
-                        if ($id) {
-                            $author2Ids[] = $id;
-                            if ($role) {
-                                $author2IdRoles[]
-                                    = $this->formatAuthorIdWithRole($id, $role);
+                            if ($id) {
+                                $author2Ids[] = $id;
+                                if ($role) {
+                                    $author2IdRoles[]
+                                        = $this->formatAuthorIdWithRole($id, $role);
+                                }
                             }
-                        }
+                            break;
+                        case self::NAME_TYPE_VARIANT:
+                        case self::NAME_TYPE_ALTERNATIVE:
+                        case self::NAME_TYPE_OUTDATED:
+                            $data['author_variant'][] = (string)$part;
+                            if ($id) {
+                                $author2Ids[] = $id;
+                                if ($role) {
+                                    $author2IdRoles[] = $this->formatAuthorIdWithRole($id, $role);
+                                }
+                            }
 
-                        break;
+                            break;
                     }
                 }
             }
@@ -287,10 +289,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     }
                     $value = (string)$part;
                     $data['author'][] = $data['author_facet'][] = $value;
-                    if (in_array(
-                        (string)$part->attributes()->localtype,
-                        [self::NAME_TYPE_VARIANT, self::NAME_TYPE_ALTERNATIVE]
-                    )
+                    if (
+                        in_array(
+                            (string)$part->attributes()->localtype,
+                            [self::NAME_TYPE_VARIANT, self::NAME_TYPE_ALTERNATIVE]
+                        )
                     ) {
                         $data['author_variant'][] = $value;
                     }
@@ -298,11 +301,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             }
         }
 
-        if (isset($doc->index->index->indexentry)) {
-            foreach ($doc->index->index->indexentry as $indexentry) {
-                if (isset($indexentry->name->part)) {
-                    $data['contents'][] = (string)$indexentry->name->part;
-                }
+        foreach ($doc->index->index->indexentry ?? [] as $indexentry) {
+            if (isset($indexentry->name->part)) {
+                $data['contents'][] = (string)$indexentry->name->part;
             }
         }
         $data['format_ext_str_mv'] = $data['format'];
@@ -357,30 +358,29 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             // Append with LTR mark first to ensure correct text direction
             $yearRangeStr = "\u{200E} ($yearRangeStr)";
             foreach (
-                ['title_full', 'title_sort', 'title', 'title_short']
-                as $field
+                ['title_full', 'title_sort', 'title', 'title_short'] as $field
             ) {
                 $yearsFound = $this->getYearsFromString($data[$field]);
                 switch ($type) {
-                case 'always':
-                    $data[$field] .= $yearRangeStr;
-                    break;
-                case 'no_year_exists':
-                    if (!$yearsFound) {
+                    case 'always':
                         $data[$field] .= $yearRangeStr;
-                    }
-                    break;
-                case 'no_match_exists':
-                    if (!array_intersect($yearRange, $yearsFound)) {
-                        $data[$field] .= $yearRangeStr;
-                    }
-                    break;
-                case 'no_matches_exist':
-                    $yearRange = array_filter(array_unique($yearRange));
-                    if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
-                        $data[$field] .= $yearRangeStr;
-                    }
-                    break;
+                        break;
+                    case 'no_year_exists':
+                        if (!$yearsFound) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
+                    case 'no_match_exists':
+                        if (!array_intersect($yearRange, $yearsFound)) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
+                    case 'no_matches_exist':
+                        $yearRange = array_filter(array_unique($yearRange));
+                        if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
                 }
             }
         }
@@ -396,19 +396,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $unitIdLabel = $this->getDriverParam('unitIdLabel', null);
         $firstId = '';
-        if (isset($this->doc->did->unitid)) {
-            foreach ($this->doc->did->unitid as $i) {
-                $attr = $i->attributes();
-                if (!isset($attr->identifier)) {
-                    continue;
-                }
-                $id = (string)$attr->identifier;
-                if (!$firstId) {
-                    $firstId = $id;
-                }
-                if (!$unitIdLabel || (string)$attr->label === $unitIdLabel) {
-                    return $id;
-                }
+        foreach ($this->doc->did->unitid ?? [] as $i) {
+            $attr = $i->attributes();
+            if (!isset($attr->identifier)) {
+                continue;
+            }
+            $id = (string)$attr->identifier;
+            if (!$firstId) {
+                $firstId = $id;
+            }
+            if (!$unitIdLabel || (string)$attr->label === $unitIdLabel) {
+                return $id;
             }
         }
         return $firstId;
@@ -422,27 +420,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getAuthors()
     {
         $result = [];
-        if (!isset($this->doc->relations->relation)) {
-            return $result;
-        }
-
-        foreach ($this->doc->relations->relation as $relation) {
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
             $type = (string)$relation->attributes()->relationtype;
             if ('cpfrelation' !== $type) {
                 continue;
             }
             $role = (string)$relation->attributes()->arcrole;
             switch ($role) {
-            case '':
-            case 'http://www.rdaregistry.info/Elements/u/P60672':
-            case 'http://www.rdaregistry.info/Elements/u/P60434':
-                $role = 'aut';
-                break;
-            case 'http://www.rdaregistry.info/Elements/u/P60429':
-                $role = 'pht';
-                break;
-            default:
-                $role = '';
+                case '':
+                case 'http://www.rdaregistry.info/Elements/u/P60672':
+                case 'http://www.rdaregistry.info/Elements/u/P60434':
+                    $role = 'aut';
+                    break;
+                case 'http://www.rdaregistry.info/Elements/u/P60429':
+                    $role = 'pht';
+                    break;
+                default:
+                    $role = '';
             }
             if ('' === $role) {
                 continue;
@@ -460,27 +454,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getAuthorIds()
     {
         $result = [];
-        if (!isset($this->doc->relations->relation)) {
-            return $result;
-        }
-
-        foreach ($this->doc->relations->relation as $relation) {
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
             $type = (string)$relation->attributes()->relationtype;
             if ('cpfrelation' !== $type) {
                 continue;
             }
             $role = (string)$relation->attributes()->arcrole;
             switch ($role) {
-            case '':
-            case 'http://www.rdaregistry.info/Elements/u/P60672':
-            case 'http://www.rdaregistry.info/Elements/u/P60434':
-                $role = 'aut';
-                break;
-            case 'http://www.rdaregistry.info/Elements/u/P60429':
-                $role = 'pht';
-                break;
-            default:
-                $role = '';
+                case '':
+                case 'http://www.rdaregistry.info/Elements/u/P60672':
+                case 'http://www.rdaregistry.info/Elements/u/P60434':
+                    $role = 'aut';
+                    break;
+                case 'http://www.rdaregistry.info/Elements/u/P60429':
+                    $role = 'pht';
+                    break;
+                default:
+                    $role = '';
             }
             if ('' === $role) {
                 continue;
@@ -495,7 +485,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array<int, string>
      */
-    protected function getCorporateAuthors() : array
+    protected function getCorporateAuthors(): array
     {
         $result = [];
         foreach ($this->doc->controlaccess->corpname ?? [] as $name) {
@@ -527,11 +517,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getCorporateAuthorIds()
     {
         $result = [];
-        if (isset($this->doc->did->origination->name)) {
-            foreach ($this->doc->did->origination->name as $name) {
-                if (isset($name->attributes()->identifier)) {
-                    $result[] = (string)$name->attributes()->identifier;
-                }
+        foreach ($this->doc->did->origination->name ?? [] as $name) {
+            if (isset($name->attributes()->identifier)) {
+                $result[] = (string)$name->attributes()->identifier;
             }
         }
         return $result;
@@ -547,7 +535,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $getRestriction = function ($restrict) {
             if ($href = $restrict['href']) {
-                if (preg_match('/^https?:\/\/creativecommons\.org\//', $href)
+                if (
+                    preg_match('/^https?:\/\/creativecommons\.org\//', $href)
                     || preg_match('/^https?:\/\/rightsstatements\.org\//', $href)
                 ) {
                     return [(string)$href];
@@ -557,7 +546,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (strstr($restrict, 'No known copyright restrictions')) {
                 return ['No known copyright restrictions'];
             }
-            if (strncasecmp($restrict, 'CC', 2) === 0
+            if (
+                strncasecmp($restrict, 'CC', 2) === 0
                 || strncasecmp($restrict, 'Public', 6) === 0
                 || strncasecmp($restrict, 'Julkinen', 8) === 0
             ) {
@@ -675,18 +665,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $noSubtitleFormats = [
             $this->fondsType,
-            $this->collectionType
+            $this->collectionType,
         ];
         if (in_array($this->getFormat(), $noSubtitleFormats)) {
             return '';
         }
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
-            if (isset($this->doc->did->unitid)) {
-                foreach ($this->doc->did->unitid as $id) {
-                    $attr = $id->attributes();
-                    if ((string)$attr->label === $signumLabel) {
-                        return (string)$id;
-                    }
+            foreach ($this->doc->did->unitid ?? [] as $id) {
+                $attr = $id->attributes();
+                if ((string)$attr->label === $signumLabel) {
+                    return (string)$id;
                 }
             }
         }
@@ -702,8 +690,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = [];
         foreach ($this->doc->did->unitdatestructured ?? [] as $date) {
-            if (isset($date->daterange)) {
-                $range = $this->doc->did->unitdatestructured->daterange;
+            if ($range = $date->daterange) {
                 if (isset($range->fromdate) && isset($range->todate)) {
                     // Some data sources have multiple ranges in one daterange
                     // (non-standard presentation), try to handle the case sensibly:
@@ -724,14 +711,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $primary = [];
             foreach ($this->doc->did->unitdate ?? [] as $unitdate) {
                 $attributes = $unitdate->attributes();
-                if ($attributes->label
+                if (
+                    $attributes->label
                     && (string)$attributes->label === 'Ajallinen kattavuus'
                     && $unitdate->attributes()->normal
                 ) {
                     $date = $this->parseDateRange(
                         (string)$unitdate->attributes()->normal
                     );
-                    if ($date
+                    if (
+                        $date
                         && !$date['startDateUnknown'] && !$date['endDateUnknown']
                     ) {
                         $primary[] = $date;
@@ -744,7 +733,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 } else {
                     foreach (explode(', ', (string)$unitdate) as $single) {
                         $date = str_replace('-', '/', $single);
-                        if (false === strpos($date, '/')) {
+                        if (!str_contains($date, '/')) {
                             $date = "$date/$date";
                         }
                         $result[] = $this->parseDateRange($date);
@@ -767,7 +756,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function parseDateRange($input)
     {
-        if (!$input || $input == '-' || false === strpos($input, '/')) {
+        if (!$input || $input == '-' || !str_contains($input, '/')) {
             return null;
         }
 
@@ -808,7 +797,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $day = date('t', strtotime("{$year}-{$month}"));
             }
 
-            if (!preg_match('/^-?\d{1,4}$/', $year)
+            if (
+                !preg_match('/^-?\d{1,4}$/', $year)
                 || !preg_match('/^\d{1,2}$/', $month)
                 || !preg_match('/^\d{1,2}$/', $day)
             ) {
@@ -910,11 +900,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $identifiers = false
     ) {
         $result = [];
-        if (!isset($this->doc->controlaccess->{$nodeName})) {
-            return $result;
-        }
-
-        foreach ($this->doc->controlaccess->{$nodeName} as $node) {
+        foreach ($this->doc->controlaccess->{$nodeName} ?? [] as $node) {
             $relator = mb_strtolower(
                 trim((string)($node['relator'] ?? '')),
                 'UTF-8'
@@ -1078,21 +1064,20 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getInstitution()
     {
-        if (isset($this->doc->did->repository)) {
-            foreach ($this->doc->did->repository as $repo) {
-                $attr = $repo->attributes();
-                if (! isset($attr->encodinganalog)
-                    || 'ahaa:AI42' !== (string)$attr->encodinganalog
-                ) {
+        foreach ($this->doc->did->repository ?? [] as $repo) {
+            $attr = $repo->attributes();
+            if (
+                !isset($attr->encodinganalog)
+                || 'ahaa:AI42' !== (string)$attr->encodinganalog
+            ) {
+                continue;
+            }
+            foreach ($repo->corpname as $node) {
+                $attr = $node->attributes();
+                if (!isset($attr->identifier)) {
                     continue;
                 }
-                foreach ($repo->corpname as $node) {
-                    $attr = $node->attributes();
-                    if (! isset($attr->identifier)) {
-                        continue;
-                    }
-                    return (string)$attr->identifier;
-                }
+                return (string)$attr->identifier;
             }
         }
         return '';
@@ -1131,7 +1116,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return bool
      */
-    protected function isTimeIntervalNode(\SimpleXMLElement $node) : bool
+    protected function isTimeIntervalNode(\SimpleXMLElement $node): bool
     {
         return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;

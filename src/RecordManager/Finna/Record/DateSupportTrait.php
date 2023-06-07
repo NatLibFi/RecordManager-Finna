@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Date handling support trait.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 /**
@@ -78,7 +80,7 @@ trait DateSupportTrait
         if ($years = $this->getYearsFromString($dateString)) {
             $result = [
                 'startYear' => $years[0],
-                'endYear' => $years[1] ?? $years[0]
+                'endYear' => $years[1] ?? $years[0],
             ];
             // Turn the years into numbers and compare them.
             if ((int)$result['startYear'] > (int)$result['endYear']) {
@@ -98,11 +100,12 @@ trait DateSupportTrait
      */
     protected function getYearsFromString(string $dateString): array
     {
-        if (preg_match_all(
-            '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
-            $dateString,
-            $matches
-        )
+        if (
+            preg_match_all(
+                '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
+                $dateString,
+                $matches
+            )
         ) {
             return $matches[1];
         }

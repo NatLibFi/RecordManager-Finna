@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Field value mapper
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2012-2023.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
 
 /**
@@ -122,7 +124,7 @@ class FieldMapper
                     }
                     $this->settings[$source]['mappingFiles'][$field][] = [
                         'type' => $type,
-                        'map' => &self::$mapCache[$filename]
+                        'map' => &self::$mapCache[$filename],
                     ];
                 }
             }
@@ -168,7 +170,7 @@ class FieldMapper
     {
         $settings = $this->settings[$source];
         foreach ($settings['mappingFiles'] as $field => $mappingFile) {
-            if (isset($data[$field]) && !empty($data[$field])) {
+            if (!empty($data[$field])) {
                 if (is_array($data[$field])) {
                     $newValues = [];
                     foreach ($data[$field] as $value) {

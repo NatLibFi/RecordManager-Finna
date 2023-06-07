@@ -1,4 +1,5 @@
 <?php
+
 /**
  * EAC-CPF Record Class
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -70,11 +72,8 @@ class Eaccpf extends \RecordManager\Base\Record\Eaccpf
      */
     protected function getUseForHeadings()
     {
-        if (!isset($this->doc->cpfDescription->identity->nameEntryParallel)) {
-            return [];
-        }
         $result = [];
-        foreach ($this->doc->cpfDescription->identity->nameEntryParallel as $entry) {
+        foreach ($this->doc->cpfDescription->identity->nameEntryParallel ?? [] as $entry) {
             if (!isset($entry->nameEntry->part)) {
                 continue;
             }
@@ -103,10 +102,10 @@ class Eaccpf extends \RecordManager\Base\Record\Eaccpf
      *
      * @return null|string
      */
-    protected function parseYear(string $date) : ?string
+    protected function parseYear(string $date): ?string
     {
         $year = $this->metadataUtils->extractYear($date);
-        if (strpos($year, 'u') === false) {
+        if (!str_contains($year, 'u')) {
             // Year is not unknown
             return $year;
         }

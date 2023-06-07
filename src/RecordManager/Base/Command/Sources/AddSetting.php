@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Add a setting to data sources
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2021.
+ * Copyright (C) The National Library of Finland 2021-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,9 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Sources;
 
 use RecordManager\Base\Command\AbstractBase;
+use RecordManager\Base\Command\Util\IniFileTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputArgument;
@@ -46,6 +49,8 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class AddSetting extends AbstractBase
 {
+    use IniFileTrait;
+
     /**
      * Configure the command.
      *
@@ -163,10 +168,7 @@ class AddSetting extends AbstractBase
             }
             $modifyCurrentSource = $currentSource && !$skipSource
                 && (!$sources || in_array($currentSource, $sources));
-            if (strncmp($commentless, '[', 1) === 0
-                && substr($commentless, -1) === ']'
-                && strlen($commentless) > 2
-            ) {
+            if ($sectionName = $this->getSectionFromLine($commentless)) {
                 // Switching source, write any remaining values:
                 if ($modifyCurrentSource) {
                     $modified[] = $setting;
@@ -174,7 +176,7 @@ class AddSetting extends AbstractBase
                 $modified = [...$modified, ...$emptyLines];
                 $emptyLines = [];
 
-                $currentSource = substr($commentless, 1, -1);
+                $currentSource = $sectionName;
                 $foundSources[] = $currentSource;
                 $skipSource = false;
                 $arrayFound = false;

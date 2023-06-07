@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Lrmi record class
  *
@@ -27,6 +28,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -50,6 +52,9 @@ use RecordManager\Base\Utils\MetadataUtils;
 class Lrmi extends \RecordManager\Base\Record\Lrmi
 {
     use AuthoritySupportTrait;
+    use QdcRecordTrait {
+        toSolrArray as _toSolrArray;
+    }
 
     /**
      * Fields that are not included in allfield.
@@ -59,12 +64,8 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
     protected $ignoredAllfields = [
         'format', 'id', 'identifier', 'date', 'dateCreated', 'dateModified',
         'filesize', 'inLanguage', 'position', 'recordID', 'rights', 'targetUrl',
-        'url'
+        'url',
     ];
-
-    use QdcRecordTrait {
-        toSolrArray as _toSolrArray;
-    }
 
     /**
      * Constructor

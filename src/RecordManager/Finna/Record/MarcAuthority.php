@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Marc authority Record Class
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -58,6 +60,7 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
      * @return array<string, mixed>
      *
      * @psalm-suppress DuplicateArrayKey
+     * @psalm-suppress InvalidOperand
      */
     public function toSolrArray(Database $db = null)
     {
@@ -65,8 +68,8 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
 
         $data['allfields'][] = $this->getHeading();
         $data['allfields'] = [
-            ...(array)$data['allfields'],
-            ...$this->getAlternativeNames()
+            ...$data['allfields'],
+            ...$this->getAlternativeNames(['500', '510']),
         ];
         return $data;
     }
@@ -81,8 +84,8 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
     public function getAlternativeNames($additional = [])
     {
         $result = [];
-        $defaultFields = ['400', '410', '500', '510'];
-        foreach ([...$defaultFields, ...$additional]as $code) {
+        $defaultFields = ['111', '400', '410', '411'];
+        foreach ([...$defaultFields, ...$additional] as $code) {
             $subfields = in_array($code, ['400', '500'])
                 ? ['a', 'b', 'c']
                 : ['a', 'b'];

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * SolrComparer Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Solr;
 
 use RecordManager\Base\Utils\PerformanceCounter;
@@ -137,16 +139,14 @@ class SolrComparer extends SolrUpdater
                 $trackingName,
                 &$prevId
             ) {
-                if (isset($this->terminate)) {
-                    return false;
-                }
                 if (in_array($record['source_id'], $this->nonIndexedSources)) {
                     return true;
                 }
 
                 if (isset($record['dedup_id'])) {
                     $id = $record['dedup_id'];
-                    if ($prevId !== $id
+                    if (
+                        $prevId !== $id
                         && $this->db->addIdToTrackingCollection($trackingName, $id)
                     ) {
                         $result = $this->processDedupRecord(
@@ -192,11 +192,6 @@ class SolrComparer extends SolrUpdater
 
             $this->db->dropTrackingCollection($trackingName);
 
-            if (isset($this->terminate)) {
-                $this->log->logInfo('compareRecords', 'Termination upon request');
-                exit(1);
-            }
-
             $this->log->logInfo(
                 'compareRecords',
                 "Total $count normal, $deleted deleted and"
@@ -227,22 +222,21 @@ class SolrComparer extends SolrUpdater
             'publisherStr', 'publishDateSort', 'topic_browse', 'hierarchy_browse',
             'first_indexed', 'last_indexed', '_version_',
             'fullrecord', 'title_full_unstemmed', 'title_fullStr',
-            'author_additionalStr'
+            'author_additionalStr',
         ];
 
         if (isset($this->config['Solr']['ignore_in_comparison'])) {
             $ignoreFields = [
                 ...$ignoreFields,
-                ...explode(',', $this->config['Solr']['ignore_in_comparison'])
+                ...explode(',', $this->config['Solr']['ignore_in_comparison']),
             ];
         }
 
-        if (!isset($this->config['Solr']['search_url'])) {
+        if (!($url = $this->config['Solr']['search_url'])) {
             throw new \Exception('search_url not set in ini file Solr section');
         }
 
         $this->request = $this->initSolrRequest(\HTTP_Request2::METHOD_GET);
-        $url = $this->config['Solr']['search_url'];
         $url .= '?q=id:"' . urlencode(addcslashes($record['id'], '"')) . '"&wt=json';
         $this->request->setUrl($url);
 
@@ -272,7 +266,8 @@ class SolrComparer extends SolrUpdater
             ? array_intersect($allFields, $this->compareFields)
             : array_diff($allFields, $ignoreFields);
         foreach ($allFields as $field) {
-            if (!isset($solrRecord[$field])
+            if (
+                !isset($solrRecord[$field])
                 || !isset($record[$field])
                 || $record[$field] != $solrRecord[$field]
             ) {

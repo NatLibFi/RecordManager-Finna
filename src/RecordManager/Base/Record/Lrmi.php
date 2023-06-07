@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Lrmi record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2020.
  *
@@ -26,6 +27,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -128,14 +130,10 @@ class Lrmi extends Qdc
     protected function getSecondaryAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->person)) {
-                    foreach ($author->person as $person) {
-                        if (isset($person->name)) {
-                            $result[] = trim((string)$person->name);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->person ?? [] as $person) {
+                if (isset($person->name)) {
+                    $result[] = trim((string)$person->name);
                 }
             }
         }
@@ -150,15 +148,11 @@ class Lrmi extends Qdc
     protected function getCorporateAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->organization)) {
-                    foreach ($author->organization as $organization) {
-                        if (isset($organization->legalName)) {
-                            $result[]
-                                = trim((string)$organization->legalName);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->organization ?? [] as $organization) {
+                if (isset($organization->legalName)) {
+                    $result[]
+                        = trim((string)$organization->legalName);
                 }
             }
         }

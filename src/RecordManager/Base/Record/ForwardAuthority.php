@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Forward authority Record Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2019.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -98,13 +100,10 @@ class ForwardAuthority extends AbstractRecord
      */
     protected function getAgencyName()
     {
-        $doc = $this->getMainElement();
         $name = [];
-        if (isset($doc->RecordSource)) {
-            foreach ($this->getMainElement()->RecordSource as $src) {
-                if (isset($src->SourceName)) {
-                    $name[] = (string)$src->SourceName;
-                }
+        foreach ($this->getMainElement()->RecordSource ?? [] as $src) {
+            if (isset($src->SourceName)) {
+                $name[] = (string)$src->SourceName;
             }
         }
         return empty($name) ? $this->source : implode('. ', $name);
@@ -119,9 +118,9 @@ class ForwardAuthority extends AbstractRecord
     {
         $doc = $this->getMainElement();
 
-        $fields = [];
-
-        $fields[] = $this->getAgencyName();
+        $fields = [
+            $this->getAgencyName(),
+        ];
 
         if (isset($doc->BiographicalNote)) {
             $fields[] = (string)$doc->BiographicalNote;
@@ -195,17 +194,16 @@ class ForwardAuthority extends AbstractRecord
     protected function getAgentDate($type)
     {
         $doc = $this->getMainElement();
-        if (isset($doc->AgentDate)) {
-            foreach ($doc->AgentDate as $d) {
-                if (isset($d->AgentDateEventType)) {
-                    $dateType = (int)$d->AgentDateEventType;
-                    $date = (string)$d->DateText;
-                    $place = (string)$d->LocationName;
-                    if (($type === 'birth' && $dateType === 51)
-                        || ($type == 'death' && $dateType === 52)
-                    ) {
-                        return ['date' => $date, 'place' => $place];
-                    }
+        foreach ($doc->AgentDate ?? [] as $d) {
+            if (isset($d->AgentDateEventType)) {
+                $dateType = (int)$d->AgentDateEventType;
+                $date = (string)$d->DateText;
+                $place = (string)$d->LocationName;
+                if (
+                    ($type === 'birth' && $dateType === 51)
+                    || ($type == 'death' && $dateType === 52)
+                ) {
+                    return ['date' => $date, 'place' => $place];
                 }
             }
         }
@@ -310,11 +308,7 @@ class ForwardAuthority extends AbstractRecord
      */
     protected function getRecordType()
     {
-        $doc = $this->getMainElement();
-        if (isset($doc->AgentIdentifier->IDTypeName)) {
-            return (string)$doc->AgentIdentifier->IDTypeName;
-        }
-        return '';
+        return (string)($this->getMainElement()->AgentIdentifier->IDTypeName ?? '');
     }
 
     /**

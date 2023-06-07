@@ -1,8 +1,9 @@
 <?php
+
 /**
  * EAD 3 Record Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -27,6 +28,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -70,7 +72,8 @@ class Ead3 extends Ead
      */
     public function getID()
     {
-        if (isset($this->doc->{'add-data'})
+        if (
+            isset($this->doc->{'add-data'})
             && isset($this->doc->{'add-data'}->attributes()->identifier)
         ) {
             return (string)$this->doc->{'add-data'}->attributes()->identifier;
@@ -142,10 +145,12 @@ class Ead3 extends Ead
         $data['title'] = '';
         // Ini handling returns true as '1':
         $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
-        if ('1' === $prependTitle
+        if (
+            '1' === $prependTitle
             || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
         ) {
-            if (!empty($data['title_sub'])
+            if (
+                !empty($data['title_sub'])
                 && $data['title_sub'] != $data['title_short']
             ) {
                 $data['title'] = $data['title_sub'] . ' ';
@@ -192,10 +197,7 @@ class Ead3 extends Ead
      */
     public function getTitle($forFiling = false)
     {
-        $title = isset($this->doc->did->unittitle)
-            ? (string)$this->doc->did->unittitle
-            : '';
-
+        $title = (string)($this->doc->did->unittitle ?? '');
         if ($forFiling) {
             $title = $this->metadataUtils->createSortTitle($title);
         }
@@ -273,17 +275,13 @@ class Ead3 extends Ead
     protected function getAuthors()
     {
         $result = [];
-        if (isset($this->doc->did->controlaccess->name)) {
-            foreach ($this->doc->did->controlaccess->name as $name) {
-                foreach ($name->part as $part) {
-                    $result[] = trim((string)$part);
-                }
+        foreach ($this->doc->did->controlaccess->name ?? [] as $name) {
+            foreach ($name->part as $part) {
+                $result[] = trim((string)$part);
             }
         }
-        if (isset($this->doc->did->origination->persname)) {
-            foreach ($this->doc->did->origination->persname as $name) {
-                $result[] = trim((string)$name);
-            }
+        foreach ($this->doc->did->origination->persname ?? [] as $name) {
+            $result[] = trim((string)$name);
         }
         return $result;
     }
@@ -370,9 +368,7 @@ class Ead3 extends Ead
      */
     protected function getInstitution()
     {
-        return isset($this->doc->did->repository->corpname->part)
-            ? (string)$this->doc->did->repository->corpname->part
-            : '';
+        return (string)($this->doc->did->repository->corpname->part ?? '');
     }
 
     /**
@@ -383,10 +379,7 @@ class Ead3 extends Ead
     protected function getLanguages()
     {
         $result = [];
-        if (!isset($this->doc->did->langmaterial->language)) {
-            return $result;
-        }
-        foreach ($this->doc->did->langmaterial->language as $lang) {
+        foreach ($this->doc->did->langmaterial->language ?? [] as $lang) {
             if (isset($lang->attributes()->langcode)) {
                 $langCode = trim((string)$lang->attributes()->langcode);
                 if ($langCode != '') {
@@ -405,10 +398,7 @@ class Ead3 extends Ead
     protected function getPhysicalExtent()
     {
         $result = [];
-        if (!isset($this->doc->did->physdesc->extent)) {
-            return $result;
-        }
-        foreach ($this->doc->did->physdesc->extent as $extent) {
+        foreach ($this->doc->did->physdesc->extent ?? [] as $extent) {
             if (trim((string)$extent) !== '-') {
                 $result[] = (string)$extent;
             }
@@ -427,7 +417,8 @@ class Ead3 extends Ead
             foreach ($root as $set) {
                 foreach ($set->dao ?? [] as $dao) {
                     $attrs = $dao->attributes();
-                    if ('thumbnail' === (string)$attrs->localtype
+                    if (
+                        'thumbnail' === (string)$attrs->localtype
                         && !empty($attrs->href)
                     ) {
                         return (string)$attrs->href;
@@ -445,7 +436,7 @@ class Ead3 extends Ead
      */
     protected function getUnitId()
     {
-        return (string)$this->doc->did->unitid;
+        return (string)($this->doc->did->unitid ?? '');
     }
 
     /**
@@ -493,7 +484,8 @@ class Ead3 extends Ead
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)($this->doc->did->unittitle ?? '');
         }
-        if ($sequenceUnitId
+        if (
+            $sequenceUnitId
             && $this->getDriverParam('addIdToHierarchyTitle', true)
         ) {
             $data['title_in_hierarchy']
