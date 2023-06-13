@@ -65,7 +65,7 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'audio/x-wav',
                 'video/mp4',
             ],
-            $fields['mime_type_str_mv']
+            $fields['media_type_str_mv']
         );
     }
 }
