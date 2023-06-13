@@ -1923,7 +1923,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get mime types
+     * Get online URLs
      *
      * @return array
      */

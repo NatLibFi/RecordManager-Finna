@@ -89,7 +89,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test mime types
+     * Test media types
      *
      * @return void
      */

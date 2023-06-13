@@ -45,7 +45,7 @@ use RecordManager\Finna\Record\Lrmi;
 class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
-     * Test LRMI mime types
+     * Test LRMI media types
      *
      * @return void
      */

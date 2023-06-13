@@ -1163,7 +1163,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test MARC mime types
+     * Test MARC media types
      *
      * @return void
      */
