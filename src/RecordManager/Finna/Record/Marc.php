@@ -2588,7 +2588,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $text = $this->record->getSubfield($field, 'z');
             }
             $result['text'] = $text;
-            $mediaType = $this->getLinkMimeType(
+            $mediaType = $this->getLinkMediaType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );

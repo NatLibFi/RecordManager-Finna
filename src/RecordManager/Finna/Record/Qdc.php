@@ -179,7 +179,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source,
             ];
-            $mediaType = $this->getLinkMimeType(
+            $mediaType = $this->getLinkMediaType(
                 $url,
                 trim($file->attributes()->type)
             );

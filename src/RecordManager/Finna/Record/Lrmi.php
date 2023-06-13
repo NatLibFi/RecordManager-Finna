@@ -154,7 +154,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
                     'text' => trim((string)($material->name ?? $url)),
                     'source' => $this->source,
                 ];
-                $mediaType = $this->getLinkMimeType(
+                $mediaType = $this->getLinkMediaType(
                     $url,
                     trim($material->format ?? '')
                 );

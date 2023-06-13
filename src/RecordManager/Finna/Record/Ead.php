@@ -411,7 +411,7 @@ class Ead extends \RecordManager\Base\Record\Ead
                     'desc' => '',
                     'source' => $this->source,
                 ];
-                $mediaType = $this->getLinkMimeType($url);
+                $mediaType = $this->getLinkMediaType($url);
                 if ($mediaType) {
                     $result['mediaType'] = $mediaType;
                 }

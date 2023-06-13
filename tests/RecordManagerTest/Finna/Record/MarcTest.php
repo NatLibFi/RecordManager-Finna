@@ -1167,11 +1167,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return void
      */
-    public function testMarcMimeTypes(): void
+    public function testMarcMediaTypes(): void
     {
         $record = $this->createMarcRecord(
             Marc::class,
-            'marc_mime_types.xml',
+            'marc_media_types.xml',
             [],
             'Finna',
             [

@@ -49,11 +49,11 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return void
      */
-    public function testMimeTypes()
+    public function testMediaTypes()
     {
         $record = $this->createRecord(
             Lrmi::class,
-            'lrmi_mime_types.xml',
+            'lrmi_media_types.xml',
             [],
             'Finna',
             [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]

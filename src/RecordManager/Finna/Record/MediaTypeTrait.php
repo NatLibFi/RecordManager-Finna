@@ -95,7 +95,7 @@ trait MediaTypeTrait
      *
      * @var string
      */
-    protected $defaultImageMimeType = 'image/jpeg';
+    protected $defaultImageMediaType = 'image/jpeg';
 
     /**
      * Initialize MediaTypeTrait.
@@ -107,9 +107,9 @@ trait MediaTypeTrait
     protected function initMediaTypeTrait(array $config): void
     {
         $this->extensionMapper = new GeneratedExtensionToMimeTypeMap();
-        if (!empty($config['MimeType']['excluded_file_extensions'])) {
+        if (!empty($config['MediaType']['excluded_file_extensions'])) {
             $this->excludedFileExtensions
-                = $config['MimeType']['excluded_file_extensions'];
+                = $config['MediaType']['excluded_file_extensions'];
         }
     }
 
@@ -122,7 +122,7 @@ trait MediaTypeTrait
      *
      * @return string Found media type or an empty string.
      */
-    protected function getLinkMimeType(
+    protected function getLinkMediaType(
         string $link,
         string $format = "",
         string $type = ""
@@ -159,7 +159,7 @@ trait MediaTypeTrait
             !$mediaType
             && in_array(mb_strtolower($type), $this->displayImageTypes)
         ) {
-            $mediaType = $this->defaultImageMimeType;
+            $mediaType = $this->defaultImageMediaType;
         }
         return $mediaType ?: '';
     }

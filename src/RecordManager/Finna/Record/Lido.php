@@ -1940,7 +1940,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     'desc' => trim($set->resourceDescription),
                     'source' => $this->source,
                 ];
-                $mediaType = $this->getLinkMimeType(
+                $mediaType = $this->getLinkMediaType(
                     trim($node->linkResource),
                     trim($node->linkResource->attributes()->formatResource),
                     trim($node->attributes()->type)
