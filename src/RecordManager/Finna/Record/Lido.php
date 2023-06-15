@@ -292,6 +292,101 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Get hieararchical locations as an associative array.
+     *
+     * @param XMLEle
+     */
+    protected function getHierarchicalLocations($elem): array
+    {
+        // Some locations might have multiple roads in a city so how do we do this? I have no idea but lets try
+        $results = [];
+        // do this as a while loop.
+        // We can end the loop if we have a pretty accurate value
+        $currentElements = [$elem];
+        do {
+            $current = array_shift($currentElements);
+
+            if (!empty($current->namePlaceSet->appellationValue)) {
+                // There can be multiple appellationValues in element, meaning multiple streets etc
+                $values = [];
+
+                $label = '';
+                foreach ($current->namePlaceSet as $name) {
+                    foreach ($name->appellationValue as $elemValue) {
+                        // We can assume that the label is same in each of different
+                        // appellationvalues under same parent
+                        // If this is not the case, then things are not going ok
+                        if (!$label) {
+                            $label = trim((string)$elemValue->attributes()->label);
+                        }
+                        $values[] = trim((string)$elemValue);
+                    }
+                }
+                // If label is set, then we don't need to check for $elem->placeClassification
+                if (!$label && !empty($current->placeClassification)) {
+                    $label = trim((string)$current->placeClassification);
+                }
+
+                // If label is still empty and we have multiple values, then only take the first one into account.
+                if (!$label && count($values) > 1) {
+                    $values = [array_shift($values)];
+                }
+
+                // Try to remove unnecessary country codes from the end 'value (finland)'
+                $label = trim(explode(' ', $label)[0]);
+                // Now check where does this label match, if we already have a value for it, skip.
+                $newEntries = count($results) === 0;
+                foreach ($values as $value) {
+                    if ($newEntries) {
+                        $results[] = [$value];
+                    } else {
+                        foreach ($results as &$result) {
+                            $result[] = $value;
+                        }
+                        unset($result);
+                    }
+                }
+            }
+            // Try to check if there is any subplaces to check
+            if (!empty($current->partOfPlace)) {
+                foreach ($current->partOfPlace as $place) {
+                    $currentElements[] = $place;
+                }
+            }
+        } while (count($currentElements) > 0);
+        return $results;
+    }
+
+    protected function splitLocation(string $location): array
+    {
+        $splitted = preg_split(
+            '/[\/;]/',
+            $location
+        );
+        $results = [];
+        // Some locations might have redundancy, which causes problems.
+        // Try to detect them
+        foreach ($splitted as $value) {
+            $value = trim($value);
+            $splitted = explode(' ', $value);
+
+            // If there is only one location then it can be really difficult to really determine where it should be located
+            // so in this case, skip the result
+            if (count($splitted) === 1) {
+                continue;
+            }
+            array_walk($splitted, function (&$part) {
+                $part = trim($part, ', ');
+            });
+            if (count(array_unique($splitted)) !== count($splitted)) {
+                continue;
+            }
+            $results[] = $value;
+        }
+        return $results;
+    }
+
+    /**
      * Get locations for geocoding
      *
      * Returns an associative array of primary and secondary locations
@@ -300,69 +395,29 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getLocations()
     {
-        // Subject places
         $subjectLocations = [];
         foreach ($this->getSubjectNodes() as $subject) {
-            // Try first to find non-hierarchical street address and city.
-            // E.g. Musketti.
-            $mainPlace = '';
-            $subLocation = '';
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                foreach ($subjectPlace->place as $place) {
-                    if (
-                        !isset($place->namePlaceSet->appellationValue)
-                        || !isset($place->placeClassification)
-                    ) {
+            // For some reason, eventplace is used inside subject element...
+            foreach ([$subject->subjectPlace, $subject->eventPlace] as $nodes) {
+                foreach ($nodes as $placeNode) {
+                    if (!empty($placeNode->place->gml)) {
+                        return [];
+                    }
+                    if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
+                        $subjectLocations = [
+                            ...$subjectLocations,
+                            ...$this->splitLocation((string)$placeNode->displayPlace),
+                        ];
                         continue;
                     }
-                    $classification = strtolower($place->placeClassification->term ?? '');
-                    if (
-                        strstr($classification, 'kunta') !== false
-                        || strstr($classification, 'kaupunki') !== false
-                        || strstr($classification, 'kylä') !== false
-                    ) {
-                        $mainPlace .= ' '
-                            . (string)$place->namePlaceSet->appellationValue;
-                    } elseif (
-                        strstr($classification, 'katuosoite') !== false
-                        || strstr($classification, 'kartano') !== false
-                        || strstr($classification, 'tila') !== false
-                        || strstr($classification, 'talo') !== false
-                        || strstr($classification, 'rakennus') !== false
-                        || strstr($classification, 'alue') !== false
-                    ) {
-                        $subLocation .= ' ' . (string)$place->namePlaceSet
-                            ->appellationValue;
-                    }
-                }
-            }
-            if ('' !== $mainPlace && '' !== $subLocation) {
-                $subjectLocations = [
-                    ...$subjectLocations,
-                    ...$this->splitAddresses(trim($mainPlace), trim($subLocation)),
-                ];
-                continue;
-            }
-            // Handle a hierarchical place
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                if ($mainPlace = trim((string)($subjectPlace->place->namePlaceSet->appellationValue ?? ''))) {
-                    $subLocation = $this->getSubLocation($subjectPlace->place);
-                    if (!$subLocation) {
-                        $subjectLocations[] = $mainPlace;
-                    } else {
-                        foreach (preg_split('/( tai |\. )/', $subLocation) as $subPart) {
-                            $subjectLocations[] = "$mainPlace $subPart";
+                    // Now lets loop through the place and see what we can gather.
+                    foreach ($placeNode->place as $place) {
+                        if ($result = $this->getHierarchicalLocations($place)) {
+                            foreach ($result as $location) {
+                                $subjectLocations[] = implode(', ', $location);
+                            }
                         }
                     }
-                } elseif ($displayPlace = trim((string)($subjectPlace->displayPlace ?? ''))) {
-                    // Split multiple locations separated with a slash
-                    $subjectLocations = [
-                        ...$subjectLocations,
-                        ...preg_split(
-                            '/[\/;]/',
-                            $displayPlace
-                        ) ?: [],
-                    ];
                 }
             }
         }
@@ -374,79 +429,34 @@ class Lido extends \RecordManager\Base\Record\Lido
             $subjectLocations
         );
 
-        // Event places
         $locations = [];
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
                 foreach ($eventNode->eventPlace as $placeNode) {
-                    // If there is already gml in the record,
-                    // don't return anything for geocoding
                     if (!empty($placeNode->place->gml)) {
                         return [];
                     }
-                    $hasValue = !empty(
-                        $placeNode->place->namePlaceSet->appellationValue
-                    );
-                    if ($hasValue) {
-                        $mainPlace = (string)$placeNode->place->namePlaceSet
-                            ->appellationValue;
-                        $subLocation = $this->getSubLocation(
-                            $placeNode->place
-                        );
-                        if ($mainPlace && !$subLocation) {
-                            $locations = [
-                                ...$locations,
-                                ...explode('/', $mainPlace),
-                            ];
-                        } else {
-                            $locations = [
-                                ...$locations,
-                                ...$this->splitAddresses($mainPlace, $subLocation),
-                            ];
-                        }
-                    } elseif (!empty($placeNode->place->partOfPlace)) {
-                        // Flat part of place structure (e.g. Musketti)
-                        $haveStreet = false;
-                        foreach ($placeNode->place->partOfPlace as $part) {
-                            if (
-                                isset($part->placeClassification->term)
-                                && $part->placeClassification->term == 'katuosoite'
-                                && !empty($part->namePlaceSet->appellationValue)
-                            ) {
-                                $haveStreet = true;
-                                break;
-                            }
-                        }
-                        $parts = [];
-                        foreach ($placeNode->place->partOfPlace as $p) {
-                            if (
-                                $haveStreet
-                                && isset($p->placeClassification->term)
-                                && ($p->placeClassification->term == 'kaupunginosa'
-                                || $p->placeClassification->term == 'rakennus')
-                            ) {
-                                continue;
-                            }
-                            if (!empty($p->namePlaceSet->appellationValue)) {
-                                $parts[]
-                                    = (string)$p->namePlaceSet->appellationValue;
-                            }
-                        }
-                        $locations[] = implode(' ', $parts);
-                    } elseif (!empty($placeNode->displayPlace)) {
-                        // Split multiple locations separated with a slash
+                    if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
                         $locations = [
-                            ...$locations,
-                            ...preg_split(
-                                '/[\/;]/',
-                                (string)$placeNode->displayPlace
-                            ) ?: [],
+                            ...$subjectLocations,
+                            ...$this->splitLocation((string)$placeNode->displayPlace),
                         ];
+                        continue;
+                    }
+                    // Now lets loop through the place and see what we can gather.
+                    foreach ($placeNode->place as $place) {
+                        if ($result = $this->getHierarchicalLocations($place)) {
+                            foreach ($result as $location) {
+                                $locations[] = implode(', ', $location);
+                            }
+                        }
                     }
                 }
             }
         }
 
+        // Subject locations are primary locations and everything else is secondary
+        // so try to find duplicates and skip them
         $accepted = [];
         foreach ($locations as $location) {
             if (str_word_count($location) == 1) {
