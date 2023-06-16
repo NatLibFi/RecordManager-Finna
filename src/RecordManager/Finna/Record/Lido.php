@@ -292,7 +292,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchical locations as an multidimensional array.
+     * Get hierarchical locations as a multidimensional array.
      *
      * @param \SimpleXMLElement $elem Element to check for locations.
      *
