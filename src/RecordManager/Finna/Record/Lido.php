@@ -292,9 +292,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchical locations as an array.
+     * Get hierarchical locations as an multidimensional array.
      *
-     * @param \SimpleXMLElement $element
+     * @param \SimpleXMLElement $elem Element to check for locations.
+     *
+     * @return array<int, array>
      */
     protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
     {
@@ -362,7 +364,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string $location Location to split
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function splitLocation(string $location): array
     {
@@ -378,7 +380,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             $splitted = explode(' ', $value);
 
             // If there is only one location then it can be really difficult
-            // to really determine where it should be located i.e Pohja or pitkäjärvi
+            // to really determine where it should be located i.e Pohja or i.e lakes
             // so in this case, skip the result
             if (count($splitted) === 1) {
                 continue;
@@ -386,6 +388,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             array_walk($splitted, function (&$part) {
                 $part = trim($part, ', ');
             });
+            // If the result would be something like Mäntyharju, Mäntyharju skip it as it
+            // is too redundant
             if (count(array_unique($splitted)) !== count($splitted)) {
                 continue;
             }

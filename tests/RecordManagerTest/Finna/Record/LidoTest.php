@@ -534,7 +534,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->compareArray($expected, $result, 'Measurements');
     }
 
-    public function testHierarchicalLocations()
+    /**
+     * Test hierarchical locations from lido.
+     *
+     * @return void
+     */
+    public function testHierarchicalLocations(): void
     {
         $record = $this->createRecord(
             Lido::class,
