@@ -105,6 +105,31 @@
               </place>
             </subjectPlace>
           </subjectSet>
+          <subjectSet>
+            <subjectPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaa -->Suomi</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvauslääni -->It&#xE4;-Suomen l&#xE4;&#xE4;ni</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaakunta -->Etel&#xE4;-Savo</appellationValue>
+                </namePlaceSet>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue><!-- Kuvauspaikkakunta -->Mikkeli</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue><!-- Kohde tai osoite -->Otavankatu 11 A</appellationValue>
+                    </namePlaceSet>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </subjectPlace>
+          </subjectSet>
         </subjectWrap>
       </objectRelationWrap>
       <eventWrap>
