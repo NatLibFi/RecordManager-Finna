@@ -292,16 +292,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hieararchical locations as an associative array.
+     * Get hierarchical locations as an array.
      *
-     * @param XMLEle
+     * @param \SimpleXMLElement $element
      */
-    protected function getHierarchicalLocations($elem): array
+    protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
     {
-        // Some locations might have multiple roads in a city so how do we do this? I have no idea but lets try
         $results = [];
-        // do this as a while loop.
-        // We can end the loop if we have a pretty accurate value
         $currentElements = [$elem];
         do {
             $current = array_shift($currentElements);
@@ -309,15 +306,19 @@ class Lido extends \RecordManager\Base\Record\Lido
             if (!empty($current->namePlaceSet->appellationValue)) {
                 // There can be multiple appellationValues in element, meaning multiple streets etc
                 $values = [];
-
                 $label = '';
                 foreach ($current->namePlaceSet as $name) {
                     foreach ($name->appellationValue as $elemValue) {
                         // We can assume that the label is same in each of different
                         // appellationvalues under same parent
                         // If this is not the case, then things are not going ok
+                        $currentLabel = trim((string)$elemValue->attributes()->label);
+                        if ($label && $label !== $currentLabel) {
+                            // There seems to be different types of appellationValues so skip the new ones
+                            continue;
+                        }
                         if (!$label) {
-                            $label = trim((string)$elemValue->attributes()->label);
+                            $label = $currentLabel;
                         }
                         $values[] = trim((string)$elemValue);
                     }
@@ -331,10 +332,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if (!$label && count($values) > 1) {
                     $values = [array_shift($values)];
                 }
-
-                // Try to remove unnecessary country codes from the end 'value (finland)'
-                $label = trim(explode(' ', $label)[0]);
-                // Now check where does this label match, if we already have a value for it, skip.
+                // Check do we create new elements into results or append current value into old results.
                 $newEntries = count($results) === 0;
                 foreach ($values as $value) {
                     if ($newEntries) {
@@ -347,7 +345,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     }
                 }
             }
-            // Try to check if there is any subplaces to check
+            // Check for any other partOfPlaces
             if (!empty($current->partOfPlace)) {
                 foreach ($current->partOfPlace as $place) {
                     $currentElements[] = $place;
@@ -357,6 +355,15 @@ class Lido extends \RecordManager\Base\Record\Lido
         return $results;
     }
 
+    /**
+     * Split a location found from displayPlace element. Excludes all values
+     * found after splitting which has redundancy or has only a single value.
+     * Splitting is done from characters ; or /.
+     *
+     * @param string $location Location to split
+     *
+     * @return array
+     */
     protected function splitLocation(string $location): array
     {
         $splitted = preg_split(
@@ -411,7 +418,6 @@ class Lido extends \RecordManager\Base\Record\Lido
                         ];
                         continue;
                     }
-                    // Now lets loop through the place and see what we can gather.
                     foreach ($placeNode->place as $place) {
                         if ($result = $this->getHierarchicalLocations($place)) {
                             foreach ($result as $location) {
@@ -444,7 +450,6 @@ class Lido extends \RecordManager\Base\Record\Lido
                         ];
                         continue;
                     }
-                    // Now lets loop through the place and see what we can gather.
                     foreach ($placeNode->place as $place) {
                         if ($result = $this->getHierarchicalLocations($place)) {
                             foreach ($result as $location) {
@@ -456,8 +461,6 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
 
-        // Subject locations are primary locations and everything else is secondary
-        // so try to find duplicates and skip them
         $accepted = [];
         foreach ($locations as $location) {
             if (preg_match_all("/[\pL']+/u", trim($location)) === 1) {
