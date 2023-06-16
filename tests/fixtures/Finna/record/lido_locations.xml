@@ -73,6 +73,38 @@
               </eventPlace>
             </subject>
           </subjectSet>
+          <subjectSet>
+            <subjectPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaa -->Suomi</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvauslääni -->It&#xE4;-Suomen l&#xE4;&#xE4;ni</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaakunta -->Etel&#xE4;-Savo</appellationValue>
+                </namePlaceSet>
+                <gml>
+                  <Point srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+                    <coordinates>
+											
+										</coordinates>
+                  </Point>
+                </gml>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue><!-- Kuvauspaikkakunta -->Mikkeli</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue><!-- Kohde tai osoite -->Otavankatu 11 A</appellationValue>
+                    </namePlaceSet>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </subjectPlace>
+          </subjectSet>
         </subjectWrap>
       </objectRelationWrap>
       <eventWrap>

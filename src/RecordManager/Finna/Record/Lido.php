@@ -365,12 +365,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         );
         $results = [];
         // Some locations might have redundancy, which causes problems.
-        // Try to detect them
+        // Try to detect them and discard them from the results
         foreach ($splitted as $value) {
             $value = trim($value);
             $splitted = explode(' ', $value);
 
-            // If there is only one location then it can be really difficult to really determine where it should be located
+            // If there is only one location then it can be really difficult
+            // to really determine where it should be located i.e Pohja or pitkäjärvi
             // so in this case, skip the result
             if (count($splitted) === 1) {
                 continue;
