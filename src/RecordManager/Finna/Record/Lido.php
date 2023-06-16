@@ -459,7 +459,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // so try to find duplicates and skip them
         $accepted = [];
         foreach ($locations as $location) {
-            if (str_word_count($location) == 1) {
+            if (preg_match_all("/[\pL']+/u", trim($location)) === 1) {
                 foreach ($subjectLocations as $subjectLocation) {
                     if (str_starts_with($subjectLocation, $location)) {
                         continue 2;
@@ -516,7 +516,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // "Uusimaa, Helsinki, Malmi"
         foreach ($result as $item) {
             if (
-                str_word_count($item) > 2
+                preg_match_all("/[\pL']+/u", trim($item)) > 2
                 && substr_count($item, ',') == 1
                 && preg_match('/(.*[^\s]+\s+\d+),/', $item, $matches)
             ) {
