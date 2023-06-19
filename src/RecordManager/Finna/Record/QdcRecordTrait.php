@@ -46,7 +46,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
-    use MimeTypeTrait;
+    use MediaTypeTrait;
 
     /**
      * Rights statements indicating open access
@@ -107,9 +107,9 @@ trait QdcRecordTrait
         foreach ($this->getOnlineUrls() as $url) {
             $data['online_urls_str_mv'][] = json_encode($url);
         }
-        $data['mime_type_str_mv'] = array_values(
+        $data['media_type_str_mv'] = array_values(
             array_unique(
-                array_column($onlineUrls, 'mimeType')
+                array_column($onlineUrls, 'mediaType')
             )
         );
 

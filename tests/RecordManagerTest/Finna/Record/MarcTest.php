@@ -274,7 +274,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -476,7 +476,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -658,7 +658,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -800,7 +800,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -940,7 +940,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1050,7 +1050,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
-            'mime_type_str_mv' => [],
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1163,15 +1163,15 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test MARC mime types
+     * Test MARC media types
      *
      * @return void
      */
-    public function testMarcMimeTypes(): void
+    public function testMarcMediaTypes(): void
     {
         $record = $this->createMarcRecord(
             Marc::class,
-            'marc_mime_types.xml',
+            'marc_media_types.xml',
             [],
             'Finna',
             [
@@ -1184,7 +1184,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'audio/x-wav',
                 'application/pdf',
             ],
-            $fields['mime_type_str_mv']
+            $fields['media_type_str_mv']
         );
     }
 }

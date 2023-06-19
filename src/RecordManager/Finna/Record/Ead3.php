@@ -52,7 +52,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MimeTypeTrait;
+    use MediaTypeTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -106,7 +106,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $logger,
             $metadataUtils
         );
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -191,9 +191,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $data['rights'] = (string)$doc->did->accessrestrict->p;
         }
         $onlineUrls = $this->getOnlineURLs();
-        $data['mime_type_str_mv'] = array_values(
+        $data['media_type_str_mv'] = array_values(
             array_unique(
-                array_column($onlineUrls, 'mimeType')
+                array_column($onlineUrls, 'mediaType')
             )
         );
         // Usage rights
@@ -625,12 +625,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     'desc' => trim($attrs->linktitle),
                     'source' => $this->source,
                 ];
-                $mimeType = $this->getLinkMimeType(
+                $mediaType = $this->getLinkMediaType(
                     $url,
                     trim((string)$attrs->linkrole),
                 );
-                if ($mimeType) {
-                    $result['mimeType'] = $mimeType;
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
                 }
                 $results[] = $result;
             }

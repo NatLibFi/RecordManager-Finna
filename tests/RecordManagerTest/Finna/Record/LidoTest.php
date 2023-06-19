@@ -117,7 +117,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('Utsjoki, Lappi', $fields['allfields']);
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
-        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -269,7 +269,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'sv',
                 'en',
             ],
-            'mime_type_str_mv' => [
+            'media_type_str_mv' => [
                 'image/jpeg',
             ],
         ];
@@ -313,7 +313,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'image/tiff',
                 'image/png',
             ],
-            $fields['mime_type_str_mv']
+            $fields['media_type_str_mv']
         );
     }
 
@@ -355,7 +355,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             '[1911-01-01 TO 1911-12-31]',
             $fields['creation_daterange']
         );
-        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -428,7 +428,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             '[1930-01-01 TO 1930-12-31]',
             $fields['creation_daterange']
         );
-        $this->assertEquals(['image/jpeg'], $fields['mime_type_str_mv']);
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -455,7 +455,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $this->assertEquals('Designmuseo', $fields['institution']);
 
-        $this->assertEquals([], $fields['mime_type_str_mv']);
+        $this->assertEquals([], $fields['media_type_str_mv']);
     }
 
     /**

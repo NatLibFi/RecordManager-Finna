@@ -77,7 +77,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             $httpManager,
             $db
         );
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -179,12 +179,12 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                 'text' => trim((string)$file->attributes()->name),
                 'source' => $this->source,
             ];
-            $mimeType = $this->getLinkMimeType(
+            $mediaType = $this->getLinkMediaType(
                 $url,
                 trim($file->attributes()->type)
             );
-            if ($mimeType) {
-                $result['mimeType'] = $mimeType;
+            if ($mediaType) {
+                $result['mediaType'] = $mediaType;
             }
             $results[] = $result;
         }

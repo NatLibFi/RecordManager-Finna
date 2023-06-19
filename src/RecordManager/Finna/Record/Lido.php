@@ -50,7 +50,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MimeTypeTrait;
+    use MediaTypeTrait;
 
     /**
      * Constructor
@@ -72,7 +72,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             $logger,
             $metadataUtils
         );
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -283,9 +283,9 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
-        $data['mime_type_str_mv'] = array_values(
+        $data['media_type_str_mv'] = array_values(
             array_unique(
-                array_column($onlineUrls, 'mimeType')
+                array_column($onlineUrls, 'mediaType')
             )
         );
         return $data;
@@ -1941,7 +1941,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get mime types
+     * Get online URLs
      *
      * @return array
      */
@@ -1958,13 +1958,13 @@ class Lido extends \RecordManager\Base\Record\Lido
                     'desc' => trim($set->resourceDescription),
                     'source' => $this->source,
                 ];
-                $mimeType = $this->getLinkMimeType(
+                $mediaType = $this->getLinkMediaType(
                     trim($node->linkResource),
                     trim($node->linkResource->attributes()->formatResource),
                     trim($node->attributes()->type)
                 );
-                if ($mimeType) {
-                    $result['mimeType'] = $mimeType;
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
                 }
                 $results[] = $result;
             }

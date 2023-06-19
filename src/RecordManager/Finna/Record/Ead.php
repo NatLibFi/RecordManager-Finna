@@ -48,7 +48,7 @@ class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MimeTypeTrait;
+    use MediaTypeTrait;
 
     /**
      * Field for geographic data
@@ -84,7 +84,7 @@ class Ead extends \RecordManager\Base\Record\Ead
             $logger,
             $metadataUtils
         );
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -202,9 +202,9 @@ class Ead extends \RecordManager\Base\Record\Ead
             $data['format_ext_str_mv'][] = 'Image';
         }
         $onlineUrls = $this->getOnlineURLs();
-        $data['mime_type_str_mv'] = array_values(
+        $data['media_type_str_mv'] = array_values(
             array_unique(
-                array_column($onlineUrls, 'mimeType')
+                array_column($onlineUrls, 'mediaType')
             )
         );
         return $data;
@@ -411,9 +411,9 @@ class Ead extends \RecordManager\Base\Record\Ead
                     'desc' => '',
                     'source' => $this->source,
                 ];
-                $mimeType = $this->getLinkMimeType($url);
-                if ($mimeType) {
-                    $result['mimeType'] = $mimeType;
+                $mediaType = $this->getLinkMediaType($url);
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
                 }
                 $results[] = $result;
             }

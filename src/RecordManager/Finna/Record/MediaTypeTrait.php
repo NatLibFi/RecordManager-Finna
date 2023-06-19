@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MIME type handling support trait.
+ * Media type handling support trait.
  *
  * PHP version 7
  *
@@ -32,7 +32,7 @@ namespace RecordManager\Finna\Record;
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 
 /**
- * MIME type handling support trait.
+ * Media type handling support trait.
  *
  * @category DataManagement
  * @package  RecordManager
@@ -40,10 +40,10 @@ use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-trait MimeTypeTrait
+trait MediaTypeTrait
 {
     /**
-     * Generated extension to Mime type mapper
+     * Generated extension to media type mapper
      *
      * @var GeneratedExtensionToMimeTypeMap
      */
@@ -95,34 +95,34 @@ trait MimeTypeTrait
      *
      * @var string
      */
-    protected $defaultImageMimeType = 'image/jpeg';
+    protected $defaultImageMediaType = 'image/jpeg';
 
     /**
-     * Initialize MimeTypeTrait.
+     * Initialize MediaTypeTrait.
      *
      * @param array $config RecordManager config
      *
      * @return void
      */
-    protected function initMimeTypeTrait(array $config): void
+    protected function initMediaTypeTrait(array $config): void
     {
         $this->extensionMapper = new GeneratedExtensionToMimeTypeMap();
-        if (!empty($config['MimeType']['excluded_file_extensions'])) {
+        if (!empty($config['MediaType']['excluded_file_extensions'])) {
             $this->excludedFileExtensions
-                = $config['MimeType']['excluded_file_extensions'];
+                = $config['MediaType']['excluded_file_extensions'];
         }
     }
 
     /**
-     * Try to get mimetype from link, format or the type of representation.
+     * Try to get media type from link, format or the type of representation.
      *
      * @param string $link   Link to check
      * @param string $format Format to check i.e jpg or image/jpg
      * @param string $type   Type to check i.e image_large or image_small
      *
-     * @return string Found mimetype or an empty string.
+     * @return string Found media type or an empty string.
      */
-    protected function getLinkMimeType(
+    protected function getLinkMediaType(
         string $link,
         string $format = "",
         string $type = ""
@@ -131,36 +131,36 @@ trait MimeTypeTrait
         if (empty($link)) {
             return '';
         }
-        $mimeType = '';
+        $mediaType = '';
         if (!empty($format)) {
             $format = trim($format);
             // type/subtype
             $exploded = explode("/", $format);
-            // try to find MIME type only from subtype
+            // try to find media type only from subtype
             if (!empty($exploded[1])) {
-                // This can be returned instantly as it is a full mimetype
+                // This can be returned instantly as it is a full media type
                 return $format;
             } else {
-                $mimeType
+                $mediaType
                     = $this->extensionMapper->lookupMimeType($exploded[0]);
             }
         }
-        if (!$mimeType) {
+        if (!$mediaType) {
             $parsedURL = parse_url($link);
             if (!empty($parsedURL['path'])) {
                 $ext = pathinfo($parsedURL['path'], PATHINFO_EXTENSION);
                 if ($ext && !in_array($ext, $this->excludedFileExtensions)) {
-                    $mimeType
+                    $mediaType
                         = $this->extensionMapper->lookupMimeType($ext);
                 }
             }
         }
         if (
-            !$mimeType
+            !$mediaType
             && in_array(mb_strtolower($type), $this->displayImageTypes)
         ) {
-            $mimeType = $this->defaultImageMimeType;
+            $mediaType = $this->defaultImageMediaType;
         }
-        return $mimeType ?: '';
+        return $mediaType ?: '';
     }
 }

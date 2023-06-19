@@ -45,15 +45,15 @@ use RecordManager\Finna\Record\Lrmi;
 class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
-     * Test LRMI mime types
+     * Test LRMI media types
      *
      * @return void
      */
-    public function testMimeTypes()
+    public function testMediaTypes()
     {
         $record = $this->createRecord(
             Lrmi::class,
-            'lrmi_mime_types.xml',
+            'lrmi_media_types.xml',
             [],
             'Finna',
             [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
@@ -65,7 +65,7 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'audio/x-wav',
                 'video/mp4',
             ],
-            $fields['mime_type_str_mv']
+            $fields['media_type_str_mv']
         );
     }
 }
