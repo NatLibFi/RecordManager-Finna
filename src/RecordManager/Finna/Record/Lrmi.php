@@ -93,7 +93,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $httpManager,
             $db
         );
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -154,12 +154,12 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
                     'text' => trim((string)($material->name ?? $url)),
                     'source' => $this->source,
                 ];
-                $mimeType = $this->getLinkMimeType(
+                $mediaType = $this->getLinkMediaType(
                     $url,
                     trim($material->format ?? '')
                 );
-                if ($mimeType) {
-                    $result['mimeType'] = $mimeType;
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
                 }
                 $results[] = $result;
             }

@@ -89,15 +89,15 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test mime types
+     * Test media types
      *
      * @return void
      */
-    public function testMimeTypes()
+    public function testMediaTypes()
     {
         $fields = $this->createRecord(
             Qdc::class,
-            'qdc_mime_types.xml',
+            'qdc_media_types.xml',
             [],
             'Finna',
             [
@@ -113,7 +113,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'image/png',
                 'video/mp4',
             ],
-            $fields['mime_type_str_mv']
+            $fields['media_type_str_mv']
         );
     }
 }

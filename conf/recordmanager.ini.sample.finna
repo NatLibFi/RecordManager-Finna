@@ -1,7 +1,7 @@
 ; RecordManager settings for Finna module
-[MimeType]
+[MediaType]
 ; The following setting can be used to exclude file extensions taken from
-; pathinfo when checking for the mime type
+; pathinfo when checking for the media type
 ;excluded_file_extensions[] = "mp3"
 ;excluded_file_extensions[] = "css"
 ;excluded_file_extensions[] = "sib"

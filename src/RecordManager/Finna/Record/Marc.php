@@ -56,7 +56,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
-    use MimeTypeTrait;
+    use MediaTypeTrait;
 
     /**
      * Record plugin manager
@@ -162,7 +162,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         );
 
         $this->recordPluginManager = $recordPluginManager;
-        $this->initMimeTypeTrait($config);
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -476,9 +476,9 @@ class Marc extends \RecordManager\Base\Record\Marc
             $link['source'] = $this->source;
             $data['online_urls_str_mv'][] = json_encode($link);
         }
-        $data['mime_type_str_mv'] = array_values(
+        $data['media_type_str_mv'] = array_values(
             array_unique(
-                array_column($onlineUrls, 'mimeType')
+                array_column($onlineUrls, 'mediaType')
             )
         );
 
@@ -2588,12 +2588,12 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $text = $this->record->getSubfield($field, 'z');
             }
             $result['text'] = $text;
-            $mimeType = $this->getLinkMimeType(
+            $mediaType = $this->getLinkMediaType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            if ($mimeType) {
-                $result['mimeType'] = $mimeType;
+            if ($mediaType) {
+                $result['mediaType'] = $mediaType;
             }
             $results[] = $result;
         }
