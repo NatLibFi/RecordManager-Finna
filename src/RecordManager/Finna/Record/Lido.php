@@ -630,7 +630,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getTopicIDs($exclude = ['iconclass']): array
     {
-        $result = parent::getTopicIDs();
+        $result = parent::getTopicIDs($exclude);
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 
