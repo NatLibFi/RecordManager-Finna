@@ -537,7 +537,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     $result[] = (string)$name->attributes()->identifier;
                 }
             }
-        } 
+        }
         return $result;
     }
 
