@@ -481,6 +481,20 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get author ids for enrichment purposes.
+     *
+     * @return array
+     */
+    public function getAuthorIdsForEnrichment(): array
+    {
+        $result = [];
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
+            $result[] = trim((string)$relation->attributes()->href);
+        }
+        return array_filter($result);
+    }
+
+    /**
      * Get corporate authors
      *
      * @return array<int, string>
@@ -514,14 +528,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array<int, string>
      */
-    protected function getCorporateAuthorIds()
+    public function getCorporateAuthorIds()
     {
         $result = [];
-        foreach ($this->doc->did->origination->name ?? [] as $name) {
-            if (isset($name->attributes()->identifier)) {
-                $result[] = (string)$name->attributes()->identifier;
+        foreach ($this->doc->did->origination as $origination) {
+            foreach ($origination->name as $name) {
+                if (isset($name->attributes()->identifier)) {
+                    $result[] = (string)$name->attributes()->identifier;
+                }
             }
-        }
+        } 
         return $result;
     }
 
