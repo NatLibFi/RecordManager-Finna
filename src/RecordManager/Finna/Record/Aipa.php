@@ -126,10 +126,13 @@ class Aipa extends Qdc
             $record = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');
             $recordFields = $record->toSolrArray($db);
             foreach ($this->mergeFields[$format] as $mergeField) {
-                $data[$mergeField] = array_unique([
-                    ...($data[$mergeField] ?? []),
-                    ...($recordFields[$mergeField] ?? []),
-                ]);
+                // phpcs:ignore
+                /** @psalm-var list<string> */
+                $merged = (array)($data[$mergeField] ?? []);
+                // phpcs:ignore
+                /** @psalm-var list<string> */
+                $toMerge = (array)($recordFields[$mergeField] ?? []);
+                $data[$mergeField] = array_unique([...$merged, ...$toMerge]);
             }
         }
 
