@@ -58,6 +58,22 @@ class Aipa extends Qdc
     protected $recordPluginManager;
 
     /**
+     * Fields to merge from encapsulated records.
+     *
+     * @var array[]
+     */
+    protected $mergeFields = [
+        'lrmi' => [
+            'educational_audience_str_mv',
+            'educational_level_str_mv',
+            'educational_aim_str_mv',
+            'educational_subject_str_mv',
+            'educational_material_type_str_mv',
+            'topic_id_str_mv',
+        ],
+    ];
+
+    /**
      * Constructor
      *
      * @param array               $config              Main configuration
@@ -101,31 +117,19 @@ class Aipa extends Qdc
         $data = parent::toSolrArray($db);
         $data['record_format'] = 'aipa';
 
-        // Fields to merge from encapsulated records.
-        $mergeFields = [
-            'lrmi' => [
-                'educational_audience_str_mv',
-                'educational_level_str_mv',
-                'educational_aim_str_mv',
-                'educational_subject_str_mv',
-                'educational_material_type_str_mv',
-                'topic_id_str_mv',
-            ],
-        ];
-
         // Merge fields from encapsulated records.
         foreach ($this->doc->item as $item) {
             $format = strtolower((string)$item->format);
-            if (empty($mergeFields[$format])) {
+            if (empty($this->mergeFields[$format])) {
                 continue;
             }
-            $lrmi = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');
-            $lrmiFields = $lrmi->toSolrArray($db);
-            foreach ($mergeFields[$format] as $mergeField) {
-                $data[$mergeField] = array_unique(array_merge(
-                    $data[$mergeField] ?? [],
-                    $lrmiFields[$mergeField] ?? []
-                ));
+            $record = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');
+            $recordFields = $record->toSolrArray($db);
+            foreach ($this->mergeFields[$format] as $mergeField) {
+                $data[$mergeField] = array_unique([
+                    ...($data[$mergeField] ?? []),
+                    ...($recordFields[$mergeField] ?? []),
+                ]);
             }
         }
 
