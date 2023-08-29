@@ -501,7 +501,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     public function getCorporateAuthorIds()
     {
         $result = [];
-        foreach ($this->doc->did->origination as $origination) {
+        foreach ($this->doc->did->origination ?? [] as $origination) {
             foreach ($origination->name as $name) {
                 if (isset($name->attributes()->identifier)) {
                     $result[] = (string)$name->attributes()->identifier;
