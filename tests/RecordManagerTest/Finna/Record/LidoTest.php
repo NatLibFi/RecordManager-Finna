@@ -556,7 +556,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Suomi, Hamina',
                 'Suomi, Mäntyharju',
                 'S-market Mäntyharju',
-                'Los Angeles, Yhdysvallat',
             ],
             'secondary' => [
                 'Håkansbölen kartano, Hakunila, Vantaa, Suomi',

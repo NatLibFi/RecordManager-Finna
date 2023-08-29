@@ -325,7 +325,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                         $values[] = trim((string)$elemValue);
                     }
                 }
-                // If label is set, then we don't need to check for $elem->placeClassification
+                // If label is empty, use any placeClassification instead
                 if (!$label && !empty($current->placeClassification)) {
                     $label = trim((string)$current->placeClassification);
                 }
@@ -335,7 +335,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $values = [array_shift($values)];
                 }
                 // Check do we create new elements into results or append current value into old results.
-                $newEntries = count($results) === 0;
+                $newEntries = !$results;
                 foreach ($values as $value) {
                     if ($newEntries) {
                         $results[] = [$value];
@@ -409,24 +409,21 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $subjectLocations = [];
         foreach ($this->getSubjectNodes() as $subject) {
-            // For some reason, eventplace is used inside subject element...
-            foreach ([$subject->subjectPlace, $subject->eventPlace] as $nodes) {
-                foreach ($nodes as $placeNode) {
-                    if (!empty($placeNode->place->gml)) {
-                        return [];
-                    }
-                    if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
-                        $subjectLocations = [
-                            ...$subjectLocations,
-                            ...$this->splitLocation((string)$placeNode->displayPlace),
-                        ];
-                        continue;
-                    }
-                    foreach ($placeNode->place as $place) {
-                        if ($result = $this->getHierarchicalLocations($place)) {
-                            foreach ($result as $location) {
-                                $subjectLocations[] = implode(', ', $location);
-                            }
+            foreach ($subject->subjectPlace as $placeNode) {
+                if (!empty($placeNode->place->gml)) {
+                    return [];
+                }
+                if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
+                    $subjectLocations = [
+                        ...$subjectLocations,
+                        ...$this->splitLocation((string)$placeNode->displayPlace),
+                    ];
+                    continue;
+                }
+                foreach ($placeNode->place as $place) {
+                    if ($result = $this->getHierarchicalLocations($place)) {
+                        foreach ($result as $location) {
+                            $subjectLocations[] = implode(', ', $location);
                         }
                     }
                 }
