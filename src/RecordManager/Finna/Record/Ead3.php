@@ -465,20 +465,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get author ids for enrichment purposes.
-     *
-     * @return array
-     */
-    public function getAuthorIdsForEnrichment(): array
-    {
-        $result = [];
-        foreach ($this->doc->relations->relation ?? [] as $relation) {
-            $result[] = trim((string)$relation->attributes()->href);
-        }
-        return array_filter($result);
-    }
-
-    /**
      * Get corporate authors
      *
      * @return array<int, string>
