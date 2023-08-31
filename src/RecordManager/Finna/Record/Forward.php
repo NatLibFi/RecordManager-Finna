@@ -230,6 +230,38 @@ class Forward extends \RecordManager\Base\Record\Forward
     }
 
     /**
+     * Get languages of all videos
+     *
+     * @return array<int, string>
+     */
+    public function getLanguages()
+    {
+        $result = [];
+        $attrName = 'elokuva-elonet-materiaali-video-kieli';
+        $languages = $this->getProductionEventAttribute($attrName);
+        foreach ($languages as $language) {
+            $result = [...$result, ...explode(',', $language)];
+        }
+        return $result;
+    }
+
+    /**
+     * Get languages of all video subtitles
+     *
+     * @return array
+     */
+    public function getSubtitleLanguages()
+    {
+        $result = [];
+        $attrName = 'elokuva-elonet-materiaali-video-alatekstikieli';
+        $languages = $this->getProductionEventAttribute($attrName);
+        foreach ($languages as $language) {
+            $result = [...$result, ...explode(',', $language)];
+        }
+        return $result;
+    }
+
+    /**
      * Get all authors or authors by relator codes.
      *
      * @param array $relators List of allowed relators, or an empty list
@@ -564,38 +596,6 @@ class Forward extends \RecordManager\Base\Record\Forward
         ];
         foreach ($categories as $category) {
             $result = [...$result, ...explode(';', $category)];
-        }
-        return $result;
-    }
-
-    /**
-     * Get languages of all videos
-     *
-     * @return array<int, string>
-     */
-    public function getLanguages()
-    {
-        $result = [];
-        $attrName = 'elokuva-elonet-materiaali-video-kieli';
-        $languages = $this->getProductionEventAttribute($attrName);
-        foreach ($languages as $language) {
-            $result = [...$result, ...explode(',', $language)];
-        }
-        return $result;
-    }
-
-    /**
-     * Get languages of all video subtitles
-     *
-     * @return array
-     */
-    public function getSubtitleLanguages()
-    {
-        $result = [];
-        $attrName = 'elokuva-elonet-materiaali-video-alatekstikieli';
-        $languages = $this->getProductionEventAttribute($attrName);
-        foreach ($languages as $language) {
-            $result = [...$result, ...explode(',', $language)];
         }
         return $result;
     }

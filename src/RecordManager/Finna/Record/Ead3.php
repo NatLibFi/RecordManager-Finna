@@ -315,6 +315,147 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get author identifiers
+     *
+     * @return array
+     */
+    public function getAuthorIds(): array
+    {
+        $result = [];
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
+            $type = (string)$relation->attributes()->relationtype;
+            if ('cpfrelation' !== $type) {
+                continue;
+            }
+            $role = (string)$relation->attributes()->arcrole;
+            switch ($role) {
+                case '':
+                case 'http://www.rdaregistry.info/Elements/u/P60672':
+                case 'http://www.rdaregistry.info/Elements/u/P60434':
+                    $role = 'aut';
+                    break;
+                case 'http://www.rdaregistry.info/Elements/u/P60429':
+                    $role = 'pht';
+                    break;
+                default:
+                    $role = '';
+            }
+            if ('' === $role) {
+                continue;
+            }
+            $result[] = (string)$relation->attributes()->href;
+        }
+        return $result;
+    }
+
+    /**
+     * Get corporate author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getCorporateAuthorIds()
+    {
+        $result = [];
+        foreach ($this->doc->did->origination->name ?? [] as $name) {
+            if (isset($name->attributes()->identifier)) {
+                $result[] = (string)$name->attributes()->identifier;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string
+     */
+    public function getFormat()
+    {
+        $level1 = $level2 = null;
+
+        $docLevel = (string)$this->doc->attributes()->level;
+        $level1 = $docLevel === 'fonds' ? 'Document' : null;
+
+        if (!isset($this->doc->controlaccess->genreform)) {
+            return $docLevel;
+        }
+
+        $defaultFormat = null;
+        foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
+            $format = null;
+            foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
+                $attributes = $part->attributes();
+                if ((string)($attributes->lang ?? '') === 'fin') {
+                    $format = (string)$part;
+                    break;
+                }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
+            }
+
+            if (!$format) {
+                continue;
+            }
+
+            $attr = $genreform->attributes();
+            if (isset($attr->encodinganalog)) {
+                $type = (string)$attr->encodinganalog;
+                if ($type === 'ahaa:AI08') {
+                    if ($level1 === null) {
+                        $level1 = $format;
+                    } else {
+                        $level2 = $format;
+                    }
+                } elseif ($type === 'ahaa:AI57') {
+                    $level2 = $format;
+                }
+            }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat ?? '';
+        }
+
+        return $level2 ? "$level1/$level2" : $level1;
+    }
+
+    /**
      * Enrich titles with year ranges.
      *
      * @param array $data          Record as a solr array
@@ -447,40 +588,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get author identifiers
-     *
-     * @return array
-     */
-    protected function getAuthorIds()
-    {
-        $result = [];
-        foreach ($this->doc->relations->relation ?? [] as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
-            }
-            $role = (string)$relation->attributes()->arcrole;
-            switch ($role) {
-                case '':
-                case 'http://www.rdaregistry.info/Elements/u/P60672':
-                case 'http://www.rdaregistry.info/Elements/u/P60434':
-                    $role = 'aut';
-                    break;
-                case 'http://www.rdaregistry.info/Elements/u/P60429':
-                    $role = 'pht';
-                    break;
-                default:
-                    $role = '';
-            }
-            if ('' === $role) {
-                continue;
-            }
-            $result[] = (string)$relation->attributes()->href;
-        }
-        return $result;
-    }
-
-    /**
      * Get corporate authors
      *
      * @return array<int, string>
@@ -504,22 +611,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     }
                     $result[] = trim((string)$part);
                 }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * Get corporate author identifiers
-     *
-     * @return array<int, string>
-     */
-    protected function getCorporateAuthorIds()
-    {
-        $result = [];
-        foreach ($this->doc->did->origination->name ?? [] as $name) {
-            if (isset($name->attributes()->identifier)) {
-                $result[] = (string)$name->attributes()->identifier;
             }
         }
         return $result;
@@ -943,34 +1034,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'subject',
-            self::SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
-     * Get all geographic topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawGeographicTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
      * Get geographic topics
      *
      * @return array
@@ -992,69 +1055,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        $level1 = $level2 = null;
-
-        $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
-        if (!isset($this->doc->controlaccess->genreform)) {
-            return $docLevel;
-        }
-
-        $defaultFormat = null;
-        foreach ($this->doc->controlaccess->genreform as $genreform) {
-            $nonLangFormat = null;
-            $format = null;
-            foreach ($genreform->part as $part) {
-                if (null === $nonLangFormat) {
-                    $nonLangFormat = (string)$part;
-                }
-                $attributes = $part->attributes();
-                if ((string)($attributes->lang ?? '') === 'fin') {
-                    $format = (string)$part;
-                    break;
-                }
-            }
-            if (null === $format) {
-                $format = $nonLangFormat;
-            }
-            if (null === $defaultFormat) {
-                $defaultFormat = $format;
-            }
-
-            if (!$format) {
-                continue;
-            }
-
-            $attr = $genreform->attributes();
-            if (isset($attr->encodinganalog)) {
-                $type = (string)$attr->encodinganalog;
-                if ($type === 'ahaa:AI08') {
-                    if ($level1 === null) {
-                        $level1 = $format;
-                    } else {
-                        $level2 = $format;
-                    }
-                } elseif ($type === 'ahaa:AI57') {
-                    $level2 = $format;
-                }
-            }
-        }
-
-        if (null === $level1) {
-            $level1 = $defaultFormat ?? '';
-        }
-
-        return $level2 ? "$level1/$level2" : $level1;
     }
 
     /**
