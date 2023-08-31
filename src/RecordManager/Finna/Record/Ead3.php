@@ -351,6 +351,97 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string
+     */
+    public function getFormat()
+    {
+        $level1 = $level2 = null;
+
+        $docLevel = (string)$this->doc->attributes()->level;
+        $level1 = $docLevel === 'fonds' ? 'Document' : null;
+
+        if (!isset($this->doc->controlaccess->genreform)) {
+            return $docLevel;
+        }
+
+        $defaultFormat = null;
+        foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
+            $format = null;
+            foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
+                $attributes = $part->attributes();
+                if ((string)($attributes->lang ?? '') === 'fin') {
+                    $format = (string)$part;
+                    break;
+                }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
+            }
+
+            if (!$format) {
+                continue;
+            }
+
+            $attr = $genreform->attributes();
+            if (isset($attr->encodinganalog)) {
+                $type = (string)$attr->encodinganalog;
+                if ($type === 'ahaa:AI08') {
+                    if ($level1 === null) {
+                        $level1 = $format;
+                    } else {
+                        $level2 = $format;
+                    }
+                } elseif ($type === 'ahaa:AI57') {
+                    $level2 = $format;
+                }
+            }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat ?? '';
+        }
+
+        return $level2 ? "$level1/$level2" : $level1;
+    }
+
+    /**
      * Enrich titles with year ranges.
      *
      * @param array $data          Record as a solr array
@@ -929,34 +1020,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'subject',
-            self::SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
-     * Get all geographic topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawGeographicTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
      * Get geographic topics
      *
      * @return array
@@ -978,69 +1041,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        $level1 = $level2 = null;
-
-        $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
-        if (!isset($this->doc->controlaccess->genreform)) {
-            return $docLevel;
-        }
-
-        $defaultFormat = null;
-        foreach ($this->doc->controlaccess->genreform as $genreform) {
-            $nonLangFormat = null;
-            $format = null;
-            foreach ($genreform->part as $part) {
-                if (null === $nonLangFormat) {
-                    $nonLangFormat = (string)$part;
-                }
-                $attributes = $part->attributes();
-                if ((string)($attributes->lang ?? '') === 'fin') {
-                    $format = (string)$part;
-                    break;
-                }
-            }
-            if (null === $format) {
-                $format = $nonLangFormat;
-            }
-            if (null === $defaultFormat) {
-                $defaultFormat = $format;
-            }
-
-            if (!$format) {
-                continue;
-            }
-
-            $attr = $genreform->attributes();
-            if (isset($attr->encodinganalog)) {
-                $type = (string)$attr->encodinganalog;
-                if ($type === 'ahaa:AI08') {
-                    if ($level1 === null) {
-                        $level1 = $format;
-                    } else {
-                        $level2 = $format;
-                    }
-                } elseif ($type === 'ahaa:AI57') {
-                    $level2 = $format;
-                }
-            }
-        }
-
-        if (null === $level1) {
-            $level1 = $defaultFormat ?? '';
-        }
-
-        return $level2 ? "$level1/$level2" : $level1;
     }
 
     /**

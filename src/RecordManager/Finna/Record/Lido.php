@@ -53,29 +53,6 @@ class Lido extends \RecordManager\Base\Record\Lido
     use MediaTypeTrait;
 
     /**
-     * Constructor
-     *
-     * @param array         $config           Main configuration
-     * @param array         $dataSourceConfig Data source settings
-     * @param Logger        $logger           Logger
-     * @param MetadataUtils $metadataUtils    Metadata utilities
-     */
-    public function __construct(
-        array $config,
-        array $dataSourceConfig,
-        Logger $logger,
-        MetadataUtils $metadataUtils
-    ) {
-        parent::__construct(
-            $config,
-            $dataSourceConfig,
-            $logger,
-            $metadataUtils
-        );
-        $this->initMediaTypeTrait($config);
-    }
-
-    /**
      * Main event name reflecting the terminology in the particular LIDO records.
      *
      * Key is event type, value is priority (smaller more important).
@@ -129,6 +106,29 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @var array
      */
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMediaTypeTrait($config);
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -477,6 +477,55 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return parent::getTopicIDs();
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        $result = [];
+
+        $getPlaceID = function ($placeID) {
+            $id = trim((string)$placeID);
+            if (
+                !preg_match('/^https?:/', $id)
+                && $type = (string)($placeID['type'] ?? '')
+            ) {
+                $id = "($type)$id";
+            }
+            return $id;
+        };
+
+        foreach ($this->getEventNodes($this->getPlaceEvents()) as $eventNode) {
+            foreach ($eventNode->eventPlace as $eventPlace) {
+                if (isset($eventPlace->place->placeID)) {
+                    $result[] = $getPlaceID($eventPlace->place->placeID);
+                }
+            }
+        }
+
+        foreach ($this->getSubjectNodes() as $subject) {
+            foreach ($subject->subjectPlace as $subjectPlace) {
+                if (isset($subjectPlace->place->placeID)) {
+                    $result[] = $getPlaceID($subjectPlace->place->placeID);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Process an array of locations
      *
      * @param array $locations Location strings
@@ -565,55 +614,6 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $result[] = 'restricted';
             }
         }
-        return $result;
-    }
-
-    /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return parent::getTopicIDs();
-    }
-
-    /**
-     * Get all geographic topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawGeographicTopicIds(): array
-    {
-        $result = [];
-
-        $getPlaceID = function ($placeID) {
-            $id = trim((string)$placeID);
-            if (
-                !preg_match('/^https?:/', $id)
-                && $type = (string)($placeID['type'] ?? '')
-            ) {
-                $id = "($type)$id";
-            }
-            return $id;
-        };
-
-        foreach ($this->getEventNodes($this->getPlaceEvents()) as $eventNode) {
-            foreach ($eventNode->eventPlace as $eventPlace) {
-                if (isset($eventPlace->place->placeID)) {
-                    $result[] = $getPlaceID($eventPlace->place->placeID);
-                }
-            }
-        }
-
-        foreach ($this->getSubjectNodes() as $subject) {
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                if (isset($subjectPlace->place->placeID)) {
-                    $result[] = $getPlaceID($subjectPlace->place->placeID);
-                }
-            }
-        }
-
         return $result;
     }
 
