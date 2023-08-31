@@ -315,6 +315,42 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get author identifiers
+     *
+     * @return array
+     */
+    public function getAuthorIds(): array
+    {
+        $result = [];
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
+            $type = (string)$relation->attributes()->relationtype;
+            if ('cpfrelation' !== $type) {
+                continue;
+            }
+            $result[] = trim((string)$relation->attributes()->href);
+        }
+        return array_filter($result);
+    }
+
+    /**
+     * Get corporate author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getCorporateAuthorIds()
+    {
+        $result = [];
+        foreach ($this->doc->did->origination ?? [] as $origination) {
+            foreach ($origination->name as $name) {
+                if (isset($name->attributes()->identifier)) {
+                    $result[] = (string)$name->attributes()->identifier;
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Enrich titles with year ranges.
      *
      * @param array $data          Record as a solr array
@@ -447,24 +483,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get author identifiers
-     *
-     * @return array
-     */
-    public function getAuthorIds(): array
-    {
-        $result = [];
-        foreach ($this->doc->relations->relation ?? [] as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
-            }
-            $result[] = trim((string)$relation->attributes()->href);
-        }
-        return array_filter($result);
-    }
-
-    /**
      * Get corporate authors
      *
      * @return array<int, string>
@@ -487,24 +505,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                         continue;
                     }
                     $result[] = trim((string)$part);
-                }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * Get corporate author identifiers
-     *
-     * @return array<int, string>
-     */
-    public function getCorporateAuthorIds()
-    {
-        $result = [];
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->name as $name) {
-                if (isset($name->attributes()->identifier)) {
-                    $result[] = (string)$name->attributes()->identifier;
                 }
             }
         }
