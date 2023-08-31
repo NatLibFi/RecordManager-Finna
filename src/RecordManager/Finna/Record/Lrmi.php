@@ -114,16 +114,17 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $data['educational_audience_str_mv'][]
                 = (string)$audience->educationalRole;
         }
-        $data['educational_level_str_mv'] = array_map(
-            'strval',
-            (array)($doc->learningResource->educationalLevel ?? [])
-        );
-        $data['educational_aim_str_mv'] = array_map(
-            'strval',
-            (array)($doc->learningResource->teaches ?? [])
-        );
+        foreach ($doc->learningResource->educationalLevel ?? [] as $educationalLevel) {
+            $educationalLevel = $educationalLevel->name ?? $educationalLevel;
+            $data['educational_level_str_mv'][] = (string)$educationalLevel;
+        }
+        foreach ($doc->learningResource->teaches ?? [] as $teaches) {
+            $teaches = $teaches->name ?? $teaches;
+            $data['educational_aim_str_mv'][] = (string)$teaches;
+        }
         foreach ($doc->learningResource->educationalAlignment ?? [] as $alignment) {
             if ($subject = $alignment->educationalSubject ?? null) {
+                $subject = $subject->targetName ?? $subject;
                 $data['educational_subject_str_mv'][] = (string)$subject;
             }
         }

@@ -630,7 +630,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getTopicIDs($exclude = ['iconclass']): array
     {
-        $result = parent::getTopicIDs();
+        $result = parent::getTopicIDs($exclude);
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 
@@ -1746,8 +1746,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         $results = [];
         foreach ($this->getEventNodes() as $event) {
             foreach ($event->culture as $culture) {
-                if ($culture->term) {
-                    $results[] = (string)$culture->term;
+                if ($value = trim((string)($culture->term ?? ''))) {
+                    $results[] = $value;
                 }
             }
         }

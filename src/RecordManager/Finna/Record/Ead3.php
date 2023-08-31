@@ -451,7 +451,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array
      */
-    public function getAuthorIds()
+    public function getAuthorIds(): array
     {
         $result = [];
         foreach ($this->doc->relations->relation ?? [] as $relation) {

@@ -5,7 +5,7 @@
  *
  * PHP version 5
  *
- * Copyright (C) The National Library of Finland 2021.
+ * Copyright (C) The National Library of Finland 2021-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -23,6 +23,7 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -39,6 +40,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @category DataManagement
  * @package  RecordManager
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -65,6 +67,8 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
     public function toSolrArray(Database $db = null)
     {
         $data = parent::toSolrArray($db);
+
+        $data['identifier_str_mv'] = $this->getIdentifiers();
 
         $data['allfields'][] = $this->getHeading();
         $data['allfields'] = [
@@ -119,5 +123,29 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
             return $name;
         }
         return parent::getHeading();
+    }
+
+    /**
+     * Get identifiers
+     *
+     * @return array<int, string>
+     */
+    protected function getIdentifiers(): array
+    {
+        $result = [$this->getID()];
+        foreach ($this->record->getFields('024') as $field) {
+            if (
+                ($id = $this->record->getSubfield($field, 'a'))
+                && ($source = $this->record->getSubfield($field, '2'))
+            ) {
+                if (preg_match('/^https?:/', $id)) {
+                    // Never prefix http(s) url's
+                    $result[] = $id;
+                } else {
+                    $result[] = "($source)$id";
+                }
+            }
+        }
+        return $result;
     }
 }

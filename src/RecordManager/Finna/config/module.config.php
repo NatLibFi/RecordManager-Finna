@@ -41,7 +41,7 @@ return [
             ],
             'record' => [
                 'factories' => [
-                    \RecordManager\Finna\Record\Aipa::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
+                    \RecordManager\Finna\Record\Aipa::class => \RecordManager\Finna\Record\AipaFactory::class,
                     \RecordManager\Finna\Record\Dc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Finna\Record\Eaccpf::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Finna\Record\Ead::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
