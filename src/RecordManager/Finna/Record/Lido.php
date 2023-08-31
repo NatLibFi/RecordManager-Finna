@@ -292,113 +292,6 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchical locations as a multidimensional array.
-     *
-     * @param \SimpleXMLElement $elem Element to check for locations.
-     *
-     * @return array<int, array>
-     */
-    protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
-    {
-        $results = [];
-        $currentElements = [$elem];
-        do {
-            $current = array_shift($currentElements);
-
-            if (!empty($current->namePlaceSet->appellationValue)) {
-                // There can be multiple appellationValues in element, meaning multiple streets etc
-                $values = [];
-                $label = '';
-                foreach ($current->namePlaceSet as $name) {
-                    foreach ($name->appellationValue as $elemValue) {
-                        // We can assume that the label is same in each of different
-                        // appellationvalues under same parent
-                        // If this is not the case, then things are not going ok
-                        $currentLabel = trim((string)$elemValue->attributes()->label);
-                        if ($label && $label !== $currentLabel) {
-                            // There seems to be different types of appellationValues so skip the new ones
-                            continue;
-                        }
-                        if (!$label) {
-                            $label = $currentLabel;
-                        }
-                        $values[] = trim((string)$elemValue);
-                    }
-                }
-                // If label is empty, use any placeClassification instead
-                if (!$label && !empty($current->placeClassification)) {
-                    $label = trim((string)$current->placeClassification);
-                }
-
-                // If label is still empty and we have multiple values, then only take the first one into account.
-                if (!$label && count($values) > 1) {
-                    $values = [array_shift($values)];
-                }
-                // Check do we create new elements into results or append current value into old results.
-                $newEntries = !$results;
-                foreach ($values as $value) {
-                    if ($newEntries) {
-                        $results[] = [$value];
-                    } else {
-                        foreach ($results as &$result) {
-                            $result[] = $value;
-                        }
-                        unset($result);
-                    }
-                }
-            }
-            // Check for any other partOfPlaces
-            if (!empty($current->partOfPlace)) {
-                foreach ($current->partOfPlace as $place) {
-                    $currentElements[] = $place;
-                }
-            }
-        } while (count($currentElements) > 0);
-        return $results;
-    }
-
-    /**
-     * Split a location found from displayPlace element. Excludes all values
-     * found after splitting which has redundancy or has only a single value.
-     * Splitting is done from characters ; or /.
-     *
-     * @param string $location Location to split
-     *
-     * @return array<int, string>
-     */
-    protected function splitLocation(string $location): array
-    {
-        $splitted = preg_split(
-            '/[\/;]/',
-            $location
-        );
-        $results = [];
-        // Some locations might have redundancy, which causes problems.
-        // Try to detect them and discard them from the results
-        foreach ($splitted as $value) {
-            $value = trim($value);
-            $splitted = explode(' ', $value);
-
-            // If there is only one location then it can be really difficult
-            // to really determine where it should be located i.e Pohja or i.e lakes
-            // so in this case, skip the result
-            if (count($splitted) === 1) {
-                continue;
-            }
-            array_walk($splitted, function (&$part) {
-                $part = trim($part, ', ');
-            });
-            // If the result would be something like Mäntyharju, Mäntyharju skip it as it
-            // is too redundant
-            if (count(array_unique($splitted)) !== count($splitted)) {
-                continue;
-            }
-            $results[] = $value;
-        }
-        return $results;
-    }
-
-    /**
      * Get locations for geocoding
      *
      * Returns an associative array of primary and secondary locations
@@ -538,6 +431,113 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         return $result;
+    }
+
+    /**
+     * Get hierarchical locations as a multidimensional array.
+     *
+     * @param \SimpleXMLElement $elem Element to check for locations.
+     *
+     * @return array<int, array>
+     */
+    protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
+    {
+        $results = [];
+        $currentElements = [$elem];
+        do {
+            $current = array_shift($currentElements);
+
+            if (!empty($current->namePlaceSet->appellationValue)) {
+                // There can be multiple appellationValues in element, meaning multiple streets etc
+                $values = [];
+                $label = '';
+                foreach ($current->namePlaceSet as $name) {
+                    foreach ($name->appellationValue as $elemValue) {
+                        // We can assume that the label is same in each of different
+                        // appellationvalues under same parent
+                        // If this is not the case, then things are not going ok
+                        $currentLabel = trim((string)$elemValue->attributes()->label);
+                        if ($label && $label !== $currentLabel) {
+                            // There seems to be different types of appellationValues so skip the new ones
+                            continue;
+                        }
+                        if (!$label) {
+                            $label = $currentLabel;
+                        }
+                        $values[] = trim((string)$elemValue);
+                    }
+                }
+                // If label is empty, use any placeClassification instead
+                if (!$label && !empty($current->placeClassification)) {
+                    $label = trim((string)$current->placeClassification);
+                }
+
+                // If label is still empty and we have multiple values, then only take the first one into account.
+                if (!$label && count($values) > 1) {
+                    $values = [array_shift($values)];
+                }
+                // Check do we create new elements into results or append current value into old results.
+                $newEntries = !$results;
+                foreach ($values as $value) {
+                    if ($newEntries) {
+                        $results[] = [$value];
+                    } else {
+                        foreach ($results as &$result) {
+                            $result[] = $value;
+                        }
+                        unset($result);
+                    }
+                }
+            }
+            // Check for any other partOfPlaces
+            if (!empty($current->partOfPlace)) {
+                foreach ($current->partOfPlace as $place) {
+                    $currentElements[] = $place;
+                }
+            }
+        } while (count($currentElements) > 0);
+        return $results;
+    }
+
+    /**
+     * Split a location found from displayPlace element. Excludes all values
+     * found after splitting which has redundancy or has only a single value.
+     * Splitting is done from characters ; or /.
+     *
+     * @param string $location Location to split
+     *
+     * @return array<int, string>
+     */
+    protected function splitLocation(string $location): array
+    {
+        $splitted = preg_split(
+            '/[\/;]/',
+            $location
+        );
+        $results = [];
+        // Some locations might have redundancy, which causes problems.
+        // Try to detect them and discard them from the results
+        foreach ($splitted as $value) {
+            $value = trim($value);
+            $splitted = explode(' ', $value);
+
+            // If there is only one location then it can be really difficult
+            // to really determine where it should be located i.e Pohja or i.e lakes
+            // so in this case, skip the result
+            if (count($splitted) === 1) {
+                continue;
+            }
+            array_walk($splitted, function (&$part) {
+                $part = trim($part, ', ');
+            });
+            // If the result would be something like Mäntyharju, Mäntyharju skip it as it
+            // is too redundant
+            if (count(array_unique($splitted)) !== count($splitted)) {
+                continue;
+            }
+            $results[] = $value;
+        }
+        return $results;
     }
 
     /**
