@@ -31,5 +31,26 @@
       </dao>
     </daoset>
     <unitdate>1918-1931</unitdate>
+    <origination>
+      <name>
+        <part>Testiperhe</part>
+      </name>
+    </origination>
   </did>
+  <controlaccess>
+    <subject>
+      <part>koirat</part>
+    </subject>
+  </controlaccess>
+  <relations>
+    <relation arcrole="luovuttaja" relationtype="cpfrelation">
+      <relationentry localtype="Ensisijainen nimi">Teppo Testihenkilö</relationentry>
+    </relation>
+    <relation arcrole="förekommer" relationtype="cpfrelation">
+      <relationentry localtype="Ensisijainen nimi">Tessu Testikoira</relationentry>
+    </relation>
+    <relation arcrole="informant" relationtype="cpfrelation">
+      <relationentry localtype="Ensisijainen nimi">Tellervo Testihenkilö</relationentry>
+    </relation>
+  </relations>
 </record>

@@ -483,6 +483,18 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             '[1918-01-01 TO 1931-12-31]',
             $fields['search_daterange_mv']
         );
+        $this->assertEquals(
+            ['Testiperhe', 'Tellervo Testihenkilö'],
+            $fields['author']
+        );
+        $this->assertEquals(
+            ['Teppo Testihenkilö'],
+            $fields['author2']
+        );
+        $this->assertEquals(
+            ['koirat', 'Tessu Testikoira'],
+            $fields['topic']
+        );
     }
 
     /**
@@ -508,6 +520,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testSKS()
     {
+        var_dump('sks');
         $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
             ->toSolrArray();
         unset($fields['fullrecord']);
@@ -590,8 +603,15 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Sundvall, Gustaf Edvard',
                 'Ingman, Anders Wilhelm',
                 'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
             ],
-            'author_sort' => false,
+            'author2' => [
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Ingman, Anders Wilhelm',
+            ],
+            'author_sort' => 'Sundvall, Gustaf Edvard',
             'author_corporate' => [],
             'geographic_facet' => [
                 'Luvia',
@@ -670,7 +690,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'usage_rights_ext_str_mv' => [
                 'restricted',
             ],
-            'author_role' => [],
             'author_variant' => [
                 'Sundwall, Gustaf Edvard',
                 'Sundwall, Gustaf Edvard',
@@ -684,6 +703,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Sundvall, Gustaf Edvard',
                 'Ingman, Anders Wilhelm',
                 'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Sundvall, Gustaf Edvard',
+                'Ingman, Anders Wilhelm',
             ],
             'author2_id_str_mv' => [
                 'EAC_228204328',
@@ -699,6 +723,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'EAC_228598319###Luovuttaja',
                 'EAC_228598319###Luovuttaja',
                 'EAC_228204328###Kokoelmanmuodostaja',
+                'EAC_228204328###Kokoelmanmuodostaja',
+                'EAC_228204328###Luovuttaja',
+                'EAC_228204328###Kirjoittaja',
+                'EAC_228204328###Kerääjä',
+                'EAC_228598319###Luovuttaja',
                 'EAC_228204328###Kokoelmanmuodostaja',
             ],
             'format_ext_str_mv' => 'Teksti',
@@ -764,6 +793,57 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertEquals(
             null,
             $parseDateRange->invokeArgs($record, ['2010, 2020, 2021'])
+        );
+    }
+
+    /**
+     * Test authors
+     *
+     * @return void
+     */
+    public function testAuthors()
+    {
+        $fields = $this->createRecord(Ead3::class, 'ead3_authors.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals(
+            ['Kimmo Kissakuvaaja', 'Kirsi Kissakirjailija', 'Kasper Kissankasvattaja', 'Arkistonmuodostaja Henkilö'],
+            $fields['author']
+        );
+        $this->assertEquals(
+            ['Kimi Kissakuvaaja'],
+            $fields['author_variant']
+        );
+        $this->assertEquals(
+            ['Kissat turvaan ry', 'Kissanmuona Oy', 'Arkistonmuodostaja Organisaatio'],
+            $fields['author_corporate']
+        );
+        $this->assertEquals(
+            ['Lasse Luovuttaja', 'Kerttu Kerääjä'],
+            $fields['author2']
+        );
+        $this->assertEquals(
+            [
+                'Kimmo Kissakuvaaja', 'Kirsi Kissakirjailija', 'Kasper Kissankasvattaja', 'Arkistonmuodostaja Henkilö',
+                'Lasse Luovuttaja', 'Kerttu Kerääjä', 'Kissat turvaan ry', 'Kissanmuona Oy',
+                'Arkistonmuodostaja Organisaatio',
+            ],
+            $fields['author_facet']
+        );
+        $this->assertEquals(
+            ['EAC_004', 'EAC_001', 'EAC_002', 'EAC_003', 'EAC_008', 'EAC_005', 'EAC_006'],
+            $fields['author2_id_str_mv']
+        );
+        $this->assertEquals(
+            [
+                'EAC_001###Valokuvaaja', 'EAC_001###Valokuvaaja', 'EAC_002###Kirjoittaja',
+                'EAC_004###Kissojensuojeluyhdistys', 'EAC_006###luovuttaja',
+            ],
+            $fields['author2_id_role_str_mv']
+        );
+        //Check that agents as subjects are indexed as subjects rather than authors
+        $this->assertEquals(
+            ['kissat', 'Kisu Misu'],
+            $fields['topic']
         );
     }
 }
