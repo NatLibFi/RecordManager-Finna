@@ -29,6 +29,8 @@
 
 namespace RecordManager\Finna\Record;
 
+use function in_array;
+
 /**
  * Forward authority Record Class
  *

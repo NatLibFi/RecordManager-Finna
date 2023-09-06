@@ -35,6 +35,9 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
+use function boolval;
+use function in_array;
+
 /**
  * EAD 3 Record Class
  *
@@ -237,6 +240,97 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         return $data;
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string
+     */
+    public function getFormat()
+    {
+        $level1 = $level2 = null;
+
+        $docLevel = (string)$this->doc->attributes()->level;
+        $level1 = $docLevel === 'fonds' ? 'Document' : null;
+
+        if (!isset($this->doc->controlaccess->genreform)) {
+            return $docLevel;
+        }
+
+        $defaultFormat = null;
+        foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
+            $format = null;
+            foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
+                $attributes = $part->attributes();
+                if ((string)($attributes->lang ?? '') === 'fin') {
+                    $format = (string)$part;
+                    break;
+                }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
+            }
+
+            if (!$format) {
+                continue;
+            }
+
+            $attr = $genreform->attributes();
+            if (isset($attr->encodinganalog)) {
+                $type = (string)$attr->encodinganalog;
+                if ($type === 'ahaa:AI08') {
+                    if ($level1 === null) {
+                        $level1 = $format;
+                    } else {
+                        $level2 = $format;
+                    }
+                } elseif ($type === 'ahaa:AI57') {
+                    $level2 = $format;
+                }
+            }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat ?? '';
+        }
+
+        return $level2 ? "$level1/$level2" : $level1;
     }
 
     /**
@@ -864,18 +958,19 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $year = str_repeat($defaultYear, 4);
             $month = $defaultMonth;
             $day = $defaultDay;
+            $unknownForms = ['uu', 'xx', 'uuuu', 'xxxx'];
             if (!in_array($date, ['open', 'unknown'])) {
                 $parts = explode('-', trim($date));
-                if ('uuuu' === $parts[0]) {
+                if (in_array(strtolower($parts[0]), $unknownForms)) {
                     $unknown = true;
                 }
-                $year = str_replace('u', $defaultYear, $parts[0]);
+                $year = str_ireplace(['u', 'x'], $defaultYear, $parts[0]);
 
-                if (isset($parts[1]) && $parts[1] !== 'uu') {
+                if (isset($parts[1]) && !in_array(strtolower($parts[1]), $unknownForms)) {
                     $month = $parts[1];
                 }
 
-                if (isset($parts[2]) && $parts[2] !== 'uu') {
+                if (isset($parts[2]) && !in_array(strtolower($parts[2]), $unknownForms)) {
                     $day = $parts[2];
                 }
             } else {
@@ -1043,34 +1138,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'subject',
-            self::SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
-     * Get all geographic topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawGeographicTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
      * Get geographic topics
      *
      * @return array
@@ -1092,69 +1159,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        $level1 = $level2 = null;
-
-        $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
-        if (!isset($this->doc->controlaccess->genreform)) {
-            return $docLevel;
-        }
-
-        $defaultFormat = null;
-        foreach ($this->doc->controlaccess->genreform as $genreform) {
-            $nonLangFormat = null;
-            $format = null;
-            foreach ($genreform->part as $part) {
-                if (null === $nonLangFormat) {
-                    $nonLangFormat = (string)$part;
-                }
-                $attributes = $part->attributes();
-                if ((string)($attributes->lang ?? '') === 'fin') {
-                    $format = (string)$part;
-                    break;
-                }
-            }
-            if (null === $format) {
-                $format = $nonLangFormat;
-            }
-            if (null === $defaultFormat) {
-                $defaultFormat = $format;
-            }
-
-            if (!$format) {
-                continue;
-            }
-
-            $attr = $genreform->attributes();
-            if (isset($attr->encodinganalog)) {
-                $type = (string)$attr->encodinganalog;
-                if ($type === 'ahaa:AI08') {
-                    if ($level1 === null) {
-                        $level1 = $format;
-                    } else {
-                        $level2 = $format;
-                    }
-                } elseif ($type === 'ahaa:AI57') {
-                    $level2 = $format;
-                }
-            }
-        }
-
-        if (null === $level1) {
-            $level1 = $defaultFormat ?? '';
-        }
-
-        return $level2 ? "$level1/$level2" : $level1;
     }
 
     /**

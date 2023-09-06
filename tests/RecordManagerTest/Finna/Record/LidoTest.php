@@ -533,4 +533,36 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $result = array_filter($record->toSolrArray());
         $this->compareArray($expected, $result, 'Measurements');
     }
+
+    /**
+     * Test hierarchical locations from lido.
+     *
+     * @return void
+     */
+    public function testHierarchicalLocations(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_locations.xml',
+            [],
+            'Finna'
+        );
+        $result = $record->getLocations();
+        $expected = [
+            'primary' => [
+                'Pohjantie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Kaivontie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Männiköntie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Suomi, Hamina',
+                'Suomi, Mäntyharju',
+                'S-market Mäntyharju',
+            ],
+            'secondary' => [
+                'Håkansbölen kartano, Hakunila, Vantaa, Suomi',
+                'Vaasa',
+                'Ristimäenkatu 5, Mikkeli, Etelä-Savo, Suomi',
+            ],
+        ];
+        $this->compareArray($result, $expected, 'Locations');
+    }
 }

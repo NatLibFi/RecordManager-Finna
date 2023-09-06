@@ -36,6 +36,8 @@ use RecordManager\Base\Http\ClientManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
+use function boolval;
+
 /**
  * Lrmi record class
  *

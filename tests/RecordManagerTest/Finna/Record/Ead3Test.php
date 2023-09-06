@@ -250,7 +250,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         string $newValue
     ): string {
         $oldTag = "/>(.*?)<\/$replace>/";
-        $newTag = ">" . $newValue . "</$replace>";
+        $newTag = '>' . $newValue . "</$replace>";
         return preg_replace(
             $oldTag,
             $newTag,
@@ -279,16 +279,16 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
             ],
             'no year dash' => [
-                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'title' => 'Opintokirja. Helsingin yliopisto (1932 - 1935)',
+                'expected' => 'Opintokirja. Helsingin yliopisto (1932 - 1935)',
             ],
             'no year with year' => [
-                'title' => "Opintokirja. Helsingin yliopisto 1932",
-                'expected' => "Opintokirja. Helsingin yliopisto 1932",
+                'title' => 'Opintokirja. Helsingin yliopisto 1932',
+                'expected' => 'Opintokirja. Helsingin yliopisto 1932',
             ],
             'no year without year range' => [
-                'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto" .
+                'title' => 'Opintokirja. Helsingin yliopisto',
+                'expected' => 'Opintokirja. Helsingin yliopisto' .
                 "{$ltr} (1932{$ndash}1935)",
             ],
         ];
@@ -299,8 +299,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'expected' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
             ],
             'never without year range' => [
-                'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto",
+                'title' => 'Opintokirja. Helsingin yliopisto',
+                'expected' => 'Opintokirja. Helsingin yliopisto',
             ],
         ];
 
@@ -314,16 +314,16 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
             ],
             'no match dash' => [
-                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
-                'expected' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'title' => 'Opintokirja. Helsingin yliopisto (1932 - 1935)',
+                'expected' => 'Opintokirja. Helsingin yliopisto (1932 - 1935)',
             ],
             'no match dash without whitespaces' => [
-                'title' => "Opintokirja. 1932 Helsingin yliopisto",
-                'expected' => "Opintokirja. 1932 Helsingin yliopisto",
+                'title' => 'Opintokirja. 1932 Helsingin yliopisto',
+                'expected' => 'Opintokirja. 1932 Helsingin yliopisto',
             ],
             'no match without year range' => [
-                'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto" .
+                'title' => 'Opintokirja. Helsingin yliopisto',
+                'expected' => 'Opintokirja. Helsingin yliopisto' .
                 "{$ltr} (1932{$ndash}1935)",
             ],
         ];
@@ -338,18 +338,18 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'expected' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
             ],
             'no matches dash' => [
-                'title' => "Opintokirja. Helsingin yliopisto (1932)",
+                'title' => 'Opintokirja. Helsingin yliopisto (1932)',
                 'expected'
-                    => "Opintokirja. Helsingin yliopisto (1932)" .
+                    => 'Opintokirja. Helsingin yliopisto (1932)' .
                     "{$ltr} (1932{$ndash}1935)",
             ],
             'no matches with years' => [
-                'title' => "Opintokirja. 1932 Helsingin yliopisto 1935",
-                'expected' => "Opintokirja. 1932 Helsingin yliopisto 1935",
+                'title' => 'Opintokirja. 1932 Helsingin yliopisto 1935',
+                'expected' => 'Opintokirja. 1932 Helsingin yliopisto 1935',
             ],
             'no matches without years' => [
-                'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto" .
+                'title' => 'Opintokirja. Helsingin yliopisto',
+                'expected' => 'Opintokirja. Helsingin yliopisto' .
                 "{$ltr} (1932{$ndash}1935)",
             ],
         ];
@@ -358,30 +358,30 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'always ndash' => [
                 'title' => "Opintokirja. Helsingin yliopisto (1932{$ndash}1935)",
                 'expected' =>
-                    "Opintokirja. Helsingin yliopisto "
+                    'Opintokirja. Helsingin yliopisto '
                     . "(1932{$ndash}1935){$ltr} (1932{$ndash}1935)",
             ],
             'always mdash' => [
                 'title' => "Opintokirja. Helsingin yliopisto 1932{$mdash}1935",
                 'expected'
-                    => "Opintokirja. Helsingin yliopisto "
+                    => 'Opintokirja. Helsingin yliopisto '
                     . "1932{$mdash}1935{$ltr} (1932{$ndash}1935)",
             ],
             'always dash' => [
-                'title' => "Opintokirja. Helsingin yliopisto (1932 - 1935)",
+                'title' => 'Opintokirja. Helsingin yliopisto (1932 - 1935)',
                 'expected' =>
-                    "Opintokirja. Helsingin yliopisto "
+                    'Opintokirja. Helsingin yliopisto '
                     . "(1932 - 1935){$ltr} (1932{$ndash}1935)",
             ],
             'always title with a year' => [
-                'title' => "Opintokirja. 1932 Helsingin yliopisto",
+                'title' => 'Opintokirja. 1932 Helsingin yliopisto',
                 'expected'
-                    => "Opintokirja. 1932 Helsingin yliopisto" .
+                    => 'Opintokirja. 1932 Helsingin yliopisto' .
                     "{$ltr} (1932{$ndash}1935)",
             ],
             'always without year' => [
-                'title' => "Opintokirja. Helsingin yliopisto",
-                'expected' => "Opintokirja. Helsingin yliopisto" .
+                'title' => 'Opintokirja. Helsingin yliopisto',
+                'expected' => 'Opintokirja. Helsingin yliopisto' .
                 "{$ltr} (1932{$ndash}1935)",
             ],
         ];

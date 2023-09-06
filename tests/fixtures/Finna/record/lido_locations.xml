@@ -1,0 +1,229 @@
+<?xml version="1.0"?>
+<lidoWrap>
+  <lido>
+    <lidoRecID type="ITEM">M123</lidoRecID>
+    <descriptiveMetadata>
+      <objectRelationWrap>
+        <subjectWrap>
+          <subjectSet>
+            <displaySubject>
+              Pohjantie, Karjaa, Etelä-Uusimaa, Suomi
+            </displaySubject>
+            <subject>
+              <subjectPlace>
+                <displayPlace lang="fi">Pohjantie, Karjaa, Etelä-Uusimaa, Suomi</displayPlace>
+                <place>
+                  <namePlaceSet>
+                    <appellationValue label="katuosoite">Pohjantie</appellationValue>
+                  </namePlaceSet>
+                  <namePlaceSet>
+                    <appellationValue label="katuosoite">Kaivontie</appellationValue>
+                  </namePlaceSet>
+                  <namePlaceSet>
+                    <appellationValue label="katuosoite">Männiköntie</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue label="kunta/kaupunki">Karjaa</appellationValue>
+                    </namePlaceSet>
+                    <partOfPlace>
+                      <namePlaceSet>
+                        <appellationValue label="maakunta">Etelä-Uusimaa</appellationValue>
+                      </namePlaceSet>
+                      <partOfPlace>
+                        <namePlaceSet>
+                          <appellationValue label="maa">Suomi</appellationValue>
+                        </namePlaceSet>
+                      </partOfPlace>
+                    </partOfPlace>
+                  </partOfPlace>
+                </place>
+              </subjectPlace>
+            </subject>
+          </subjectSet>
+          <subjectSet>
+            <subject>
+              <subjectPlace>
+                <displayPlace>Suomi, Hamina; Hamina</displayPlace>
+              </subjectPlace>
+            </subject>
+          </subjectSet>
+          <subjectSet>
+            <subject>
+              <subjectPlace>
+                <displayPlace>Suomi, Mäntyharju; S-market Mäntyharju; Mäntyharju, S-market Mäntyharju</displayPlace>
+              </subjectPlace>
+            </subject>
+          </subjectSet>
+          <subjectSet>
+            <subject>
+              <eventPlace>
+                <place>
+                  <namePlaceSet>
+                    <appellationValue label="kunta/kaupunki (ulkomainen)">Los Angeles</appellationValue>
+                  </namePlaceSet>
+                  <placeClassification>kunta/kaupunki (ulkomainen)</placeClassification>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue label="maa/valtio">Yhdysvallat</appellationValue>
+                    </namePlaceSet>
+                    <placeClassification>maa/valtio</placeClassification>
+                  </partOfPlace>
+                </place>
+              </eventPlace>
+            </subject>
+          </subjectSet>
+          <subjectSet>
+            <subjectPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaa -->Suomi</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvauslääni -->It&#xE4;-Suomen l&#xE4;&#xE4;ni</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaakunta -->Etel&#xE4;-Savo</appellationValue>
+                </namePlaceSet>
+                <gml>
+                  <Point srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+                    <coordinates>
+											
+										</coordinates>
+                  </Point>
+                </gml>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue><!-- Kuvauspaikkakunta -->Mikkeli</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue><!-- Kohde tai osoite -->Otavankatu 11 A</appellationValue>
+                    </namePlaceSet>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </subjectPlace>
+          </subjectSet>
+          <subjectSet>
+            <subjectPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaa -->Suomi</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvauslääni -->It&#xE4;-Suomen l&#xE4;&#xE4;ni</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue><!-- Kuvausmaakunta -->Etel&#xE4;-Savo</appellationValue>
+                </namePlaceSet>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue><!-- Kuvauspaikkakunta -->Mikkeli</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue><!-- Kohde tai osoite -->Otavankatu 11 A</appellationValue>
+                    </namePlaceSet>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </subjectPlace>
+          </subjectSet>
+        </subjectWrap>
+      </objectRelationWrap>
+      <eventWrap>
+        <eventSet>
+          <event>
+            <eventType>
+              <term>design</term>
+            </eventType>
+            <eventPlace>
+              <displayPlace>H&#xE5;kansb&#xF6;len kartano, Hakunila, Vantaa, Helsingin maalaiskunta, Suomi</displayPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue>H&#xE5;kansb&#xF6;len kartano</appellationValue>
+                </namePlaceSet>
+                <namePlaceSet>
+                  <appellationValue>Helsingin maalaiskunta</appellationValue>
+                </namePlaceSet>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue>Hakunila</appellationValue>
+                  </namePlaceSet>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue>Vantaa</appellationValue>
+                    </namePlaceSet>
+                    <partOfPlace>
+                      <namePlaceSet>
+                        <appellationValue>Suomi</appellationValue>
+                      </namePlaceSet>
+                      <placeClassification>
+                        <term>maa/valtio</term>
+                      </placeClassification>
+                    </partOfPlace>
+                    <placeClassification>
+                      <term>kunta/kaupunki</term>
+                    </placeClassification>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </eventPlace>
+          </event>
+        </eventSet>
+        <eventSet>
+          <event>
+            <eventType>
+              <term>käyttö</term>
+            </eventType>
+            <eventPlace>
+              <displayPlace>
+				        kuvauspaikka Ristim&#xE4;enkatu 5, Mikkeli, Etel&#xE4;-Savo, Suomi
+			        </displayPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue label="katuosoite">Ristim&#xE4;enkatu 5</appellationValue>
+                </namePlaceSet>
+                <placeClassification>katuosoite</placeClassification>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue label="kunta/kaupunki (Suomi)">Mikkeli</appellationValue>
+                  </namePlaceSet>
+                  <placeClassification>kunta/kaupunki (Suomi)</placeClassification>
+                  <partOfPlace>
+                    <namePlaceSet>
+                      <appellationValue label="maakunta (Suomi)">Etel&#xE4;-Savo</appellationValue>
+                    </namePlaceSet>
+                    <placeClassification>maakunta (Suomi)</placeClassification>
+                    <partOfPlace>
+                      <namePlaceSet>
+                        <appellationValue label="maa/valtio">Suomi</appellationValue>
+                      </namePlaceSet>
+                      <placeClassification>maa/valtio</placeClassification>
+                    </partOfPlace>
+                  </partOfPlace>
+                </partOfPlace>
+              </place>
+            </eventPlace>
+          </event>
+        </eventSet>
+        <eventSet>
+          <event>
+            <eventType>
+              <term>valmistus</term>
+            </eventType>
+            <eventPlace>
+              <displayPlace>Vaasa</displayPlace>
+              <place>
+                <namePlaceSet>
+                  <appellationValue label="kunta/kaupunki">Vaasa</appellationValue>
+                </namePlaceSet>
+              </place>
+            </eventPlace>
+          </event>
+        </eventSet>
+      </eventWrap>
+    </descriptiveMetadata>
+  </lido>
+</lidoWrap>

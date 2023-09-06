@@ -35,6 +35,8 @@ use RecordManager\Base\Http\ClientManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
+use function strlen;
+
 /**
  * Qdc record class
  *

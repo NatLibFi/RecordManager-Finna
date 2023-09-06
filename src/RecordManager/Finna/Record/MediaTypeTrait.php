@@ -31,6 +31,8 @@ namespace RecordManager\Finna\Record;
 
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 
+use function in_array;
+
 /**
  * Media type handling support trait.
  *
@@ -124,8 +126,8 @@ trait MediaTypeTrait
      */
     protected function getLinkMediaType(
         string $link,
-        string $format = "",
-        string $type = ""
+        string $format = '',
+        string $type = ''
     ): string {
         $link = trim($link);
         if (empty($link)) {
@@ -135,7 +137,7 @@ trait MediaTypeTrait
         if (!empty($format)) {
             $format = trim($format);
             // type/subtype
-            $exploded = explode("/", $format);
+            $exploded = explode('/', $format);
             // try to find media type only from subtype
             if (!empty($exploded[1])) {
                 // This can be returned instantly as it is a full media type

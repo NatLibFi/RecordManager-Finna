@@ -29,6 +29,8 @@
 
 namespace RecordManager\Finna\Record;
 
+use function is_array;
+
 /**
  * Authority handling support trait.
  *
