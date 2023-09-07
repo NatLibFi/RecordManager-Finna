@@ -213,10 +213,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $data['author_variant'] = $this->getAuthorVariants();
         $data['author2'] = $this->getSecondaryAuthors();
+        // phpcs:ignore
+        /** @psalm-var array<string, list<string>> $data */
         $data['author_facet'] = [
-            ...$data['author'] ?? [],
-            ...$data['author2'] ?? [],
-            ...$data['author_corporate'] ?? [],
+            ...$data['author'],
+            ...$data['author2'],
+            ...$data['author_corporate'],
         ];
         $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
