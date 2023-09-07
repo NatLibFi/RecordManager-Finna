@@ -334,6 +334,57 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($id = $author['id'] ?? '') {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject') {
+                continue;
+            }
+            if ($id = $agent['id'] ?? '') {
+                $results[] = $id;
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get corporate author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getCorporateAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($id = $author['id'] ?? '') {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
      * Enrich titles with year ranges.
      *
      * @param array $data          Record as a solr array
@@ -519,57 +570,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             }
         }
         return $results;
-    }
-
-    /**
-     * Get author identifiers
-     *
-     * @return array<int, string>
-     */
-    public function getAuthorIds(): array
-    {
-        $results = [];
-        foreach ($this->getAuthorElements() as $node) {
-            foreach ($this->getAuthorDetails($node) as $author) {
-                $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
-                }
-            }
-        }
-        foreach ($this->getAgentsFromRelations() as $agent) {
-            $type = $agent['type'] ?? '';
-            if ($type === 'subject') {
-                continue;
-            }
-            if ($id = $agent['id'] ?? '') {
-                $results[] = $id;
-            }
-        }
-        return array_filter(array_unique($results));
-    }
-
-    /**
-     * Get corporate author identifiers
-     *
-     * @return array<int, string>
-     */
-    public function getCorporateAuthorIds(): array
-    {
-        $results = [];
-        foreach ($this->getCorporateAuthorElements() as $node) {
-            foreach ($this->getAuthorDetails($node) as $author) {
-                $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
-                }
-            }
-        }
-        return array_filter(array_unique($results));
     }
 
     /**
