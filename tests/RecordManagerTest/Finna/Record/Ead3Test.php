@@ -495,6 +495,22 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             ['koirat', 'Tessu Testikoira'],
             $fields['topic']
         );
+        $this->assertEquals(
+            ['Kupittaa', 'Turku', 'Vaasa', 'Viipuri'],
+            $fields['geographic']
+        );
+        $this->assertEquals(
+            ['Kupittaa', 'Turku', 'Vaasa', 'Viipuri'],
+            $fields['geographic_facet']
+        );
+        $this->assertEquals(
+            ['POINT(21.616 63.093)', 'POINT(28.750 60.711)'],
+            $fields['location_geo']
+        );
+        $this->assertEquals(
+            ['http://www.yso.fi/onto/yso/p94466', 'http://www.yso.fi/onto/yso/p94486'],
+            $fields['geographic_id_str_mv']
+        );
     }
 
     /**
@@ -623,6 +639,8 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Luvia',
                 'Luvia',
             ],
+            'location_geo' => [],
+            'center_coords' => '',
             'topic_facet' => [
                 'folk tales',
                 'kansansadut',

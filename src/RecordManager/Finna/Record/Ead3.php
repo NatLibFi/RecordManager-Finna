@@ -36,6 +36,7 @@ use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
 use function boolval;
+use function count;
 use function in_array;
 
 /**
@@ -240,6 +241,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
+        $data['location_geo'] = $this->getGeographicCoordinates();
+        $data['center_coords']
+            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
 
         return $data;
     }
@@ -1087,18 +1091,24 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $identifiers = false
     ) {
         $result = [];
-        foreach ($this->doc->controlaccess->{$nodeName} ?? [] as $node) {
-            $relator = mb_strtolower(
-                trim((string)($node['relator'] ?? '')),
-                'UTF-8'
-            );
-            if (!$relator || in_array($relator, $relators)) {
-                if ($identifiers) {
-                    if ($id = $node['identifier']) {
-                        $result[] = (string)$id;
+        foreach ($this->doc->controlaccess as $controlaccess) {
+            foreach ($controlaccess->{$nodeName} ?? [] as $node) {
+                $relator = mb_strtolower(
+                    trim((string)($node['relator'] ?? '')),
+                    'UTF-8'
+                );
+                if (!$relator || in_array($relator, $relators)) {
+                    if ($identifiers) {
+                        if ($id = $node['identifier']) {
+                            $result[] = (string)$id;
+                        }
+                    } else {
+                        foreach ($node->part as $part) {
+                            if ($value = trim((string)$part)) {
+                                $result[] = $value;
+                            }
+                        }
                     }
-                } elseif ($value = trim((string)$node->part)) {
-                    $result[] = $value;
                 }
             }
         }
@@ -1161,6 +1171,34 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
+    }
+
+    /**
+     * Get geographic coordinates
+     *
+     * @return array<int, string> WKT
+     */
+    protected function getGeographicCoordinates()
+    {
+        $result = [];
+        foreach ($this->doc->controlaccess as $controlaccess) {
+            foreach ($controlaccess->geogname as $geogname) {
+                foreach ($geogname->geographiccoordinates as $coordinates) {
+                    $system = trim((string)($coordinates->attributes()->coordinatesystem ?? ''));
+                    if ($system === 'WGS84') {
+                        $trimmedCoordinates = array_map(
+                            'trim',
+                            explode(',', (string)$coordinates)
+                        );
+                        if (count($trimmedCoordinates) === 2) {
+                            [$lat, $lon] = $trimmedCoordinates;
+                            $result[] = "POINT($lon $lat)";
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
     }
 
     /**
