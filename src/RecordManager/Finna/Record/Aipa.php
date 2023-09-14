@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2022.
+ * Copyright (C) The National Library of Finland 2022-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -30,7 +30,12 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Record\CreateRecordTrait;
+use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Record\Qdc;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 /**
  * Aipa record class
@@ -43,6 +48,62 @@ use RecordManager\Base\Record\Qdc;
  */
 class Aipa extends Qdc
 {
+    use CreateRecordTrait;
+
+    /**
+     * Record plugin manager
+     *
+     * @var RecordPluginManager
+     */
+    protected $recordPluginManager;
+
+    /**
+     * Fields to merge from encapsulated records.
+     *
+     * @var array[]
+     */
+    protected $mergeFields = [
+        'lrmi' => [
+            'educational_audience_str_mv',
+            'educational_level_str_mv',
+            'educational_aim_str_mv',
+            'educational_subject_str_mv',
+            'educational_material_type_str_mv',
+            'topic_id_str_mv',
+        ],
+    ];
+
+    /**
+     * Constructor
+     *
+     * @param array               $config              Main configuration
+     * @param array               $dataSourceConfig    Data source settings
+     * @param Logger              $logger              Logger
+     * @param MetadataUtils       $metadataUtils       Metadata utilities
+     * @param HttpClientManager   $httpManager         HTTP client manager
+     * @param ?Database           $db                  Database
+     * @param RecordPluginManager $recordPluginManager Record plugin manager
+     */
+    public function __construct(
+        $config,
+        $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        HttpClientManager $httpManager,
+        ?Database $db,
+        RecordPluginManager $recordPluginManager
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->recordPluginManager = $recordPluginManager;
+    }
+
     /**
      * Return fields to be indexed in Solr
      *
@@ -55,6 +116,26 @@ class Aipa extends Qdc
     {
         $data = parent::toSolrArray($db);
         $data['record_format'] = 'aipa';
+
+        // Merge fields from encapsulated records.
+        foreach ($this->doc->item as $item) {
+            $format = strtolower((string)$item->format);
+            if (empty($this->mergeFields[$format])) {
+                continue;
+            }
+            $record = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');
+            $recordFields = $record->toSolrArray($db);
+            foreach ($this->mergeFields[$format] as $mergeField) {
+                // phpcs:ignore
+                /** @psalm-var list<string> */
+                $merged = (array)($data[$mergeField] ?? []);
+                // phpcs:ignore
+                /** @psalm-var list<string> */
+                $toMerge = (array)($recordFields[$mergeField] ?? []);
+                $data[$mergeField] = array_unique([...$merged, ...$toMerge]);
+            }
+        }
+
         return $data;
     }
 

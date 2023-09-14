@@ -1,0 +1,76 @@
+<record>
+  <control>
+    <recordid>FSD3390</recordid>
+    <filedesc>
+      <titlestmt>
+        <titleproper lang="fi">Kissa-aineistoa 2014</titleproper>
+      </titlestmt>
+    </filedesc>
+    <maintenancestatus value="derived"/>
+    <maintenanceagency>
+      <agencyname lang="fi">Kissa-arkisto</agencyname>
+    </maintenanceagency>
+    <maintenancehistory>
+      <maintenanceevent>
+        <eventtype value="derived"/>
+        <eventdatetime/>
+        <agenttype value="machine"/>
+        <agent/>
+      </maintenanceevent>
+    </maintenancehistory>
+  </control>
+  <did>
+    <unitid identifier="FSD3390">FSD3390</unitid>
+    <unittitle lang="fi">Kissa-aineistoa 2014</unittitle>
+    <langmaterial>
+      <language lang="fi"/>
+    </langmaterial>
+    <unitdate>2014</unitdate>
+    <origination>
+      <name identifier="EAC_008">
+        <part>Arkistonmuodostaja Henkilö</part>
+      </name>
+    </origination>
+    <origination>
+      <corpname>
+        <part>Arkistonmuodostaja Organisaatio</part>
+      </corpname>
+    </origination>
+  </did>
+  <controlaccess>
+    <subject>
+      <part>kissat</part>
+    </subject>
+  </controlaccess>
+  <controlaccess>
+    <name relator="Valokuvaaja" identifier="EAC_001">
+      <part localtype="Ensisijainen nimi">Kimmo Kissakuvaaja</part>
+      <part localtype="suhteen ajallinen kattavuus">2014</part>
+      <part localtype="Varianttinimi">Kimi Kissakuvaaja</part>
+    </name>
+    <persname relator="Kirjoittaja" identifier="EAC_002">
+      <part>Kirsi Kissakirjailija</part>
+    </persname>
+    <persname identifier="EAC_003">
+      <part>Kasper Kissankasvattaja</part>
+    </persname>
+    <corpname relator="Kissojensuojeluyhdistys" identifier="EAC_004">
+      <part localtype="Ensisijainen nimi">Kissat turvaan ry</part>
+    </corpname>
+    <corpname relator="Kissanruokatehdas">
+      <part>Kissanmuona Oy</part>
+    </corpname>
+  </controlaccess>
+  <relations>
+    <relation relationtype="cpfrelation" href="EAC_005"/>
+    <relation arcrole="luovuttaja" relationtype="cpfrelation" href="EAC_006">
+      <relationentry>Lasse Luovuttaja</relationentry>
+    </relation>
+    <relation arcrole="handlar om" relationtype="cpfrelation" href="EAC_007">
+      <relationentry>Kisu Misu</relationentry>
+    </relation>
+    <relation arcrole="kerääjä" relationtype="cpfrelation">
+      <relationentry>Kerttu Kerääjä</relationentry>
+    </relation>
+  </relations>
+</record>

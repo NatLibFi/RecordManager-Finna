@@ -31,6 +31,8 @@ namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
+use function array_slice;
+
 /**
  * Dc record class
  *

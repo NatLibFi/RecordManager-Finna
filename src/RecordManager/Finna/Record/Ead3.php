@@ -35,6 +35,9 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
+use function boolval;
+use function in_array;
+
 /**
  * EAD 3 Record Class
  *
@@ -64,6 +67,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     public const NAME_TYPE_ALTERNATIVE = 'vaihtehtoinen nimi';
     public const NAME_TYPE_PRIMARY = 'ensisijainen nimi';
     public const NAME_TYPE_OUTDATED = 'vanhentunut nimi';
+
+    public const SUBJECT_ACTOR_ROLES = ['förekommer', 'handlar om', 'refereras till'];
+    public const SECONDARY_AUTHOR_ROLES = [
+        'brevmottagare', 'donator', 'inlämnare', 'insamlare','keruun järjestäjä', 'kerääjä',
+        'luovuttaja', 'vastaanottaja',
+    ];
 
     /**
      * Archive fonds format
@@ -202,104 +211,25 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $data['usage_rights_ext_str_mv'] = $rights;
         }
 
-        $corporateAuthorIds = $this->getCorporateAuthorIds();
-        if (isset($doc->controlaccess->name)) {
-            $data['author'] = [];
-            $data['author_role'] = [];
-            $data['author_variant'] = [];
-            $data['author_facet'] = [];
-            $author2Ids = $author2IdRoles = [];
-            foreach ($doc->controlaccess->name as $name) {
-                foreach ($name->part as $part) {
-                    $id = $role = null;
-                    $attr = $name->attributes();
-                    if (isset($attr->relator)) {
-                        $role = (string)$name->attributes()->relator;
-                    }
-                    if (isset($attr->identifier)) {
-                        $id = (string)$name->attributes()->identifier;
-                    }
-
-                    $localtype = mb_strtolower(
-                        $part->attributes()->localtype ?? '',
-                        'UTF-8'
-                    );
-                    switch ($localtype) {
-                        case self::NAME_TYPE_PRIMARY:
-                            $data['author'][] = (string)$part;
-                            if (
-                                !isset($part->attributes()->lang)
-                                || (string)$part->attributes()->lang === 'fin'
-                            ) {
-                                $data['author_facet'][] = (string)$part;
-                            }
-                            if ($id) {
-                                $author2Ids[] = $id;
-                                if ($role) {
-                                    $author2IdRoles[]
-                                        = $this->formatAuthorIdWithRole($id, $role);
-                                }
-                            }
-                            break;
-                        case self::NAME_TYPE_VARIANT:
-                        case self::NAME_TYPE_ALTERNATIVE:
-                        case self::NAME_TYPE_OUTDATED:
-                            $data['author_variant'][] = (string)$part;
-                            if ($id) {
-                                $author2Ids[] = $id;
-                                if ($role) {
-                                    $author2IdRoles[] = $this->formatAuthorIdWithRole($id, $role);
-                                }
-                            }
-
-                            break;
-                    }
-                }
-            }
-
-            $data['author2_id_str_mv']
+        $data['author_variant'] = $this->getAuthorVariants();
+        $data['author2'] = $this->getSecondaryAuthors();
+        // phpcs:ignore
+        /** @psalm-var array<string, list<string>> $data */
+        $data['author_facet'] = [
+            ...$data['author'],
+            ...$data['author2'],
+            ...$data['author_corporate'],
+        ];
+        $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
-                    array_unique([...$corporateAuthorIds, ...$author2Ids]),
+                    array_unique([...$this->getCorporateAuthorIds(), ...$this->getAuthorIds()]),
                     'author'
                 );
-            $data['author2_id_role_str_mv']
-                = $this->addNamespaceToAuthorityIds($author2IdRoles, 'author');
-        }
-
-        if (isset($doc->controlaccess->persname)) {
-            foreach ($doc->controlaccess->persname as $name) {
-                if (isset($name->part)) {
-                    $name = (string)$name->part;
-                    $data['author'][] = $name;
-                    $data['author_facet'][] = $name;
-                }
-            }
-        }
-
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->persname ?? [] as $name) {
-                $data['author'][] = $data['author_facet'][] = (string)$name;
-            }
-        }
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->name ?? [] as $name) {
-                foreach ($name->part ?? [] as $part) {
-                    if ($this->isTimeIntervalNode($part)) {
-                        continue;
-                    }
-                    $value = (string)$part;
-                    $data['author'][] = $data['author_facet'][] = $value;
-                    if (
-                        in_array(
-                            (string)$part->attributes()->localtype,
-                            [self::NAME_TYPE_VARIANT, self::NAME_TYPE_ALTERNATIVE]
-                        )
-                    ) {
-                        $data['author_variant'][] = $value;
-                    }
-                }
-            }
-        }
+        $data['author2_id_role_str_mv']
+            = $this->addNamespaceToAuthorityIds(
+                $this->getAllAuthorIdsAndRoles(),
+                'author'
+            );
 
         foreach ($doc->index->index->indexentry ?? [] as $indexentry) {
             if (isset($indexentry->name->part)) {
@@ -312,6 +242,148 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
 
         return $data;
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string
+     */
+    public function getFormat()
+    {
+        $level1 = $level2 = null;
+
+        $docLevel = (string)$this->doc->attributes()->level;
+        $level1 = $docLevel === 'fonds' ? 'Document' : null;
+
+        if (!isset($this->doc->controlaccess->genreform)) {
+            return $docLevel;
+        }
+
+        $defaultFormat = null;
+        foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
+            $format = null;
+            foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
+                $attributes = $part->attributes();
+                if ((string)($attributes->lang ?? '') === 'fin') {
+                    $format = (string)$part;
+                    break;
+                }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
+            }
+
+            if (!$format) {
+                continue;
+            }
+
+            $attr = $genreform->attributes();
+            if (isset($attr->encodinganalog)) {
+                $type = (string)$attr->encodinganalog;
+                if ($type === 'ahaa:AI08') {
+                    if ($level1 === null) {
+                        $level1 = $format;
+                    } else {
+                        $level2 = $format;
+                    }
+                } elseif ($type === 'ahaa:AI57') {
+                    $level2 = $format;
+                }
+            }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat ?? '';
+        }
+
+        return $level2 ? "$level1/$level2" : $level1;
+    }
+
+    /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($id = $author['id'] ?? '') {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject') {
+                continue;
+            }
+            if ($id = $agent['id'] ?? '') {
+                $results[] = $id;
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get corporate author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getCorporateAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($id = $author['id'] ?? '') {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
     }
 
     /**
@@ -415,69 +487,70 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Get authors
      *
-     * @return array
+     * @return array<int, string>
      */
-    protected function getAuthors()
+    protected function getAuthors(): array
     {
-        $result = [];
-        foreach ($this->doc->relations->relation ?? [] as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = (string)$name;
+                    }
+                }
             }
-            $role = (string)$relation->attributes()->arcrole;
-            switch ($role) {
-                case '':
-                case 'http://www.rdaregistry.info/Elements/u/P60672':
-                case 'http://www.rdaregistry.info/Elements/u/P60434':
-                    $role = 'aut';
-                    break;
-                case 'http://www.rdaregistry.info/Elements/u/P60429':
-                    $role = 'pht';
-                    break;
-                default:
-                    $role = '';
-            }
-            if ('' === $role) {
-                continue;
-            }
-            $result[] = trim((string)$relation->relationentry);
         }
-        return $result;
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author') {
+                if ($name = $agent['name'] ?? '') {
+                    $results[] = (string)$name;
+                }
+            }
+        }
+        return $results;
     }
 
     /**
-     * Get author identifiers
+     * Get author variant names
      *
-     * @return array
+     * @return array<string>
      */
-    protected function getAuthorIds()
+    protected function getAuthorVariants(): array
     {
-        $result = [];
-        foreach ($this->doc->relations->relation ?? [] as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'variant') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = $name;
+                    }
+                }
             }
-            $role = (string)$relation->attributes()->arcrole;
-            switch ($role) {
-                case '':
-                case 'http://www.rdaregistry.info/Elements/u/P60672':
-                case 'http://www.rdaregistry.info/Elements/u/P60434':
-                    $role = 'aut';
-                    break;
-                case 'http://www.rdaregistry.info/Elements/u/P60429':
-                    $role = 'pht';
-                    break;
-                default:
-                    $role = '';
-            }
-            if ('' === $role) {
-                continue;
-            }
-            $result[] = (string)$relation->attributes()->href;
         }
-        return $result;
+        return $results;
+    }
+
+    /**
+     * Get secondary authors
+     *
+     * @return array<int, string>
+     */
+    protected function getSecondaryAuthors(): array
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author2') {
+                if ($name = $agent['name'] ?? '') {
+                    $results[] = $name;
+                }
+            }
+        }
+        return $results;
     }
 
     /**
@@ -487,39 +560,152 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getCorporateAuthors(): array
     {
-        $result = [];
-        foreach ($this->doc->controlaccess->corpname ?? [] as $name) {
-            foreach ($name->part ?? [] as $part) {
-                if ($this->isTimeIntervalNode($part)) {
-                    continue;
+        $results = [];
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = $name;
+                    }
                 }
-                $result[] = trim((string)$part);
             }
         }
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->name ?? [] as $name) {
-                foreach ($name->part ?? [] as $part) {
-                    if ($this->isTimeIntervalNode($part)) {
-                        continue;
+        return $results;
+    }
+
+    /**
+     * Get all author ids and roles
+     *
+     * @return array<string>
+     */
+    protected function getAllAuthorIdsAndRoles(): array
+    {
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($idWithRole = $author['idWithRole'] ?? '') {
+                        $results[] = $idWithRole;
                     }
-                    $result[] = trim((string)$part);
                 }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($idWithRole = $author['idWithRole'] ?? '') {
+                        $results[] = $idWithRole;
+                    }
+                }
+            }
+        }
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject') {
+                continue;
+            }
+            if ($role = $agent['idWithRole'] ?? '') {
+                $results[] = $role;
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Helper function for getting author details from element
+     *
+     * @param \SimpleXMLElement $name Name element
+     *
+     * @return array            array of authors with keys:
+     *   'name'       author name
+     *   'type'       author type (author or variant)
+     *   'id'         author id
+     *   'idWithRole' id###role
+     */
+    protected function getAuthorDetails(
+        \SimpleXMLElement $name
+    ) {
+        $result = [];
+        foreach ($name->part as $part) {
+            if ($this->isTimeIntervalNode($part)) {
+                continue;
+            }
+            $author = [];
+            $relator = trim((string)($name->attributes()->relator ?? ''));
+            $identifier = trim((string)($name->attributes()->identifier ?? ''));
+            $localtype = mb_strtolower(
+                $part->attributes()->localtype ?? '',
+                'UTF-8'
+            );
+            if ($authorName = trim((string)$part)) {
+                $author['name'] = $authorName;
+                switch ($localtype) {
+                    case self::NAME_TYPE_PRIMARY:
+                    case '':
+                        $author['type'] = 'author';
+                        break;
+                    case self::NAME_TYPE_VARIANT:
+                    case self::NAME_TYPE_ALTERNATIVE:
+                    case self::NAME_TYPE_OUTDATED:
+                        $author['type'] = 'variant';
+                        break;
+                }
+            }
+            if ($identifier) {
+                $author['id'] = $identifier;
+                if ($relator) {
+                    $author['idWithRole'] = $this->formatAuthorIdWithRole($identifier, $relator);
+                }
+            }
+            if ($author) {
+                $result[] = $author;
             }
         }
         return $result;
     }
 
     /**
-     * Get corporate author identifiers
+     * Get agents from relations
      *
-     * @return array<int, string>
+     * @return array array of agents with keys:
+     *   'name'       agent name
+     *   'type'       agent type (author, author2 or subject)
+     *   'id'         agent id
+     *   'idWithRole' id###role
      */
-    protected function getCorporateAuthorIds()
+    protected function getAgentsFromRelations(): array
     {
         $result = [];
-        foreach ($this->doc->did->origination->name ?? [] as $name) {
-            if (isset($name->attributes()->identifier)) {
-                $result[] = (string)$name->attributes()->identifier;
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
+            $type = trim((string)($relation->attributes()->relationtype ?? ''));
+            if ('cpfrelation' !== $type) {
+                continue;
+            }
+            $agent = [];
+            $href = trim((string)($relation->attributes()->href ?? ''));
+            $role = trim((string)($relation->attributes()->arcrole ?? ''));
+            $roleLC = mb_strtolower($role, 'UTF-8');
+            if ($name = trim((string)($relation->relationentry ?? ''))) {
+                $agent['name'] = $name;
+                if (in_array($roleLC, $this::SUBJECT_ACTOR_ROLES)) {
+                    $agent['type'] = 'subject';
+                } elseif (in_array($roleLC, $this::SECONDARY_AUTHOR_ROLES)) {
+                    $agent['type'] = 'author2';
+                } else {
+                    $agent['type'] = 'author';
+                }
+            }
+            if ($href) {
+                $agent['id'] = $href;
+                if ($role) {
+                    $agent['idWithRole'] = $this->formatAuthorIdWithRole($href, $role);
+                }
+            }
+            if ($agent) {
+                $result[] = $agent;
             }
         }
         return $result;
@@ -774,18 +960,19 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $year = str_repeat($defaultYear, 4);
             $month = $defaultMonth;
             $day = $defaultDay;
+            $unknownForms = ['uu', 'xx', 'uuuu', 'xxxx'];
             if (!in_array($date, ['open', 'unknown'])) {
                 $parts = explode('-', trim($date));
-                if ('uuuu' === $parts[0]) {
+                if (in_array(strtolower($parts[0]), $unknownForms)) {
                     $unknown = true;
                 }
-                $year = str_replace('u', $defaultYear, $parts[0]);
+                $year = str_ireplace(['u', 'x'], $defaultYear, $parts[0]);
 
-                if (isset($parts[1]) && $parts[1] !== 'uu') {
+                if (isset($parts[1]) && !in_array(strtolower($parts[1]), $unknownForms)) {
                     $month = $parts[1];
                 }
 
-                if (isset($parts[2]) && $parts[2] !== 'uu') {
+                if (isset($parts[2]) && !in_array(strtolower($parts[2]), $unknownForms)) {
                     $day = $parts[2];
                 }
             } else {
@@ -892,7 +1079,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *                            is defined.
      * @param bool   $identifiers Return identifiers instead of labels?
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getTopicTermsFromNodeWithRelators(
         $nodeName,
@@ -925,10 +1112,20 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getTopics()
     {
-        return $this->getTopicTermsFromNodeWithRelators(
+        $results = $this->getTopicTermsFromNodeWithRelators(
             'subject',
             self::SUBJECT_RELATORS
         );
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type !== 'subject') {
+                continue;
+            }
+            if ($name = $agent['name'] ?? '') {
+                $results[] = $name;
+            }
+        }
+        return $results;
     }
 
     /**
@@ -940,34 +1137,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
-    }
-
-    /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'subject',
-            self::SUBJECT_RELATORS,
-            true
-        );
-    }
-
-    /**
-     * Get all geographic topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawGeographicTopicIds(): array
-    {
-        return $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
     }
 
     /**
@@ -992,69 +1161,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        $level1 = $level2 = null;
-
-        $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
-        if (!isset($this->doc->controlaccess->genreform)) {
-            return $docLevel;
-        }
-
-        $defaultFormat = null;
-        foreach ($this->doc->controlaccess->genreform as $genreform) {
-            $nonLangFormat = null;
-            $format = null;
-            foreach ($genreform->part as $part) {
-                if (null === $nonLangFormat) {
-                    $nonLangFormat = (string)$part;
-                }
-                $attributes = $part->attributes();
-                if ((string)($attributes->lang ?? '') === 'fin') {
-                    $format = (string)$part;
-                    break;
-                }
-            }
-            if (null === $format) {
-                $format = $nonLangFormat;
-            }
-            if (null === $defaultFormat) {
-                $defaultFormat = $format;
-            }
-
-            if (!$format) {
-                continue;
-            }
-
-            $attr = $genreform->attributes();
-            if (isset($attr->encodinganalog)) {
-                $type = (string)$attr->encodinganalog;
-                if ($type === 'ahaa:AI08') {
-                    if ($level1 === null) {
-                        $level1 = $format;
-                    } else {
-                        $level2 = $format;
-                    }
-                } elseif ($type === 'ahaa:AI57') {
-                    $level2 = $format;
-                }
-            }
-        }
-
-        if (null === $level1) {
-            $level1 = $defaultFormat ?? '';
-        }
-
-        return $level2 ? "$level1/$level2" : $level1;
     }
 
     /**

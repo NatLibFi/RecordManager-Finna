@@ -32,6 +32,9 @@ namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
+use function boolval;
+use function strlen;
+
 /**
  * Qdc record trait.
  *

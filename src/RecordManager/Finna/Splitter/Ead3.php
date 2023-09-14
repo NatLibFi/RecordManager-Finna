@@ -31,6 +31,8 @@
 
 namespace RecordManager\Finna\Splitter;
 
+use function in_array;
+
 /**
  * EAD 3 Splitter Class
  *
