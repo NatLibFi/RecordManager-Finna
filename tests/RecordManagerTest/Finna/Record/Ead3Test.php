@@ -536,7 +536,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testSKS()
     {
-        var_dump('sks');
         $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
             ->toSolrArray();
         unset($fields['fullrecord']);
