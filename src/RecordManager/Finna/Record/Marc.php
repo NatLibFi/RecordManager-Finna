@@ -836,6 +836,16 @@ class Marc extends \RecordManager\Base\Record\Marc
             )
         );
 
+        // Additional IDs from repeated 001 (Sierra):
+        $ids = $this->record->getFields('001');
+        array_shift($ids);
+        if ($ids) {
+            $data['ctrlnum'] = [
+                ...($data['ctrlnum'] ?? []),
+                ...$ids,
+            ];
+        }
+
         // Merge any extra fields from e.g. merged component parts (also converts any
         // single-value field to an array):
         foreach ($this->extraFields as $field => $fieldData) {

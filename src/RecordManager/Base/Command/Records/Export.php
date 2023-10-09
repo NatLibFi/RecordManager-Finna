@@ -37,6 +37,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function count;
+use function strlen;
 
 /**
  * Export
@@ -164,6 +165,16 @@ class Export extends AbstractBase
                 "Whether to include dedup id's in exported records. Supported"
                 . ' values: deduped = if duplicates exist, always = always. '
                 . " Default is to not include the dedup id's."
+            )->addOption(
+                'inject-id',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Inject record ID without source prefix to the given XML field'
+            )->addOption(
+                'inject-id-prefixed',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Inject record ID with source prefix to the given XML field'
             );
     }
 
@@ -190,6 +201,8 @@ class Export extends AbstractBase
         $sortDedup = $input->getOption('sort-dedup');
         $addDedupId = $input->getOption('dedup-id');
         $this->batchSize = $input->getOption('batch-size') ?: 0;
+        $injectId = $input->getOption('inject-id');
+        $injectIdPrefixed = $input->getOption('inject-id-prefixed');
 
         $returnCode = Command::SUCCESS;
 
@@ -293,7 +306,10 @@ class Export extends AbstractBase
                     $skipRecords,
                     $xpath,
                     $deletedFile,
-                    $addDedupId
+                    $addDedupId,
+                    $injectId,
+                    $injectIdPrefixed,
+                    $sourceId
                 ) {
                     $metadataRecord = $this->createRecord(
                         $record['format'],
@@ -301,22 +317,53 @@ class Export extends AbstractBase
                         $record['oai_id'],
                         $record['source_id']
                     );
-                    if ($xpath) {
-                        $xml = $metadataRecord->toXML();
-                        $dom = $this->metadataUtils->loadXML($xml);
-                        if (!$dom) {
-                            throw new \Exception(
-                                "Failed to parse record '${$record['_id']}'"
+                    if (!$record['deleted']) {
+                        if ($addDedupId == 'always') {
+                            $metadataRecord->addDedupKeyToMetadata(
+                                $record['dedup_id']
+                                ?? $record['_id']
+                            );
+                        } elseif ($addDedupId == 'deduped') {
+                            $metadataRecord->addDedupKeyToMetadata(
+                                $record['dedup_id']
+                                ?? ''
                             );
                         }
-                        $xpathResult = $dom->xpath($xpath);
-                        if ($xpathResult === false) {
+                    }
+                    $xml = $metadataRecord->toXML();
+                    if ($xpath || (($injectId || $injectIdPrefixed) && !$record['deleted'])) {
+                        $errors = '';
+                        $dom = $this->metadataUtils->loadXML($xml, null, 0, $errors);
+                        if (false === $dom) {
                             throw new \Exception(
-                                "Failed to evaluate XPath expression '$xpath'"
+                                "Failed to parse record '{$record['_id']}': $errors"
                             );
                         }
-                        if (!$xpathResult) {
-                            return true;
+                        if ($xpath) {
+                            $xpathResult = $dom->xpath($xpath);
+                            if ($xpathResult === false) {
+                                throw new \Exception(
+                                    "Failed to evaluate XPath expression '$xpath'"
+                                );
+                            }
+                            if (!$xpathResult) {
+                                return true;
+                            }
+                        }
+                        if (!$record['deleted']) {
+                            if ($injectId) {
+                                $id = $record['_id'];
+                                $id = substr($id, strlen("$sourceId."));
+                                $dom->addChild($injectId, htmlspecialchars($id, ENT_NOQUOTES));
+                                $xml = $dom->saveXML();
+                            }
+                            if ($injectIdPrefixed) {
+                                $dom->addChild(
+                                    $injectIdPrefixed,
+                                    htmlspecialchars($record['_id'], ENT_NOQUOTES)
+                                );
+                                $xml = $dom->saveXML();
+                            }
                         }
                     }
                     ++$count;
@@ -347,7 +394,6 @@ class Export extends AbstractBase
                                 ?? ''
                             );
                         }
-                        $xml = $metadataRecord->toXML();
                         $xml = preg_replace('/^<\?xml.*?\?>[\n\r]*/', '', $xml);
                         $this->writeRecord($xml);
                     }

@@ -42,6 +42,22 @@
       <part>koirat</part>
     </subject>
   </controlaccess>
+  <controlaccess>
+    <geogname>
+      <part>Kupittaa</part>
+      <part>Turku</part>
+    </geogname>
+    <geogname source="YSO" identifier="http://www.yso.fi/onto/yso/p94466">
+      <part>Vaasa</part>
+      <geographiccoordinates coordinatesystem="WGS84">63.093, 21.616</geographiccoordinates>
+    </geogname>
+  </controlaccess>
+  <controlaccess>
+    <geogname source="YSO" identifier="http://www.yso.fi/onto/yso/p94486">
+      <part>Viipuri</part>
+      <geographiccoordinates coordinatesystem="WGS84">60.711, 28.750</geographiccoordinates>
+    </geogname>
+  </controlaccess>
   <relations>
     <relation arcrole="luovuttaja" relationtype="cpfrelation">
       <relationentry localtype="Ensisijainen nimi">Teppo Testihenkilö</relationentry>
