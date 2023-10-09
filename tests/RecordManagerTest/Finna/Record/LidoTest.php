@@ -481,11 +481,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
         ];
 
-        $this->compareArray(
-            $expected,
-            $record->getWorkIdentificationData(),
-            'getWorkIdentificationData'
-        );
+        $this->compareArray($expected, $record->getWorkIdentificationData(), 'getWorkIdentificationData');
     }
 
     /**
@@ -547,7 +543,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             [],
             'Finna'
         );
-        $result = $record->getLocations();
+        $result = ($record instanceof Lido) ? $record->getLocations() : [];
         $expected = [
             'primary' => [
                 'Pohjantie, Karjaa, Etelä-Uusimaa, Suomi',
@@ -563,6 +559,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Ristimäenkatu 5, Mikkeli, Etelä-Savo, Suomi',
             ],
         ];
-        $this->compareArray($result, $expected, 'Locations');
+        $this->compareArray($expected, $result, 'Locations');
     }
 }

@@ -254,7 +254,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'callnumber-subject' => 'QC',
             'callnumber-label' => 'QC861',
-            'callnumber-sort' => '38.04',
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
