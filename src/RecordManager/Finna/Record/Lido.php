@@ -115,6 +115,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Location labels which should be excluded when getting location information.
+     *
+     * @var array
+     */
+    protected $excludedLocationLabels;
+
+    /**
      * Constructor
      *
      * @param array         $config           Main configuration
@@ -134,6 +141,11 @@ class Lido extends \RecordManager\Base\Record\Lido
             $logger,
             $metadataUtils
         );
+        $this->excludedLocationLabels
+            = $this->config['LidoRecord']['excluded_location_labels'] ?? [
+                'tarkempi paikka',
+            ];
+
         $this->initMediaTypeTrait($config);
     }
 
@@ -271,8 +283,10 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $data['hires_image_str_mv'] = $this->source;
             }
         }
-
-        $data['location_geo'] = $this->getEventPlaceLocations();
+        $data['location_geo'] = [
+            ...$this->getEventPlaceLocations(),
+            ...$this->getRepositoryLocations(),
+        ];
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
 
@@ -362,18 +376,36 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
 
-        $accepted = [];
-        foreach ($locations as $location) {
-            if (preg_match_all("/[\pL']+/u", trim($location)) === 1) {
-                foreach ($subjectLocations as $subjectLocation) {
-                    if (str_starts_with($subjectLocation, $location)) {
-                        continue 2;
-                    }
+        $displayLocations = [];
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
+            ->repositoryWrap->repositorySet ?? [] as $set
+        ) {
+            if (empty($set->repositoryLocation)) {
+                continue;
+            }
+            if (!empty($set->repositoryLocation->gml)) {
+                return [];
+            }
+            if ($result = $this->getHierarchicalLocations($set->repositoryLocation)) {
+                foreach ($result as $location) {
+                    $displayLocations[] = implode(', ', $location);
                 }
             }
-            $accepted[] = $location;
         }
-
+        $accepted = [];
+        foreach ([$locations, $displayLocations] as $results) {
+            foreach ($results as $location) {
+                if (preg_match_all("/[\pL']+/u", trim($location)) === 1) {
+                    foreach ($subjectLocations as $compare) {
+                        if (str_starts_with($compare, $location)) {
+                            continue 2;
+                        }
+                    }
+                }
+                $accepted[] = $location;
+            }
+        }
         return [
             'primary' => $this->processLocations($subjectLocations),
             'secondary' => $this->processLocations($accepted),
@@ -464,6 +496,11 @@ class Lido extends \RecordManager\Base\Record\Lido
                         // appellationvalues under same parent
                         // If this is not the case, then things are not going ok
                         $currentLabel = trim((string)$elemValue->attributes()->label);
+                        if (in_array(strtolower($currentLabel), $this->excludedLocationLabels)) {
+                            // Locations with labels like "Torin kulman takaosa" should be skipped
+                            continue;
+                        }
+
                         if ($label && $label !== $currentLabel) {
                             // There seems to be different types of appellationValues so skip the new ones
                             continue;
@@ -503,6 +540,29 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
         } while (count($currentElements) > 0);
+        return $results;
+    }
+
+    /**
+     * Get repository locations
+     *
+     * @return array<int, string>
+     */
+    protected function getRepositoryLocations(): array
+    {
+        $results = [];
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
+            ->repositoryWrap->repositorySet ?? [] as $set
+        ) {
+            if (empty($set->repositoryLocation->gml)) {
+                continue;
+            }
+            if ($wkt = $this->convertGmlToWkt($set->repositoryLocation->gml)) {
+                $results[] = $wkt;
+            }
+        }
+
         return $results;
     }
 
@@ -594,9 +654,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             },
             $result
         );
-        $result = array_unique($result);
 
-        return $result;
+        return array_values(array_unique($result));
     }
 
     /**
