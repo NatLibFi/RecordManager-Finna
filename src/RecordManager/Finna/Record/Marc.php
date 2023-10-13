@@ -591,6 +591,15 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
+        // Publisher or distributor number
+        foreach ($this->getPublisherNumbers() as $current) {
+            $number = $current['id'];
+            if ('' !== $current['source']) {
+                $number = '(' . $current['source'] . ')' . $number;
+            }
+            $data['pdn_str_mv'][] = $number;
+        }
+
         // Identifiers from component parts (type as a leading string)
         foreach (
             $this->getFieldsSubfields(
@@ -965,7 +974,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             'OAN' => [[MarcHandler::GET_NORMAL, '025', ['a']]],
             'FI' => [[MarcHandler::GET_NORMAL, '026', ['a', 'b']]],
             'STRN' => [[MarcHandler::GET_NORMAL, '027', ['a']]],
-            'PDN' => [[MarcHandler::GET_NORMAL, '028', ['a']]],
+            'PDN' => [[MarcHandler::GET_NORMAL, '028', ['a', 'b']]],
         ];
 
         $identifiers = [];
