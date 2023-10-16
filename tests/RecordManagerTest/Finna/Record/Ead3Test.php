@@ -688,7 +688,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'era_facet' => '1881',
             'main_date_str' => '1881',
             'main_date' => '1881-01-01T00:00:00Z',
-            'hierarchy_sequence_str' => '0000003',
             'source_str_mv' => '102268433',
             'datasource_str_mv' => '__unit_test_no_source__',
             'online_boolean' => '1',
@@ -767,6 +766,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'media_type_str_mv' => [
                 'image/tiff',
             ],
+            'hierarchy_sequence_sort_str' => '3',
         ];
 
         $this->assertEquals(

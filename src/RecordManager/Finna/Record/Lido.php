@@ -295,6 +295,9 @@ class Lido extends \RecordManager\Base\Record\Lido
                 array_column($onlineUrls, 'mediaType')
             )
         );
+        if (!empty($data['hierarchy_sequence'])) {
+            $data['hierarchy_sequence_sort_str'] = $this->getSequenceForSort();
+        }
         return $data;
     }
 
@@ -1974,5 +1977,27 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return $results;
+    }
+
+    /**
+     * Get hierarchy sequence for sorting.
+     *
+     * @return string
+     */
+    protected function getSequenceForSort(): string
+    {
+        $identifier = $this->getIdentifier();
+        $exploded = explode('; ', $identifier, 2);
+        if (!empty($exploded[1])) {
+            $identifier = $exploded[1];
+        }
+        $sortSequence = preg_replace_callback(
+            '/(\d+)/',
+            function ($matches) {
+                return str_pad($matches[1], 9, '0', STR_PAD_LEFT);
+            },
+            $identifier
+        );
+        return preg_replace('/[^A-Za-z0-9-]/', '', $sortSequence);
     }
 }

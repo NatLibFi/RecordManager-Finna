@@ -149,7 +149,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         // Single-valued sequence for sorting
         if (isset($data['hierarchy_sequence'])) {
-            $data['hierarchy_sequence_str'] = $data['hierarchy_sequence'];
+            $data['hierarchy_sequence_sort_str'] = $this->getSequenceForSort();
         }
 
         $data['source_str_mv'] = ($data['institution'] ?? '') ?: $this->source;
@@ -1250,6 +1250,22 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             }
         }
         return '';
+    }
+
+    /**
+     * Get hierarchy sequence for sorting.
+     *
+     * @return string
+     */
+    protected function getSequenceForSort(): string
+    {
+        if (!isset($this->doc->{'add-data'}->archive)) {
+            return '';
+        }
+        return ltrim(
+            (string)$this->doc->{'add-data'}->archive->attributes()->sequence,
+            ' 0'
+        );
     }
 
     /**
