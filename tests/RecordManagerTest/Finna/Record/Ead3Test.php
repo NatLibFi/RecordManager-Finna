@@ -766,7 +766,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'media_type_str_mv' => [
                 'image/tiff',
             ],
-            'hierarchy_sequence_sort_str' => '3',
+            'hierarchy_sequence_str' => '0000003',
         ];
 
         $this->assertEquals(

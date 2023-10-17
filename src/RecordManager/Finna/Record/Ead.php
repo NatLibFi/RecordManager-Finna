@@ -139,7 +139,7 @@ class Ead extends \RecordManager\Base\Record\Ead
 
         // Single-valued sequence for sorting
         if (isset($data['hierarchy_sequence'])) {
-            $data['hierarchy_sequence_sort_str'] = $this->getSequenceForSort();
+            $data['hierarchy_sequence_str'] = $this->getSequenceForSort();
         }
 
         $data['source_str_mv'] = ($data['institution'] ?? '') ?: $this->source;
@@ -456,9 +456,11 @@ class Ead extends \RecordManager\Base\Record\Ead
         if (!isset($this->doc->{'add-data'}->archive)) {
             return '';
         }
-        return ltrim(
+        return str_pad(
             (string)$this->doc->{'add-data'}->archive->attributes()->sequence,
-            ' 0'
+            7,
+            '0',
+            STR_PAD_LEFT
         );
     }
 

@@ -295,8 +295,9 @@ class Lido extends \RecordManager\Base\Record\Lido
                 array_column($onlineUrls, 'mediaType')
             )
         );
+        // Value for sorting purposes
         if (!empty($data['hierarchy_sequence'])) {
-            $data['hierarchy_sequence_sort_str'] = $this->getSequenceForSort();
+            $data['hierarchy_sequence_str'] = $this->getSequenceForSort();
         }
         return $data;
     }
