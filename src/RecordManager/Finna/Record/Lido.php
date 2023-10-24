@@ -285,7 +285,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
         $data['location_geo'] = [
             ...$this->getEventPlaceLocations(),
-            ...$this->getRepositoryLocations(),
+            ...$this->getRepositoryLocationCoordinates(),
         ];
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
@@ -548,7 +548,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @return array<int, string>
      */
-    protected function getRepositoryLocations(): array
+    protected function getRepositoryLocationCoordinates(): array
     {
         $results = [];
         foreach (
