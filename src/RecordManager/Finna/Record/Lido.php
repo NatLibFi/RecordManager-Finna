@@ -544,7 +544,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get repository locations as coordinates
+     * Get repository location coordinates
      *
      * @return array<int, string>
      */
