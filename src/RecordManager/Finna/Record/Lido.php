@@ -1025,7 +1025,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Return the event place locations associated with specified event
+     * Return the event place coordinates associated with specified event
      *
      * @param string|array $event Event type(s) allowed (null = all types)
      *
