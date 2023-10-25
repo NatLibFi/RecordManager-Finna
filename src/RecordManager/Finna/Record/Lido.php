@@ -284,7 +284,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         $data['location_geo'] = [
-            ...$this->getEventPlaceLocationCoordinates(),
+            ...$this->getEventPlaceCoordinates(),
             ...$this->getRepositoryLocationCoordinates(),
         ];
         $data['center_coords']
@@ -1031,7 +1031,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @return array<int, string> WKT
      */
-    protected function getEventPlaceLocationCoordinates($event = null)
+    protected function getEventPlaceCoordinates($event = null)
     {
         $results = [];
         foreach ($this->getEventNodes($event) as $event) {
