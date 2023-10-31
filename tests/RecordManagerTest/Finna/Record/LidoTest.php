@@ -557,6 +557,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Håkansbölen kartano, Hakunila, Vantaa, Suomi',
                 'Vaasa',
                 'Ristimäenkatu 5, Mikkeli, Etelä-Savo, Suomi',
+                'Ahmatie 1, Helsinki',
             ],
         ];
         $this->compareArray($expected, $result, 'Locations');

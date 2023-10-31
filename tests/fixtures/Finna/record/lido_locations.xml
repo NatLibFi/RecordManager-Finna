@@ -3,6 +3,27 @@
   <lido>
     <lidoRecID type="ITEM">M123</lidoRecID>
     <descriptiveMetadata>
+      <objectIdentificationWrap>
+        <repositoryWrap>
+          <repositorySet type="Current location">
+            <repositoryLocation>
+              <namePlaceSet>
+                <appellationValue label="tarkempi paikka">Should not display</appellationValue>
+              </namePlaceSet>
+              <partOfPlace>
+                <namePlaceSet>
+                  <appellationValue label="katuosoite">Ahmatie 1</appellationValue>
+                </namePlaceSet>
+                <partOfPlace>
+                  <namePlaceSet>
+                    <appellationValue label="kunta/kaupunki">Helsinki</appellationValue>
+                  </namePlaceSet>
+                </partOfPlace>
+              </partOfPlace>
+            </repositoryLocation>
+          </repositorySet>
+        </repositoryWrap>
+      </objectIdentificationWrap>
       <objectRelationWrap>
         <subjectWrap>
           <subjectSet>

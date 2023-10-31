@@ -5,3 +5,9 @@
 ;excluded_file_extensions[] = "mp3"
 ;excluded_file_extensions[] = "css"
 ;excluded_file_extensions[] = "sib"
+
+; Lido only settings
+[LidoRecord]
+; The following section excludes certain location places
+; Compares to: ...namePlaceSet->appellationValue->attributes()->label
+;excluded_location_labels[] = "Torin nurkkaus etäällä"
