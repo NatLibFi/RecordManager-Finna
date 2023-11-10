@@ -2055,8 +2055,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get other identifiers not found in any of the other index fields.
-     * Contains: workIDs, placeIDs
+     * Get other identifiers except ISBN, ISSN and identifiers which are URLs.
+     * Contains: workIDs, placeIDs.
      *
      * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#placeID
      * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#workID
@@ -2073,7 +2073,6 @@ class Lido extends \RecordManager\Base\Record\Lido
             array_map($filterUrls, $identifiers),
             array_map($filterUrls, $this->getPlaceIDElements(true)),
         );
-        $result = array_diff($result, [$this->getIdentifier()]);
         return array_values(array_filter(array_unique($result)));
     }
 }

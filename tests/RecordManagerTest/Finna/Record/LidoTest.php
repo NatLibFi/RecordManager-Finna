@@ -272,7 +272,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'media_type_str_mv' => [
                 'image/jpeg',
             ],
-            'identifier_txtP_mv' => [],
+            'identifier_txtP_mv' => [
+                '4878:1',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -563,6 +565,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertEquals('ID for identifier field', $data['identifier']);
         $this->compareArray(
             [
+                'ID for identifier field',
                 'Kissat kehdossa',
                 'Hopealusikka',
                 'Kattila',
