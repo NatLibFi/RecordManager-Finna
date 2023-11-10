@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<lidoWrap>
+  <lido>
+    <lidoRecID type="ITEM">M123</lidoRecID>
+    <descriptiveMetadata>
+      <objectIdentificationWrap>
+        <repositoryWrap>
+          <repositorySet>
+            <repositoryLocation>
+              <placeID>https://if_shown_should_fail</placeID>
+              <placeID>Manulila</placeID>
+            </repositoryLocation>
+            <workID>ID for identifier field</workID>
+          </repositorySet>
+          <repositorySet>
+            <workID>Kissat kehdossa</workID>
+          </repositorySet>
+          <repositorySet>
+            <workID>Hopealusikka</workID>
+          </repositorySet>
+          <repositorySet>
+            <workID type="issn">this is a proper issn</workID>
+          </repositorySet>
+          <repositorySet>
+            <workID type="isbn">978-3-16-148410-0</workID>
+          </repositorySet>
+        </repositoryWrap>
+      </objectIdentificationWrap>
+      <objectRelationWrap>
+        <subjectWrap>
+          <subjectSet>
+            <subject>
+              <subjectPlace>
+                <place>
+                  <placeID>Kissala</placeID>
+                  <placeID>Kollila</placeID>
+                  <placeID>https://if_shown_should_fail</placeID>
+                </place>
+              </subjectPlace>
+            </subject>
+          </subjectSet>
+        </subjectWrap>
+      </objectRelationWrap>
+      <eventWrap>
+        <eventSet>
+          <event>
+            <eventPlace>
+              <place>
+                <placeID>Kattila</placeID>
+                <placeID>Catila</placeID>
+                <placeID>https://if_shown_should_fail</placeID>
+              </place>
+            </eventPlace>
+          </event>
+        </eventSet>
+      </eventWrap>
+    </descriptiveMetadata>
+  </lido>
+</lidoWrap>

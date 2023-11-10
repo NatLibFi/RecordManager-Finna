@@ -272,6 +272,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'media_type_str_mv' => [
                 'image/jpeg',
             ],
+            'identifier_txtP_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -528,6 +529,51 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $result = array_filter($record->toSolrArray());
         $this->compareArray($expected, $result, 'Measurements');
+    }
+
+    /**
+     * Test getOtherIdentifiers function
+     *
+     * @return void
+     */
+    public function testIdentifiers(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_identifiers.xml',
+            [],
+            'Finna'
+        );
+
+        $data = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'this is a proper issn',
+            ],
+            $data['issn'],
+            'issnCompare'
+        );
+        $this->compareArray(
+            [
+                '9783161484100',
+            ],
+            $data['isbn'],
+            'isbnCompare'
+        );
+        $this->assertEquals('ID for identifier field', $data['identifier']);
+        $this->compareArray(
+            [
+                'Kissat kehdossa',
+                'Hopealusikka',
+                'Kattila',
+                'Catila',
+                'Kissala',
+                'Kollila',
+                'Manulila',
+            ],
+            $data['identifier_txtP_mv'],
+            'OtherIdentifiers'
+        );
     }
 
     /**
