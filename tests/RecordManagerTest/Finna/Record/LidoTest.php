@@ -207,6 +207,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '4878:1',
                 'Museovirasto/MV',
                 'Museovirasto/MV',
+                'Kansatieteen kuvakokoelma',
                 'Museovirasto/MV',
             ],
             'identifier' => '4878:1',
@@ -271,6 +272,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'media_type_str_mv' => [
                 'image/jpeg',
+            ],
+            'identifier_txtP_mv' => [
+                '4878:1',
             ],
         ];
 
@@ -528,6 +532,52 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $result = array_filter($record->toSolrArray());
         $this->compareArray($expected, $result, 'Measurements');
+    }
+
+    /**
+     * Test getOtherIdentifiers function
+     *
+     * @return void
+     */
+    public function testIdentifiers(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_identifiers.xml',
+            [],
+            'Finna'
+        );
+
+        $data = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'this is a proper issn',
+            ],
+            $data['issn'],
+            'issnCompare'
+        );
+        $this->compareArray(
+            [
+                '9783161484100',
+            ],
+            $data['isbn'],
+            'isbnCompare'
+        );
+        $this->assertEquals('ID for identifier field', $data['identifier']);
+        $this->compareArray(
+            [
+                'ID for identifier field',
+                'Kissat kehdossa',
+                'Hopealusikka',
+                'Kattila',
+                'Catila',
+                'Kissala',
+                'Kollila',
+                'Manulila',
+            ],
+            $data['identifier_txtP_mv'],
+            'OtherIdentifiers'
+        );
     }
 
     /**
