@@ -159,14 +159,22 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'geographic_facet' => [
                 'Ruokolahti',
                 'Imatrankoski, Ruokolahti',
+                'Repository Location 1',
+                'Repository Location 2',
                 'Imatrankoski',
                 'Ruokolahti',
             ],
             'geographic' => [
                 'Ruokolahti',
                 'Imatrankoski, Ruokolahti',
+                'Repository Location 1',
+                'Repository Location 2',
             ],
-            'geographic_id_str_mv' => [],
+            'geographic_id_str_mv' => [
+                '(prt)Prt',
+                '(kiinteistötunnus)Kiinteistötunnus',
+                '(URI)Uri and Yso',
+            ],
             'collection' => 'Kansatieteen kuvakokoelma',
             'thumbnail' => 'http://muisti.nba.fi/m/4878_1/00013199.jpg',
             'allfields' => [
@@ -185,6 +193,11 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '33,1. Imatra.',
                 'Museoviraston kuva-arkisto/',
                 '4878:1',
+                'Repository Location 1',
+                'Repository Location 2',
+                'Prt',
+                'Kiinteistötunnus',
+                'Uri and Yso',
                 'valmistus',
                 'Hintze Harry',
                 '1897',
@@ -207,6 +220,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '4878:1',
                 'Museovirasto/MV',
                 'Museovirasto/MV',
+                'Kansatieteen kuvakokoelma',
                 'Museovirasto/MV',
             ],
             'identifier' => '4878:1',
@@ -271,6 +285,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'media_type_str_mv' => [
                 'image/jpeg',
+            ],
+            'identifier_txtP_mv' => [
+                '4878:1',
+                'Prt',
+                'Kiinteistötunnus',
+                'Uri and Yso',
             ],
         ];
 
@@ -528,6 +548,52 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $result = array_filter($record->toSolrArray());
         $this->compareArray($expected, $result, 'Measurements');
+    }
+
+    /**
+     * Test getOtherIdentifiers function
+     *
+     * @return void
+     */
+    public function testIdentifiers(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_identifiers.xml',
+            [],
+            'Finna'
+        );
+
+        $data = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'this is a proper issn',
+            ],
+            $data['issn'],
+            'issnCompare'
+        );
+        $this->compareArray(
+            [
+                '9783161484100',
+            ],
+            $data['isbn'],
+            'isbnCompare'
+        );
+        $this->assertEquals('ID for identifier field', $data['identifier']);
+        $this->compareArray(
+            [
+                'ID for identifier field',
+                'Kissat kehdossa',
+                'Hopealusikka',
+                'Kattila',
+                'Catila',
+                'Kissala',
+                'Kollila',
+                'Manulila',
+            ],
+            $data['identifier_txtP_mv'],
+            'OtherIdentifiers'
+        );
     }
 
     /**

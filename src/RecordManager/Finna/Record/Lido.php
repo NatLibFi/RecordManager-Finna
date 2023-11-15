@@ -115,6 +115,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Location labels which should be included when getting location information.
+     *
+     * @var array
+     */
+    protected $includedLocationLabels = ['prt', 'kiinteistötunnus'];
+
+    /**
      * Location labels which should be excluded when getting location information.
      *
      * @var array
@@ -284,8 +291,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         $data['location_geo'] = [
-            ...$this->getEventPlaceLocations(),
-            ...$this->getRepositoryLocations(),
+            ...$this->getEventPlaceCoordinates(),
+            ...$this->getRepositoryLocationCoordinates(),
         ];
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
@@ -309,6 +316,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 array_column($onlineUrls, 'mediaType')
             )
         );
+        $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         return $data;
     }
 
@@ -441,34 +449,66 @@ class Lido extends \RecordManager\Base\Record\Lido
     public function getRawGeographicTopicIds(): array
     {
         $result = [];
-
-        $getPlaceID = function ($placeID) {
+        foreach ($this->getPlaceIDElements() as $placeID) {
             $id = trim((string)$placeID);
             if (
                 !preg_match('/^https?:/', $id)
                 && $type = (string)($placeID['type'] ?? '')
             ) {
-                $id = "($type)$id";
+                $result[] = "($type)$id";
             }
-            return $id;
-        };
+        }
+        return $result;
+    }
 
-        foreach ($this->getEventNodes($this->getPlaceEvents()) as $eventNode) {
+    /**
+     * Get all the placeID elements
+     *
+     * @param bool $allEvents Return all events for event places
+     *
+     * @return array
+     */
+    protected function getPlaceIDElements(bool $allEvents = false): array
+    {
+        $result = [];
+        foreach ($this->getEventNodes($allEvents ? null : $this->getPlaceEvents()) as $eventNode) {
             foreach ($eventNode->eventPlace as $eventPlace) {
-                if (isset($eventPlace->place->placeID)) {
-                    $result[] = $getPlaceID($eventPlace->place->placeID);
+                foreach ($eventPlace->place->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
                 }
             }
         }
-
         foreach ($this->getSubjectNodes() as $subject) {
             foreach ($subject->subjectPlace as $subjectPlace) {
-                if (isset($subjectPlace->place->placeID)) {
-                    $result[] = $getPlaceID($subjectPlace->place->placeID);
+                foreach ($subjectPlace->place->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
                 }
             }
         }
-
+        if ($allEvents) {
+            foreach (
+                $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
+                ?? [] as $set
+            ) {
+                foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
+                }
+            }
+        }
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
+            ?? [] as $set
+        ) {
+            foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
+                $attr = $placeID->attributes();
+                if (in_array($attr->type, $this->includedLocationLabels)) {
+                    $result[] = $placeID;
+                }
+                if ($attr->type == 'URI' && $attr->source == 'YSO') {
+                    $result[] = $placeID;
+                }
+            }
+        }
         return $result;
     }
 
@@ -544,11 +584,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get repository locations
+     * Get repository location coordinates
      *
      * @return array<int, string>
      */
-    protected function getRepositoryLocations(): array
+    protected function getRepositoryLocationCoordinates(): array
     {
         $results = [];
         foreach (
@@ -1025,13 +1065,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Return the event place locations associated with specified event
+     * Return the event place coordinates associated with specified event
      *
      * @param string|array $event Event type(s) allowed (null = all types)
      *
      * @return array<int, string> WKT
      */
-    protected function getEventPlaceLocations($event = null)
+    protected function getEventPlaceCoordinates($event = null)
     {
         $results = [];
         foreach ($this->getEventNodes($event) as $event) {
@@ -2033,5 +2073,27 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return $results;
+    }
+
+    /**
+     * Get other identifiers except ISBN, ISSN and identifiers which are URLs.
+     * Contains: workIDs, placeIDs.
+     *
+     * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#placeID
+     * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#workID
+     * @return array
+     */
+    protected function getOtherIdentifiers(): array
+    {
+        $filterUrls = function ($el) {
+            $trimmed = trim((string)$el);
+            return !preg_match('/^https?:/', $el) ? $trimmed : '';
+        };
+        $identifiers = $this->getIdentifiersByType([], ['issn', 'isbn']);
+        $result = array_merge(
+            array_map($filterUrls, $identifiers),
+            array_map($filterUrls, $this->getPlaceIDElements(true)),
+        );
+        return array_values(array_filter(array_unique($result)));
     }
 }
