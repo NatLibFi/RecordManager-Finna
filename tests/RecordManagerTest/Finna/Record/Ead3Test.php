@@ -750,13 +750,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Teksti',
             'topic_id_str_mv' => [
                 'http://www.yso.fi/onto/koko/p9995',
-                'http://www.yso.fi/onto/koko/p9995',
-                'http://www.yso.fi/onto/koko/p9995',
                 'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p74073',
-                'http://www.yso.fi/onto/koko/p74073',
                 'http://www.yso.fi/onto/koko/p74073',
             ],
             'geographic_id_str_mv' => [
@@ -859,8 +853,12 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         );
         //Check that agents as subjects are indexed as subjects rather than authors
         $this->assertEquals(
-            ['kissat', 'Kisu Misu'],
+            ['kissat', 'Kisu Misu', 'Pekka Töpöhäntä'],
             $fields['topic']
+        );
+        $this->assertEquals(
+            ['EAC_007', 'EAC_009'],
+            $fields['topic_id_str_mv']
         );
     }
 }

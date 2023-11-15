@@ -48,6 +48,9 @@
       <part localtype="suhteen ajallinen kattavuus">2014</part>
       <part localtype="Varianttinimi">Kimi Kissakuvaaja</part>
     </name>
+    <name relator="Aihe" identifier="EAC_009">
+      <part>Pekka Töpöhäntä</part>
+    </name>
     <persname relator="Kirjoittaja" identifier="EAC_002">
       <part>Kirsi Kissakirjailija</part>
     </persname>
