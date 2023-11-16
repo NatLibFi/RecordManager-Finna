@@ -922,7 +922,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     $result[] = $this->parseDateRange($normal);
                 } else {
                     foreach (explode(', ', (string)$unitdate) as $single) {
-                        $date = str_replace('-', '/', $single);
+                        $date = str_replace(['-', '–'], '/', $single);
                         if (!str_contains($date, '/')) {
                             $date = "$date/$date";
                         }
