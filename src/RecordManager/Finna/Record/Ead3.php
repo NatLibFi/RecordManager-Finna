@@ -357,19 +357,15 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         foreach ($this->getAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type === 'author') {
-                if ($id = $agent['id'] ?? '') {
-                    $results[] = $id;
-                }
+            if ($type === 'author' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
             }
         }
         return array_filter(array_unique($results));
@@ -385,10 +381,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $results = [];
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type === 'author2') {
-                if ($id = $agent['id'] ?? '') {
-                    $results[] = $id;
-                }
+            if ($type === 'author2' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
             }
         }
         return array_filter(array_unique($results));
@@ -405,10 +399,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         foreach ($this->getCorporateAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
@@ -1168,29 +1160,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $results = [];
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type === 'subject') {
-                if ($name = $agent['name'] ?? '') {
-                    $results[] = $name;
-                }
+            if ($type === 'subject' && ($name = $agent['name'] ?? '')) {
+                $results[] = $name;
             }
         }
         foreach ($this->getAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'subject') {
-                    if ($name = $author['name'] ?? '') {
-                        $results[] = $name;
-                    }
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
                 }
             }
         }
         foreach ($this->getCorporateAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'subject') {
-                    if ($name = $author['name'] ?? '') {
-                        $results[] = $name;
-                    }
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
                 }
             }
         }
@@ -1207,29 +1193,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $results = [];
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type === 'subject') {
-                if ($id = $agent['id'] ?? '') {
-                    $results[] = $id;
-                }
+            if ($type === 'subject' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
             }
         }
         foreach ($this->getAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'subject') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
         foreach ($this->getCorporateAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'subject') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
