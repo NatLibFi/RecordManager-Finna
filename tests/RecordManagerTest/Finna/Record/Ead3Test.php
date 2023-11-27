@@ -477,10 +477,12 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
     public function testYksa()
     {
         // <unitdate>1918-1931</unitdate>
+        // 1917-XX-XX
+        // uuuu-uu-uu (not to be included)
         $fields = $this->createRecord(Ead3::class, 'yksa.xml', [], 'Finna')
             ->toSolrArray();
-        $this->assertContains(
-            '[1918-01-01 TO 1931-12-31]',
+        $this->assertEquals(
+            ['[1918-01-01 TO 1931-12-31]', '[1917-01-01 TO 1917-12-31]'],
             $fields['search_daterange_mv']
         );
         $this->assertEquals(
@@ -750,13 +752,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Teksti',
             'topic_id_str_mv' => [
                 'http://www.yso.fi/onto/koko/p9995',
-                'http://www.yso.fi/onto/koko/p9995',
-                'http://www.yso.fi/onto/koko/p9995',
                 'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p16542',
-                'http://www.yso.fi/onto/koko/p74073',
-                'http://www.yso.fi/onto/koko/p74073',
                 'http://www.yso.fi/onto/koko/p74073',
             ],
             'geographic_id_str_mv' => [
@@ -859,8 +855,12 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         );
         //Check that agents as subjects are indexed as subjects rather than authors
         $this->assertEquals(
-            ['kissat', 'Kisu Misu'],
+            ['kissat', 'Kisu Misu', 'Pekka Töpöhäntä'],
             $fields['topic']
+        );
+        $this->assertEquals(
+            ['EAC_007', 'EAC_009'],
+            $fields['topic_id_str_mv']
         );
     }
 }

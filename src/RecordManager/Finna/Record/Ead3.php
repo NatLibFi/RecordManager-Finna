@@ -69,7 +69,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     public const NAME_TYPE_PRIMARY = 'ensisijainen nimi';
     public const NAME_TYPE_OUTDATED = 'vanhentunut nimi';
 
-    public const SUBJECT_ACTOR_ROLES = ['förekommer', 'handlar om', 'refereras till'];
+    public const SUBJECT_ACTOR_ROLES = ['aihe', 'förekommer', 'handlar om', 'refereras till'];
     public const SECONDARY_AUTHOR_ROLES = [
         'brevmottagare', 'donator', 'inlämnare', 'insamlare','keruun järjestäjä', 'kerääjä',
         'luovuttaja', 'vastaanottaja',
@@ -223,7 +223,13 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         ];
         $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
-                    array_unique([...$this->getCorporateAuthorIds(), ...$this->getAuthorIds()]),
+                    array_unique(
+                        [
+                            ...$this->getCorporateAuthorIds(),
+                            ...$this->getAuthorIds(),
+                            ...$this->getSecondaryAuthorIds(),
+                        ]
+                    ),
                     'author'
                 );
         $data['author2_id_role_str_mv']
@@ -255,11 +261,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     public function getRawTopicIds(): array
     {
-        return $this->getTopicTermsFromNodeWithRelators(
+        $results = $this->getTopicTermsFromNodeWithRelators(
             'subject',
             self::SUBJECT_RELATORS,
             true
         );
+        return array_filter(array_unique([...$results, ...$this->getSubjectActorIds()]));
     }
 
     /**
@@ -350,19 +357,31 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         foreach ($this->getAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type === 'subject') {
-                continue;
+            if ($type === 'author' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
             }
-            if ($id = $agent['id'] ?? '') {
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author2' && ($id = $agent['id'] ?? '')) {
                 $results[] = $id;
             }
         }
@@ -380,10 +399,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         foreach ($this->getCorporateAuthorElements() as $node) {
             foreach ($this->getAuthorDetails($node) as $author) {
                 $type = $author['type'] ?? '';
-                if ($type === 'author' || $type === 'variant') {
-                    if ($id = $author['id'] ?? '') {
-                        $results[] = $id;
-                    }
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
                 }
             }
         }
@@ -625,7 +642,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array            array of authors with keys:
      *   'name'       author name
-     *   'type'       author type (author or variant)
+     *   'type'       author type (author, variant or subject)
      *   'id'         author id
      *   'idWithRole' id###role
      */
@@ -658,6 +675,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                         break;
                 }
             }
+            if (in_array(mb_strtolower($relator, 'UTF-8'), $this::SUBJECT_ACTOR_ROLES)) {
+                $author['type'] = 'subject';
+            }
             if ($identifier) {
                 $author['id'] = $identifier;
                 if ($relator) {
@@ -689,23 +709,24 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 continue;
             }
             $agent = [];
-            $href = trim((string)($relation->attributes()->href ?? ''));
             $role = trim((string)($relation->attributes()->arcrole ?? ''));
             $roleLC = mb_strtolower($role, 'UTF-8');
             if ($name = trim((string)($relation->relationentry ?? ''))) {
                 $agent['name'] = $name;
+            }
+            if ($href = trim((string)($relation->attributes()->href ?? ''))) {
+                $agent['id'] = $href;
+                if ($role) {
+                    $agent['idWithRole'] = $this->formatAuthorIdWithRole($href, $role);
+                }
+            }
+            if ($name || $href) {
                 if (in_array($roleLC, $this::SUBJECT_ACTOR_ROLES)) {
                     $agent['type'] = 'subject';
                 } elseif (in_array($roleLC, $this::SECONDARY_AUTHOR_ROLES)) {
                     $agent['type'] = 'author2';
                 } else {
                     $agent['type'] = 'author';
-                }
-            }
-            if ($href) {
-                $agent['id'] = $href;
-                if ($role) {
-                    $agent['idWithRole'] = $this->formatAuthorIdWithRole($href, $role);
                 }
             }
             if ($agent) {
@@ -919,10 +940,21 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
                 $normal = (string)$unitdate->attributes()->normal;
                 if (!empty($normal)) {
-                    $result[] = $this->parseDateRange($normal);
+                    $parsedDate = $this->parseDateRange($normal);
+                    if ($parsedDate) {
+                        $result[] = $parsedDate;
+                    } else {
+                        $normal = strtolower($normal);
+                        if (
+                            !str_contains($normal, 'xxxx') && !str_contains($normal, 'uuuu')
+                            && (str_contains($normal, '-xx-xx') || str_contains($normal, '-uu-uu'))
+                        ) {
+                            $result[] = $this->parseDateRange("$normal/$normal");
+                        }
+                    }
                 } else {
                     foreach (explode(', ', (string)$unitdate) as $single) {
-                        $date = str_replace('-', '/', $single);
+                        $date = str_replace(['-', '–'], '/', $single);
                         if (!str_contains($date, '/')) {
                             $date = "$date/$date";
                         }
@@ -1126,16 +1158,73 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             'subject',
             self::SUBJECT_RELATORS
         );
+        return [...$results, ...$this->getSubjectActors()];
+    }
+
+    /**
+     * Get subject actors
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActors()
+    {
+        $results = [];
         foreach ($this->getAgentsFromRelations() as $agent) {
             $type = $agent['type'] ?? '';
-            if ($type !== 'subject') {
-                continue;
-            }
-            if ($name = $agent['name'] ?? '') {
+            if ($type === 'subject' && ($name = $agent['name'] ?? '')) {
                 $results[] = $name;
             }
         }
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
+                }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
+                }
+            }
+        }
         return $results;
+    }
+
+    /**
+     * Get subject actor ids
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActorIds()
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
+            }
+        }
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        return array_filter(array_unique($results));
     }
 
     /**

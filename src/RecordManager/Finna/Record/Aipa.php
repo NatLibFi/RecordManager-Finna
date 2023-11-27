@@ -33,7 +33,6 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Http\ClientManager as HttpClientManager;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
-use RecordManager\Base\Record\Qdc;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
