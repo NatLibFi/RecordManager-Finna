@@ -63,6 +63,7 @@ class Aipa extends Qdc
      */
     protected $mergeFields = [
         'lrmi' => [
+            'contents',
             'educational_audience_str_mv',
             'educational_level_str_mv',
             'educational_aim_str_mv',
@@ -118,8 +119,13 @@ class Aipa extends Qdc
 
         // Merge fields from encapsulated records.
         foreach ($this->doc->item as $item) {
-            $format = strtolower((string)$item->format);
-            if (empty($this->mergeFields[$format])) {
+            $format = $item->attributes()->{'format'} ?? null;
+            if (null !== $format) {
+                $format = strtolower((string)$format);
+                if (empty($this->mergeFields[$format])) {
+                    continue;
+                }
+            } else {
                 continue;
             }
             $record = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');
