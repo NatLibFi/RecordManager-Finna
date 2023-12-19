@@ -51,6 +51,10 @@
     </geogname>
     <geogname source="YSO" identifier="http://www.yso.fi/onto/yso/p94466">
       <part>Vaasa</part>
+      <geographiccoordinates coordinatesystem="WGS84">63.094, 21.616</geographiccoordinates>
+    </geogname>
+    <geogname source="YSO" identifier="http://localhost">
+      <part>Vaasan keskusta</part>
       <geographiccoordinates coordinatesystem="WGS84">63.093, 21.616</geographiccoordinates>
     </geogname>
   </controlaccess>

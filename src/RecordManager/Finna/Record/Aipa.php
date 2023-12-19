@@ -63,11 +63,12 @@ class Aipa extends Qdc
      */
     protected $mergeFields = [
         'lrmi' => [
+            'contents',
+            'language',
             'educational_audience_str_mv',
             'educational_level_str_mv',
             'educational_aim_str_mv',
             'educational_subject_str_mv',
-            'educational_material_type_str_mv',
             'topic_id_str_mv',
         ],
     ];
@@ -114,12 +115,21 @@ class Aipa extends Qdc
     public function toSolrArray(Database $db = null)
     {
         $data = parent::toSolrArray($db);
+
         $data['record_format'] = 'aipa';
+        foreach ($this->doc->type as $type) {
+            $data['educational_material_type_str_mv'][] = (string)$type;
+        }
 
         // Merge fields from encapsulated records.
         foreach ($this->doc->item as $item) {
-            $format = strtolower((string)$item->format);
-            if (empty($this->mergeFields[$format])) {
+            $format = $item->attributes()->{'format'} ?? null;
+            if (null !== $format) {
+                $format = strtolower((string)$format);
+                if (empty($this->mergeFields[$format])) {
+                    continue;
+                }
+            } else {
                 continue;
             }
             $record = $this->createRecord($format, $item->asXML(), (string)$item->id, 'aipa');

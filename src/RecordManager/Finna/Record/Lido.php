@@ -1627,7 +1627,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         // Trying to index dates into the future? I don't think so...
         $yearNow = date('Y');
-        if ($startDate > $yearNow || $endDate > $yearNow) {
+        if (substr($startDate, 0, 4) > $yearNow || substr($endDate, 0, 4) > $yearNow) {
             return null;
         }
 

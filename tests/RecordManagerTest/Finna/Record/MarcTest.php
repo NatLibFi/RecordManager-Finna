@@ -274,6 +274,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
             'media_type_str_mv' => [],
+            'major_genre_str_mv' => 'nonfiction',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

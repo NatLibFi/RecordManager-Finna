@@ -498,19 +498,23 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             $fields['topic']
         );
         $this->assertEquals(
-            ['Kupittaa', 'Turku', 'Vaasa', 'Viipuri'],
+            ['Kupittaa', 'Turku', 'Vaasa', 'Vaasan keskusta', 'Viipuri'],
             $fields['geographic']
         );
         $this->assertEquals(
-            ['Kupittaa', 'Turku', 'Vaasa', 'Viipuri'],
+            ['Kupittaa', 'Turku', 'Vaasa', 'Vaasan keskusta', 'Viipuri'],
             $fields['geographic_facet']
         );
         $this->assertEquals(
-            ['POINT(21.616 63.093)', 'POINT(28.750 60.711)'],
+            ['POINT(21.616 63.093)'],
             $fields['location_geo']
         );
         $this->assertEquals(
-            ['http://www.yso.fi/onto/yso/p94466', 'http://www.yso.fi/onto/yso/p94486'],
+            [
+                'http://www.yso.fi/onto/yso/p94466',
+                'http://localhost',
+                'http://www.yso.fi/onto/yso/p94486',
+            ],
             $fields['geographic_id_str_mv']
         );
     }

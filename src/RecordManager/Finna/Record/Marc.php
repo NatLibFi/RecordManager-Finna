@@ -128,13 +128,43 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Field specs for ISBN fields
      *
+     * 'type' can be 'normal' or 'invalid'; for 'invalid', an invalid value isn't
+     * stored in the warnings field.
+     *
      * @var array
      */
     protected $isbnFields = [
-        [MarcHandler::GET_NORMAL, '020', ['a']],
-        [MarcHandler::GET_NORMAL, '020', ['z']],
-        [MarcHandler::GET_NORMAL, '773', ['z']],
-        [MarcHandler::GET_NORMAL, '776', ['z']],
+        [
+            'type' => 'normal',
+            'selector' => [[MarcHandler::GET_NORMAL, '020', ['a']]],
+        ],
+        [
+            'type' => 'invalid',
+            'selector' => [[MarcHandler::GET_NORMAL, '020', ['z']]],
+        ],
+        [
+            'type' => 'combined',
+            'selector' => [[MarcHandler::GET_NORMAL, '773', ['z']]],
+        ],
+        [
+            'type' => 'combined',
+            'selector' => [[MarcHandler::GET_NORMAL, '776', ['z']]],
+        ],
+    ];
+
+    /**
+     * Field specs for ISSN fields
+     *
+     * 'type' can be 'normal', 'combined' or 'invalid'; it's not currently used but
+     * exists for future needs and compatibility with $isbnFields.
+     *
+     * @var array
+     */
+    protected $issnFields = [
+        [
+            'type' => 'normal',
+            'selector' => [[MarcHandler::GET_NORMAL, '022', ['a']]],
+        ],
     ];
 
     /**
@@ -229,6 +259,9 @@ class Marc extends \RecordManager\Base\Record\Marc
     public function toSolrArray(Database $db = null)
     {
         $data = parent::toSolrArray($db);
+
+        $leader = $this->record->getLeader();
+        $field008 = $this->record->getControlField('008');
 
         if (empty($data['author'])) {
             foreach ($this->record->getFields('110') as $field110) {
@@ -332,6 +365,19 @@ class Marc extends \RecordManager\Base\Record\Marc
             ];
         }
 
+        // Major genre from 008
+        if (
+            in_array(substr($leader, 6, 1), ['a', 't'])
+            && !in_array(substr($leader, 7, 1), ['b', 'i', 's'])
+        ) {
+            $genre = substr($field008, 33, 1);
+            if ('0' === $genre) {
+                $data['major_genre_str_mv'] = 'nonfiction';
+            } elseif (in_array($genre, ['1', 'd', 'f', 'h', 'j', 'p'], true)) {
+                $data['major_genre_str_mv'] = 'fiction';
+            }
+        }
+
         // Classifications
         foreach ($this->record->getFields('080') as $field080) {
             $classification = trim($this->record->getSubfield($field080, 'a'));
@@ -406,7 +452,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 && (!isset($data['major_genre_str_mv'])
                 || $data['major_genre_str_mv'] == 'nonfiction')
             ) {
-                switch (substr($classification, 0, 2)) {
+                switch (substr(ltrim($classification, 'L'), 0, 2)) {
                     case '78':
                         $data['major_genre_str_mv'] = 'music';
                         break;
@@ -447,16 +493,15 @@ class Marc extends \RecordManager\Base\Record\Marc
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = [$this->source];
 
-        // ISSN
-        $data['issn'] = $this->getFieldsSubfields(
-            [[MarcHandler::GET_NORMAL, '022', ['a']]]
-        );
+        // ISSN processing
         foreach ($data['issn'] as &$value) {
             $value = str_replace('-', '', $value);
         }
+        unset($value);
         $data['other_issn_isn_mv'] = $data['other_issn_str_mv']
             = $this->getFieldsSubfields(
                 [
+                    [MarcHandler::GET_NORMAL, '022', ['y']],
                     [MarcHandler::GET_NORMAL, '440', ['x']],
                     [MarcHandler::GET_NORMAL, '480', ['x']],
                     [MarcHandler::GET_NORMAL, '490', ['x']],
@@ -468,12 +513,14 @@ class Marc extends \RecordManager\Base\Record\Marc
         foreach ($data['other_issn_str_mv'] as &$value) {
             $value = str_replace('-', '', $value);
         }
+        unset($value);
         $data['linking_issn_str_mv'] = $this->getFieldsSubfields(
             [[MarcHandler::GET_NORMAL, '022', ['l']]]
         );
         foreach ($data['linking_issn_str_mv'] as &$value) {
             $value = str_replace('-', '', $value);
         }
+        unset($value);
 
         // URLs
         $onlineUrls = $this->getLinkData();
@@ -806,10 +853,10 @@ class Marc extends \RecordManager\Base\Record\Marc
                 }
             }
         } elseif ('Dissertation' === $data['format']) {
-            if ('m' === substr($this->record->getLeader(), 7, 1)) {
+            if ('m' === substr($leader, 7, 1)) {
                 $data['format_ext_str_mv'] = (array)$data['format'];
                 if (
-                    'o' === substr($this->record->getControlField('008'), 23, 1)
+                    'o' === substr($field008, 23, 1)
                     || 'cr' === substr($this->record->getControlField('007'), 0, 2)
                 ) {
                     $data['format_ext_str_mv'][] = 'eBook';
@@ -853,6 +900,28 @@ class Marc extends \RecordManager\Base\Record\Marc
                 ...($data['ctrlnum'] ?? []),
                 ...$ids,
             ];
+        }
+
+        // Order and item count summary:
+        foreach ($this->record->getFields('852') as $field) {
+            $type = $this->record->getSubfield($field, '9');
+            if (!$type) {
+                continue;
+            }
+            $count = (int)$this->record->getSubfield($field, 't');
+            if ('orders' === $type) {
+                $data['orders_int'] = $count;
+            } elseif ('items' === $type) {
+                $data['items_int'] = $count;
+            }
+        }
+        foreach ($this->record->getFields('952') as $field) {
+            $status = (int)$this->record->getSubfield($field, '7');
+            if (-1 === $status) {
+                $data['orders_int'] = ($data['orders_int'] ?? 0) + 1;
+            } else {
+                $data['items_int'] = ($data['items_int'] ?? 0) + 1;
+            }
         }
 
         // Merge any extra fields from e.g. merged component parts (also converts any
@@ -970,23 +1039,50 @@ class Marc extends \RecordManager\Base\Record\Marc
 
         $identifierFields = [
             'ISBN' => $this->isbnFields,
-            'ISSN' => [[MarcHandler::GET_NORMAL, '022', ['a']]],
-            'OAN' => [[MarcHandler::GET_NORMAL, '025', ['a']]],
-            'FI' => [[MarcHandler::GET_NORMAL, '026', ['a', 'b']]],
-            'STRN' => [[MarcHandler::GET_NORMAL, '027', ['a']]],
-            'PDN' => [[MarcHandler::GET_NORMAL, '028', ['a', 'b']]],
+            'ISSN' => [
+                [
+                    'type' => 'normal',
+                    'selector' => [[MarcHandler::GET_NORMAL, '022', ['a']]],
+                ],
+            ],
+            'OAN' => [
+                [
+                    'type' => 'normal',
+                    'selector' => [[MarcHandler::GET_NORMAL, '025', ['a']]],
+                ],
+            ],
+            'FI' => [
+                [
+                    'type' => 'normal',
+                    'selector' => [[MarcHandler::GET_NORMAL, '026', ['a', 'b']]],
+                ],
+            ],
+            'STRN' => [
+                [
+                    'type' => 'normal',
+                    'selector' => [[MarcHandler::GET_NORMAL, '027', ['a']]],
+                ],
+            ],
+            'PDN' => [
+                [
+                    'type' => 'normal',
+                    'selector' => [[MarcHandler::GET_NORMAL, '028', ['a', 'b']]],
+                ],
+            ],
         ];
 
         $identifiers = [];
-        foreach ($identifierFields as $idKey => $settings) {
-            $ids = $this->getFieldsSubfields($settings, false, true, true);
-            $ids = array_map(
-                function ($s) use ($idKey) {
-                    return "$idKey $s";
-                },
-                $ids
-            );
-            $identifiers = [...$identifiers, ...$ids];
+        foreach ($identifierFields as $idKey => $identifierField) {
+            foreach ($identifierField as $settings) {
+                $ids = $this->getFieldsSubfields($settings['selector'], false, true, true);
+                $ids = array_map(
+                    function ($s) use ($idKey) {
+                        return "$idKey $s";
+                    },
+                    $ids
+                );
+                $identifiers = [...$identifiers, ...$ids];
+            }
         }
 
         foreach ($this->record->getFields('024') as $field024) {
@@ -1270,7 +1366,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     protected function getTopicIDs(): array
     {
-        $fieldTags = ['567', '600', '610', '611', '630', '650'];
+        $fieldTags = ['567', '600', '610', '611', '630', '650', '690'];
         $result = [];
         foreach ($fieldTags as $tag) {
             foreach ($this->record->getFields($tag) as $field) {
@@ -2038,6 +2134,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 'y', 'z', '2', '6', '8',
             ],
             '650' => ['0', '2', '6', '8'],
+            '690' => ['0', '2', '6', '8'],
             '100' => ['0', '4'],
             '700' => ['0', '4'],
             '710' => ['0', '4'],
@@ -2053,14 +2150,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         ];
         $allFields = [];
         // Include ISBNs, also normalized if possible
-        foreach ($this->getFieldsSubfields($this->isbnFields, false, true, true) as $isbn) {
-            if (strlen($isbn) < 10) {
-                continue;
-            }
-            $allFields[] = $isbn;
-            $normalized = $this->metadataUtils->normalizeISBN($isbn);
-            if ($normalized && $normalized !== $isbn) {
-                $allFields[] = $normalized;
+        foreach ($this->isbnFields as $fieldSpec) {
+            foreach ($this->getFieldsSubfields($fieldSpec['selector'], false, true, true) as $isbn) {
+                if (strlen($isbn) < 10) {
+                    continue;
+                }
+                $allFields[] = $isbn;
+                $normalized = $this->metadataUtils->normalizeISBN($isbn);
+                if ($normalized && $normalized !== $isbn) {
+                    $allFields[] = $normalized;
+                }
             }
         }
         foreach ($this->record->getAllFields() as $field) {
@@ -2296,6 +2395,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '650', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '651', ['x']],
                 [MarcHandler::GET_NORMAL, '655', ['x']],
+                [MarcHandler::GET_NORMAL, '690', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '385', ['a']],
                 [MarcHandler::GET_NORMAL, '386', ['a']],
             ],
@@ -2325,6 +2425,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [MarcHandler::GET_NORMAL, '385', ['a']],
                     [MarcHandler::GET_NORMAL, '356', ['a']],
                     [MarcHandler::GET_NORMAL, '567', ['b']],
+                    [MarcHandler::GET_BOTH, '690', [
+                        'a', 'b', 'c', 'd', 'e', 'v', 'x', 'y', 'z',
+                    ]],
                 ]
             ),
         ];
@@ -2716,6 +2819,40 @@ class Marc extends \RecordManager\Base\Record\Marc
             ];
         }
 
+        return $result;
+    }
+
+    /**
+     * Serialize full record to a string
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        $record = clone $this->record;
+        // Filter out any order or item count summary fields:
+        $record->filterFields(
+            function ($field) {
+                if ('852' !== (string)key($field)) {
+                    return true;
+                }
+                $field = current($field);
+                foreach ($field['subfields'] ?? [] as $subfield) {
+                    if ('9' === (string)key($subfield) && in_array(current($subfield), ['items', 'orders'])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        );
+
+        $format = $this->config['MarcRecord']['solr_serialization'] ?? 'JSON';
+        $result = $record->toFormat($format);
+        if (!$result && 'ISO2709' === $format) {
+            // If the record exceeds 99999 bytes, it doesn't fit into ISO 2709, so
+            // use MARCXML as a fallback:
+            $result = $this->record->toFormat('MARCXML');
+        }
         return $result;
     }
 }

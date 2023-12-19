@@ -39,6 +39,14 @@ return [
                     'MarcAuthEnrichment' => \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class,
                 ],
             ],
+            'harvest' => [
+                'factories' => [
+                    \RecordManager\Finna\Harvest\SierraApi::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
+                ],
+                'aliases' => [
+                    \RecordManager\Base\Harvest\SierraApi::class => \RecordManager\Finna\Harvest\SierraApi::class,
+                ],
+            ],
             'record' => [
                 'factories' => [
                     \RecordManager\Finna\Record\Aipa::class => \RecordManager\Finna\Record\AipaFactory::class,

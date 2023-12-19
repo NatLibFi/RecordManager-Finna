@@ -126,11 +126,45 @@ class Marc extends AbstractRecord
     /**
      * Field specs for ISBN fields
      *
+     * 'type' can be 'normal', 'combined' or 'invalid'; invalid values are stored
+     * in the warnings field only for 'normal' type, and extra content is ignored for
+     * 'combined' type.
+     *
      * @var array
      */
     protected $isbnFields = [
-        [MarcHandler::GET_NORMAL, '020', ['a']],
-        [MarcHandler::GET_NORMAL, '773', ['z']],
+        [
+            'type' => 'normal',
+            'selector' => [[MarcHandler::GET_NORMAL, '020', ['a']]],
+        ],
+        [
+            'type' => 'combined',
+            'selector' => [[MarcHandler::GET_NORMAL, '773', ['z']]],
+        ],
+    ];
+
+    /**
+     * Field specs for ISSN fields
+     *
+     * 'type' can be 'normal', 'combined' or 'invalid'; it's not currently used but
+     * exists for future needs and compatibility with $isbnFields.
+     *
+     * @var array
+     */
+    protected $issnFields = [
+        [
+            'type' => 'normal',
+            'selector' => [
+                [MarcHandler::GET_NORMAL, '022', ['a']],
+                [MarcHandler::GET_NORMAL, '440', ['x']],
+                [MarcHandler::GET_NORMAL, '490', ['x']],
+                [MarcHandler::GET_NORMAL, '730', ['x']],
+                [MarcHandler::GET_NORMAL, '773', ['x']],
+                [MarcHandler::GET_NORMAL, '776', ['x']],
+                [MarcHandler::GET_NORMAL, '780', ['x']],
+                [MarcHandler::GET_NORMAL, '785', ['x']],
+            ],
+        ],
     ];
 
     /**
@@ -432,25 +466,25 @@ class Marc extends AbstractRecord
             ]
         );
 
-        foreach ($this->getFieldsSubfields($this->isbnFields, false, true, true) as $isbn) {
-            if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
-                $data['isbn'][] = $normalized;
-            } else {
-                $this->storeWarning("Invalid ISBN '$isbn'");
+        foreach ($this->isbnFields as $fieldSpec) {
+            foreach ($this->getFieldsSubfields($fieldSpec['selector'], false, true, true) as $isbn) {
+                if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
+                    $data['isbn'][] = $normalized;
+                } elseif ('normal' === $fieldSpec['type']) {
+                    $this->storeWarning("Invalid ISBN '$isbn'");
+                }
             }
         }
-        $data['issn'] = $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_NORMAL, '022', ['a']],
-                [MarcHandler::GET_NORMAL, '440', ['x']],
-                [MarcHandler::GET_NORMAL, '490', ['x']],
-                [MarcHandler::GET_NORMAL, '730', ['x']],
-                [MarcHandler::GET_NORMAL, '773', ['x']],
-                [MarcHandler::GET_NORMAL, '776', ['x']],
-                [MarcHandler::GET_NORMAL, '780', ['x']],
-                [MarcHandler::GET_NORMAL, '785', ['x']],
-            ]
-        );
+
+        foreach ($this->issnFields as $fieldSpec) {
+            // phpcs:ignore
+            /** @psalm-suppress DuplicateArrayKey,InvalidOperand */
+            $data['issn'] = [
+                ...($data['issn'] ?? []),
+                ...$this->getFieldsSubfields($fieldSpec['selector']),
+            ];
+        }
+
         $data['doi_str_mv'] = $this->getDOIs();
 
         $cn = $this->getFirstFieldSubfields(

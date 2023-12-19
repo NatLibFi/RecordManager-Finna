@@ -1272,6 +1272,15 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $result = [];
         foreach ($this->doc->controlaccess as $controlaccess) {
             foreach ($controlaccess->geogname as $geogname) {
+                // Don't use these if we have an YSO URI to use with enrichment:
+                $id = (string)($geogname->attributes()->identifier ?? '');
+                $uri = (string)($geogname->attributes()->uri ?? '');
+                if (
+                    str_starts_with($id, 'http://www.yso.fi/onto/yso/')
+                    || str_starts_with($uri, 'http://www.yso.fi/onto/yso/')
+                ) {
+                    continue;
+                }
                 foreach ($geogname->geographiccoordinates as $coordinates) {
                     $system = trim((string)($coordinates->attributes()->coordinatesystem ?? ''));
                     if ($system === 'WGS84') {
