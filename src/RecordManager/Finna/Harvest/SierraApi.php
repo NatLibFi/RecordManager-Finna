@@ -70,7 +70,7 @@ class SierraApi extends \RecordManager\Base\Harvest\SierraApi
                     'ind1' => ' ',
                     'ind2' => ' ',
                     'subfields' => [
-                        ['t' => count($record['orders'])],
+                        ['t' => array_sum(array_column($record['orders'], 'copies'))],
                         ['9' => 'orders'],
                     ],
                 ],
