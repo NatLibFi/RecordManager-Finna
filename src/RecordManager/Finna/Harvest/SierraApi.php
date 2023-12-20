@@ -29,7 +29,6 @@
 
 namespace RecordManager\Finna\Harvest;
 
-use function count;
 use function in_array;
 
 /**
