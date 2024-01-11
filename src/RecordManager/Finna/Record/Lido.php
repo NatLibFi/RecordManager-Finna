@@ -856,8 +856,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             foreach ($subject->subjectConcept as $concept) {
                 foreach ($concept->term as $term) {
                     // Sometimes there are multiple subjects in one element separated with commas
-                    foreach (explode(',', $term) as $explodedSubject) {
-                        if ($str = trim((string)$explodedSubject)) {
+                    foreach (explode(',', (string)$term) as $explodedSubject) {
+                        if ($str = trim($explodedSubject)) {
                             $results[] = $str;
                         }
                     }
