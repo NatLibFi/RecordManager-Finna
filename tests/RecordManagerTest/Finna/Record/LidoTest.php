@@ -83,6 +83,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('porolappalaiset', $fields['topic']);
         $this->assertContains('pannut', $fields['topic']);
         $this->assertContains('kahvipannut', $fields['topic']);
+        $this->assertContains('Toimija, Toini', $fields['topic']);
 
         $this->assertEquals('kahvipannu', $fields['title']);
 
