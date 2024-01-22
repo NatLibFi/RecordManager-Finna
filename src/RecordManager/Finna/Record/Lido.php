@@ -38,7 +38,6 @@ use function boolval;
 use function count;
 use function in_array;
 use function intval;
-use function is_array;
 use function strlen;
 
 /**
@@ -200,21 +199,6 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $data['building'] = $data['collection'];
             }
         }
-
-        // REMOVE THIS ONCE TUUSULA IS FIXED
-        // sometimes there are multiple subjects in one element
-        // separated with commas like "foo, bar, baz" (Tuusula)
-        $topic = [];
-        if (isset($data['topic']) && is_array($data['topic'])) {
-            foreach ($data['topic'] as $subject) {
-                $exploded = explode(',', $subject);
-                foreach ($exploded as $explodedSubject) {
-                    $topic[] = trim($explodedSubject);
-                }
-            }
-        }
-        $data['topic'] = $data['topic_facet'] = $topic;
-        // END OF TUUSULA FIX
 
         $data['artist_str_mv'] = $this->getActors('valmistus', 'taiteilija');
         $data['photographer_str_mv'] = $this->getActors('valmistus', 'valokuvaaja');
@@ -867,7 +851,30 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getSubjectTerms($exclude = ['aihe', 'iconclass'])
     {
-        return parent::getSubjectTerms($exclude);
+        $results = [];
+        foreach ($this->getSubjectNodes($exclude) as $subject) {
+            foreach ($subject->subjectConcept as $concept) {
+                foreach ($concept->term as $term) {
+                    // Sometimes there are multiple subjects in one element separated with commas
+                    foreach (explode(',', (string)$term) as $explodedSubject) {
+                        if ($str = trim($explodedSubject)) {
+                            $results[] = $str;
+                        }
+                    }
+                }
+            }
+            // Add subject actors
+            foreach ($subject->subjectActor as $actor) {
+                foreach ($actor->actor->nameActorSet ?? [] as $name) {
+                    foreach ($name->appellationValue as $value) {
+                        if ($str = trim((string)$value)) {
+                            $results[] = $str;
+                        }
+                    }
+                }
+            }
+        }
+        return $results;
     }
 
     /**

@@ -137,6 +137,13 @@
                             <subjectConcept>
                                 <term label="Museoalan asiasanasto">kahvipannut</term>
                             </subjectConcept>
+                            <subjectActor>
+                                <actor>
+                                    <nameActorSet>
+                                        <appellationValue>Toimija, Toini</appellationValue>
+                                    </nameActorSet>
+                                </actor>
+                            </subjectActor>
                         </subject>
                     </subjectSet>
                 </subjectWrap>
