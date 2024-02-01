@@ -64,7 +64,6 @@ class Aipa extends Qdc
     protected $mergeFields = [
         'lrmi' => [
             'contents',
-            'language',
             'educational_audience_str_mv',
             'educational_level_str_mv',
             'educational_aim_str_mv',
