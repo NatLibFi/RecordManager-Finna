@@ -116,4 +116,38 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             $fields['media_type_str_mv']
         );
     }
+
+    /**
+     * Test QDC processing warnings handling
+     *
+     * @return void
+     */
+    public function testQdcLanguageWarnings()
+    {
+        $record = $this->createRecord(
+            Qdc::class,
+            'qdc_language_warnings.xml',
+            [],
+            'Finna',
+            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+        );
+        $fields = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'unhandled language Veryodd',
+                'unhandled language verylonglanguagehere',
+                'unhandled language EnGb',
+                'unhandled language caT',
+            ],
+            $record->getProcessingWarnings(),
+            'getProcessingWarnings'
+        );
+        $this->compareArray(
+            [
+                'fi',
+            ],
+            $fields['language'],
+            'LanguageCheckAfterWarnings'
+        );
+    }
 }
