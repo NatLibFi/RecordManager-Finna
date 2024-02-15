@@ -160,7 +160,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                     $part
                 );
                 // Check that the language given is in proper form
-                if (mb_strlen($check) > 9 || (!ctype_lower($check))) {
+                if (mb_strlen($check) > 9 || !ctype_lower($check)) {
                     $this->storeWarning("unhandled language $check");
                     continue;
                 }
