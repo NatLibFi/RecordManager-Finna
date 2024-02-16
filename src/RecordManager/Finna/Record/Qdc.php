@@ -154,6 +154,8 @@ class Qdc extends \RecordManager\Base\Record\Qdc
         $languages = [];
         foreach ($this->doc->language as $language) {
             foreach (explode(' ', trim((string)$language)) as $part) {
+                //Remove extra characters from start and end of a language
+                $part = trim($part, ', ');
                 $check = preg_replace(
                     '/^http:\/\/lexvo\.org\/id\/iso639-.\/(.*)/',
                     '$1',
