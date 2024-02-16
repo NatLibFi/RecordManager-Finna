@@ -155,25 +155,25 @@ class Qdc extends \RecordManager\Base\Record\Qdc
         foreach ($this->doc->language as $language) {
             foreach (explode(' ', trim((string)$language)) as $part) {
                 //Remove extra characters from start and end of a language
-                $part = trim($part, ', ');
-                if (!$part) {
-                    continue;
-                }
+                $check = trim($part, ', ');
                 $check = preg_replace(
                     '/^http:\/\/lexvo\.org\/id\/iso639-.\/(.*)/',
                     '$1',
-                    $part
+                    $check
                 );
-                // en_US i.e
+                // en_US
                 if (str_contains($check, '_')) {
                     $check = explode('_', $check)[0];
                 }
                 // Check that the language given is in proper form
-                if (strlen($check) > 9 || !ctype_lower($check)) {
-                    $this->storeWarning("unhandled language $check");
+                if (!$check || strlen($check) > 9 || !ctype_lower($check)) {
+                    $toLog = $part ?: 'EMPTY_VALUE';
+                    $this->storeWarning("unhandled language $toLog");
                     continue;
                 }
-                $languages[] = $check;
+                foreach (str_split($check, 3) as $code) {
+                    $languages[] = $code;
+                }
             }
         }
         return $this->metadataUtils->normalizeLanguageStrings($languages);

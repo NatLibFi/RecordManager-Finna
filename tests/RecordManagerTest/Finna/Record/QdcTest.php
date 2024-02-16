@@ -139,6 +139,8 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'unhandled language EnGb',
                 'unhandled language caT',
                 'unhandled language po,tt',
+                'unhandled language ,',
+                'unhandled language EMPTY_VALUE',
             ],
             $record->getProcessingWarnings(),
             'getProcessingWarnings'
