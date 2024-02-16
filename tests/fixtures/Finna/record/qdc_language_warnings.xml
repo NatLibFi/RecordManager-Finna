@@ -6,8 +6,11 @@
   <language type="iso">EnGb</language>
   <language type="iso">caT</language>
   <language type="iso">fi</language>
-  <language type="iso">sv, en, nr</language>
-  <language type="iso">po,tt</language>
+  <language type="iso">jp_JP</language>
+  <language type="iso">sv, en, nr</language><!-- this should validate as a language -->
+  <language type="iso">po,tt</language><!--this should not validate as a language -->
+  <language type="iso">,</language>
+  <language type="iso"> </language>
   <rights>CC BY-NC-ND 4.0</rights>
   <publisher lang="fi">Sanitation Project, Research Institute for Humanity and Nature</publisher>
   <permaddress type="doi">http://dx.doi.org/https://doi.org/10.34416/svc.00029</permaddress>

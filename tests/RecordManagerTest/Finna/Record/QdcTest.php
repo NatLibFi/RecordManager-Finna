@@ -146,6 +146,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->compareArray(
             [
                 'fi',
+                'jp',
                 'sv',
                 'en',
                 'nr',
