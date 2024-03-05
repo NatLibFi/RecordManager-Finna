@@ -89,6 +89,39 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test coverage.
+     *
+     * @return void
+     */
+    public function testCoverage()
+    {
+        $spatial = [
+            'Helsinki',
+            'Vantaa',
+        ];
+        $temporal = [
+            '2010',
+            '2010-luku',
+        ];
+        $geocoding = ['POINT(27.1826451 63.5694237)'];
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_dateranges.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+        $this->assertEquals($spatial, $fields['geographic']);
+        $this->assertEquals($spatial, $fields['geographic_facet']);
+        $this->assertEquals($geocoding, $fields['location_geo']);
+        $this->assertEquals($temporal, $fields['era']);
+        $this->assertEquals($temporal, $fields['era_facet']);
+    }
+
+    /**
      * Test media types
      *
      * @return void
