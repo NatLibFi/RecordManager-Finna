@@ -103,7 +103,10 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             '2010',
             '2010-luku',
         ];
-        $geocoding = ['POINT(27.1826451 63.5694237)'];
+        $geocoding = [
+            'POINT(27.1826451 63.5694237)',
+            'POINT(20.0 60.0)',
+        ];
         $fields = $this->createRecord(
             Qdc::class,
             'qdc_dateranges.xml',

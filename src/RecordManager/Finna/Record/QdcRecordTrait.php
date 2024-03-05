@@ -178,7 +178,7 @@ trait QdcRecordTrait
      *
      * @return array
      */
-    public function getLocations()
+    public function getLocations(): array
     {
         $locations = [];
         // If there is already coordinates in the record, don't return anything for geocoding
@@ -198,7 +198,7 @@ trait QdcRecordTrait
      *
      * @return array
      */
-    protected function getCoverageByType(string $type)
+    protected function getCoverageByType(string $type): array
     {
         $result = [];
         foreach ($this->doc->coverage as $coverage) {
@@ -214,23 +214,19 @@ trait QdcRecordTrait
             );
             // If type is geocoding, return only coordinates.
             // Other types might contain ill-formatted coordinates which should be discarded.
-            switch ($type) {
-                case 'geocoding':
-                    if ($match) {
-                        if ($coverage->attributes()->format == 'lon,lat') {
-                            $lon = $matches[1];
-                            $lat = $matches[2];
-                        } else {
-                            $lat = $matches[1];
-                            $lon = $matches[2];
-                        }
-                        $result[] = "POINT($lon $lat)";
+            if ('geocoding' === $type) {
+                if ($match) {
+                    if ($coverage->attributes()->format == 'lon,lat') {
+                        $lon = $matches[1];
+                        $lat = $matches[2];
+                    } else {
+                        $lat = $matches[1];
+                        $lon = $matches[2];
                     }
-                    break;
-                default:
-                    if (!$match && $stripped = $this->metadataUtils->stripTrailingPunctuation($cov, '.')) {
-                        $result[] = $stripped;
-                    }
+                    $result[] = "POINT($lon $lat)";
+                }
+            } elseif (!$match && $stripped = $this->metadataUtils->stripTrailingPunctuation($cov, '.')) {
+                $result[] = $stripped;
             }
         }
         return $result;

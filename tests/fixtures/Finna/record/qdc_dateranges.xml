@@ -62,5 +62,6 @@
     <coverage type="spatial">Vantaa</coverage>
     <coverage type="spatial">63.0,27.0</coverage>
     <coverage type="geocoding" format="lat,lon">63.5694237,27.1826451</coverage>
+    <coverage type="geocoding" format="lon,lat">20.0,60.0</coverage>
     <coverage type="geocoding" format="lat,lon">Iisalmi</coverage>
 </dc>
