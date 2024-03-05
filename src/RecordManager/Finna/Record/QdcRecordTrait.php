@@ -212,7 +212,7 @@ trait QdcRecordTrait
                 $cov,
                 $matches
             );
-            // If type is geocoding, return only coordinates. 
+            // If type is geocoding, return only coordinates.
             // Other types might contain ill-formatted coordinates which should be discarded.
             switch ($type) {
                 case 'geocoding':
