@@ -434,11 +434,14 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $result = [];
         foreach ($this->getPlaceIDElements() as $placeID) {
-            $id = trim((string)$placeID);
-            if (
-                !preg_match('/^https?:/', $id)
-                && $type = (string)($placeID['type'] ?? '')
-            ) {
+            if (!($id = trim((string)$placeID))) {
+                continue;
+            }
+            if (preg_match('/^https?:/', $id)) {
+                $result[] = $id;
+                continue;
+            }
+            if ($type = (string)($placeID['type'] ?? '')) {
                 $result[] = "($type)$id";
             }
         }
