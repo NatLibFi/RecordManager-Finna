@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Record Renormalization
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -77,21 +79,18 @@ class Renormalize extends AbstractBase
      */
     protected function doExecute(InputInterface $input, OutputInterface $output)
     {
-        $sourceId = $input->getOption('source');
+        $sourceId = $input->getOption('source') ?: '';
         $singleId = $input->getOption('single') ?: '';
 
-        if (empty($sourceId) && empty($singleId)) {
-            $this->logger
-                ->logFatal('renormalize', 'No source or record id specified');
-            return Command::INVALID;
-        }
-
-        if (empty($sourceId)) {
+        if (!empty($singleId)) {
             $this->logger->logInfo('renormalize', "Renormalizing record $singleId");
             $this->process('', $singleId);
         } else {
             foreach (explode(',', $sourceId) as $source) {
-                $this->logger->logInfo('renormalize', "Renormalizing $source");
+                $this->logger->logInfo(
+                    'renormalize',
+                    'Renormalizing ' . ($source ?: 'all records')
+                );
                 $this->process($source, $singleId);
             }
         }
@@ -132,14 +131,13 @@ class Renormalize extends AbstractBase
                 &$count
             ) {
                 $source = $record['source_id'];
-                if (!isset($this->dataSourceConfig[$source])) {
+                if (!($settings = $this->dataSourceConfig[$source] ?? null)) {
                     $this->logger->logFatal(
                         'renormalize',
                         "Data source configuration missing for '$source'"
                     );
                     return false;
                 }
-                $settings = $this->dataSourceConfig[$source];
                 $originalData = $this->metadataUtils->getRecordData($record, false);
                 $normalizedData = $originalData;
                 if (null !== $settings['normalizationXSLT']) {
@@ -213,7 +211,8 @@ class Renormalize extends AbstractBase
                             = $this->metadataUtils->getRecordData($record, true);
                         $record['original_data']
                             = $this->metadataUtils->getRecordData($record, false);
-                        if ($record['normalized_data'] === $record['original_data']
+                        if (
+                            $record['normalized_data'] === $record['original_data']
                         ) {
                             $record['normalized_data'] = '';
                         }

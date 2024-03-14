@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Generic XML File Splitter
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,7 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Splitter;
+
+use function is_string;
 
 /**
  * Generic File Splitter
@@ -57,7 +61,7 @@ class File extends AbstractBase
     /**
      * XPath query handler
      *
-     * @var \DOMXpath
+     * @var \DOMXPath
      */
     protected $xpath;
 
@@ -107,7 +111,7 @@ class File extends AbstractBase
         } else {
             $this->xmlDoc = $data;
         }
-        $this->xpath = new \DOMXpath($this->xmlDoc);
+        $this->xpath = new \DOMXPath($this->xmlDoc);
         $this->recordNodes = $this->xpath->query($this->recordXPath);
         $this->recordCount = $this->recordNodes->length;
         $this->currentPos = 0;

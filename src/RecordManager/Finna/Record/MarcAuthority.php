@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Marc authority Record Class
  *
  * PHP version 5
  *
- * Copyright (C) The National Library of Finland 2021.
+ * Copyright (C) The National Library of Finland 2021-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,12 +23,16 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function in_array;
 
 /**
  * Marc authority record class
@@ -37,6 +42,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @category DataManagement
  * @package  RecordManager
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -55,49 +61,47 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
+     *
+     * @psalm-suppress DuplicateArrayKey
+     * @psalm-suppress InvalidOperand
      */
     public function toSolrArray(Database $db = null)
     {
         $data = parent::toSolrArray($db);
 
-        $data['allfields']
-            = array_merge(
-                $data['allfields'],
-                [$this->getHeading()],
-                $this->getAlternativeNames()
-            );
+        $data['identifier_str_mv'] = $this->getIdentifiers();
+
+        $data['allfields'][] = $this->getHeading();
+        $data['allfields'] = [
+            ...$data['allfields'],
+            ...$this->getAlternativeNames(['500', '510']),
+        ];
         return $data;
     }
 
     /**
      * Get alternative names.
      *
-     * @param array $additional List of additional fields to return
+     * @param array<int, string> $additional List of additional fields to return
      *
-     * @return array
+     * @return array<int, string>
      */
     public function getAlternativeNames($additional = [])
     {
         $result = [];
-        foreach (array_merge(['400', '410', '500', '510'], $additional)
-            as $code
-        ) {
+        $defaultFields = ['111', '400', '410', '411'];
+        foreach ([...$defaultFields, ...$additional] as $code) {
             $subfields = in_array($code, ['400', '500'])
-                ? ['a' => 1, 'b' => 1, 'c' => 1]
-                : ['a' => 1, 'b' => 1];
+                ? ['a', 'b', 'c']
+                : ['a', 'b'];
 
-            foreach ($this->getFields($code) as $field) {
-                $result = array_merge(
-                    $result,
-                    [
-                        implode(
-                            $this->nameDelimiter,
-                            $this->trimFields(
-                                $this->getSubfieldsArray($field, $subfields)
-                            )
-                        )
-                    ]
+            foreach ($this->record->getFields($code) as $field) {
+                $result[] = implode(
+                    $this->nameDelimiter,
+                    $this->trimFields(
+                        $this->getSubfieldsArray($field, $subfields)
+                    )
                 );
             }
         }
@@ -121,5 +125,29 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
             return $name;
         }
         return parent::getHeading();
+    }
+
+    /**
+     * Get identifiers
+     *
+     * @return array<int, string>
+     */
+    protected function getIdentifiers(): array
+    {
+        $result = [$this->getID()];
+        foreach ($this->record->getFields('024') as $field) {
+            if (
+                ($id = $this->record->getSubfield($field, 'a'))
+                && ($source = $this->record->getSubfield($field, '2'))
+            ) {
+                if (preg_match('/^https?:/', $id)) {
+                    // Never prefix http(s) url's
+                    $result[] = $id;
+                } else {
+                    $result[] = "($source)$id";
+                }
+            }
+        }
+        return $result;
     }
 }

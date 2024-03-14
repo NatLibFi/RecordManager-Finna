@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Date handling support trait.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 /**
@@ -44,13 +46,13 @@ trait DateSupportTrait
      *
      * @param array|null $range Start and end date
      *
-     * @return string|null Start and end date in Solr format
+     * @return string Start and end date in Solr format
      * @throws \Exception
      */
     public function dateRangeToStr($range)
     {
         if (!$range) {
-            return null;
+            return '';
         }
         $oldTZ = date_default_timezone_get();
         try {
@@ -64,5 +66,49 @@ trait DateSupportTrait
         date_default_timezone_set($oldTZ);
 
         return $start === $end ? $start : "[$start TO $end]";
+    }
+
+    /**
+     * Get years from a string, matches ISO 8601 format.
+     *
+     * @param string $dateString String to check for years.
+     *
+     * @return array [startYear, endYear] or empty array if not found.
+     */
+    protected function getYearRangeFromString(string $dateString): array
+    {
+        if ($years = $this->getYearsFromString($dateString)) {
+            $result = [
+                'startYear' => $years[0],
+                'endYear' => $years[1] ?? $years[0],
+            ];
+            // Turn the years into numbers and compare them.
+            if ((int)$result['startYear'] > (int)$result['endYear']) {
+                $result['endYear'] = $result['startYear'];
+            }
+            return $result;
+        }
+        return [];
+    }
+
+    /**
+     * Get years from a string. Returns array containing all found 4 digit years.
+     *
+     * @param string $dateString String to check for years.
+     *
+     * @return array
+     */
+    protected function getYearsFromString(string $dateString): array
+    {
+        if (
+            preg_match_all(
+                '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
+                $dateString,
+                $matches
+            )
+        ) {
+            return $matches[1];
+        }
+        return [];
     }
 }

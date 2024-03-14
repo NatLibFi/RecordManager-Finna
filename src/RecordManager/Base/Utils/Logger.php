@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Logging Utility
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,12 +26,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
 
 use RecordManager\Base\Database\DatabaseInterface;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function is_callable;
 
 /**
  * Logger
@@ -55,7 +59,7 @@ class Logger
     /**
      * Console output interface
      *
-     * @var OutputInterface $output
+     * @var ?OutputInterface
      */
     protected $consoleOutput = null;
 
@@ -238,117 +242,18 @@ class Logger
     public function logLevelToStr($level)
     {
         switch ($level) {
-        case Logger::FATAL:
-            return 'FATAL';
-        case Logger::ERROR:
-            return 'ERROR';
-        case Logger::WARNING:
-            return 'WARNING';
-        case Logger::INFO:
-            return 'INFO';
-        case Logger::DEBUG:
-            return 'DEBUG';
+            case Logger::FATAL:
+                return 'FATAL';
+            case Logger::ERROR:
+                return 'ERROR';
+            case Logger::WARNING:
+                return 'WARNING';
+            case Logger::INFO:
+                return 'INFO';
+            case Logger::DEBUG:
+                return 'DEBUG';
         }
         return '???';
-    }
-
-    /**
-     * Write a message to the log
-     *
-     * @param string $context   Context of the log message (e.g. current function)
-     * @param string $msg       Actual message
-     * @param int    $level     Message level used to filter logged messages. Default
-     *                          is INFO (3)
-     * @param int    $verbosity Verbosity level of the message (see OutputInterface)
-     *
-     * @return void
-     */
-    protected function log(
-        $context,
-        $msg,
-        $level = Logger::INFO,
-        $verbosity = OutputInterface::VERBOSITY_NORMAL
-    ) {
-        if ($this->logLevel < $level) {
-            return;
-        }
-        $timestamp = time();
-        $logMsg = date('Y-m-d H:i:s', $timestamp) . ' [' . getmypid() . '] ['
-            . $this->logLevelToStr($level) . "] [$context] $msg";
-        if ($this->logFile) {
-            if ($this->maxFileSize && file_exists($this->logFile)
-                && filesize($this->logFile) > $this->maxFileSize * 1024 * 1024
-            ) {
-                if (file_exists($this->logFile . '.' . $this->maxFileHistory)) {
-                    unlink($this->logFile . '.' . $this->maxFileHistory);
-                }
-                for ($i = $this->maxFileHistory - 1; $i >= 0; $i--) {
-                    $logFileName = $this->logFile . '.' . $i;
-                    if (file_exists($logFileName)) {
-                        $newLogFileName = $this->logFile . '.' . ($i + 1);
-                        rename($logFileName, $newLogFileName);
-                    }
-                }
-                rename($this->logFile, $this->logFile . '.0');
-            }
-            file_put_contents($this->logFile, "$logMsg\n", FILE_APPEND);
-        }
-        // Avoid a too long error on the console or in the email
-        if (mb_strlen($logMsg, 'UTF-8') > 4096 + 50) {
-            $logMsg = mb_substr($logMsg, 0, 2048, 'UTF-8')
-                . "\n\n[... Truncated - See log for full message ...]\n\n"
-                . mb_substr($logMsg, -2048, null, 'UTF-8');
-        }
-
-        if ($level == Logger::FATAL && $this->errorEmail) {
-            $email = "RecordManager encountered the following fatal error: "
-                . PHP_EOL . PHP_EOL . $logMsg . PHP_EOL;
-            mail(
-                $this->errorEmail,
-                'RecordManager Error Report (' . gethostname() . ')',
-                $email
-            );
-        }
-
-        if ($this->consoleOutput
-            && $this->consoleOutput->getVerbosity() >= $verbosity
-        ) {
-            $output = $this->consoleOutput;
-            $consoleMsg = OutputFormatter::escape($logMsg);
-            switch ($level) {
-            case Logger::ERROR:
-            case Logger::FATAL:
-                if ($output instanceof ConsoleOutputInterface) {
-                    $output = $output->getErrorOutput();
-                }
-                $consoleMsg = "<error>$consoleMsg</error>";
-                break;
-            case Logger::WARNING:
-                $consoleMsg = "<fg=#ff8542;bg=black>$consoleMsg</>";
-                break;
-            case Logger::INFO:
-                $consoleMsg = "<info>$consoleMsg</info>";
-                break;
-            }
-            $output->writeln($consoleMsg);
-        }
-
-        if ($level <= $this->storeMessageLevel && $this->db) {
-            $dbMsg = $msg;
-            if (mb_strlen($dbMsg, 'UTF-8') > 4200) {
-                // Avoid a too long error in the database
-                $logMsg = mb_substr($dbMsg, 0, 2048, 'UTF-8')
-                    . "\n\n[... Truncated - See log for full message ...]\n\n"
-                    . mb_substr($dbMsg, -2048, null, 'UTF-8');
-            }
-            $this->db->saveLogMessage(
-                $context,
-                $msg,
-                $level,
-                getmypid(),
-                $timestamp
-            );
-        }
     }
 
     /**
@@ -444,6 +349,104 @@ class Logger
                 $message = OutputFormatter::escape($message);
             }
             $this->consoleOutput->write($message);
+        }
+    }
+
+    /**
+     * Write a message to the log
+     *
+     * @param string $context   Context of the log message (e.g. current function)
+     * @param string $msg       Actual message
+     * @param int    $level     Message level used to filter logged messages. Default
+     *                          is INFO (3)
+     * @param int    $verbosity Verbosity level of the message (see OutputInterface)
+     *
+     * @return void
+     */
+    protected function log(
+        $context,
+        $msg,
+        $level = Logger::INFO,
+        $verbosity = OutputInterface::VERBOSITY_NORMAL
+    ) {
+        $timestamp = time();
+        $logMsg = date('Y-m-d H:i:s', $timestamp) . ' [' . getmypid() . '] ['
+            . $this->logLevelToStr($level) . "] [$context] $msg";
+        if ($this->logFile && $this->logLevel >= $level) {
+            if (
+                $this->maxFileSize && file_exists($this->logFile)
+                && filesize($this->logFile) > $this->maxFileSize * 1024 * 1024
+            ) {
+                if (file_exists($this->logFile . '.' . $this->maxFileHistory)) {
+                    unlink($this->logFile . '.' . $this->maxFileHistory);
+                }
+                for ($i = $this->maxFileHistory - 1; $i >= 0; $i--) {
+                    $logFileName = $this->logFile . '.' . $i;
+                    if (file_exists($logFileName)) {
+                        $newLogFileName = $this->logFile . '.' . ($i + 1);
+                        rename($logFileName, $newLogFileName);
+                    }
+                }
+                rename($this->logFile, $this->logFile . '.0');
+            }
+            file_put_contents($this->logFile, "$logMsg\n", FILE_APPEND);
+        }
+        // Avoid a too long error on the console or in the email
+        if (mb_strlen($logMsg, 'UTF-8') > 4096 + 50) {
+            $logMsg = mb_substr($logMsg, 0, 2048, 'UTF-8')
+                . "\n\n[... Truncated - See log for full message ...]\n\n"
+                . mb_substr($logMsg, -2048, null, 'UTF-8');
+        }
+
+        if ($level == Logger::FATAL && $this->errorEmail) {
+            $email = 'RecordManager encountered the following fatal error: '
+                . PHP_EOL . PHP_EOL . $logMsg . PHP_EOL;
+            mail(
+                $this->errorEmail,
+                'RecordManager Error Report (' . gethostname() . ')',
+                $email
+            );
+        }
+
+        if (
+            $this->consoleOutput
+            && $this->consoleOutput->getVerbosity() >= $verbosity
+        ) {
+            $output = $this->consoleOutput;
+            $consoleMsg = OutputFormatter::escape($logMsg);
+            switch ($level) {
+                case Logger::ERROR:
+                case Logger::FATAL:
+                    if ($output instanceof ConsoleOutputInterface) {
+                        $output = $output->getErrorOutput();
+                    }
+                    $consoleMsg = "<error>$consoleMsg</error>";
+                    break;
+                case Logger::WARNING:
+                    $consoleMsg = "<fg=#ff8542;bg=black>$consoleMsg</>";
+                    break;
+                case Logger::INFO:
+                    $consoleMsg = "<info>$consoleMsg</info>";
+                    break;
+            }
+            $output->writeln($consoleMsg);
+        }
+
+        if ($level <= $this->storeMessageLevel && $this->db) {
+            $dbMsg = $msg;
+            if (mb_strlen($dbMsg, 'UTF-8') > 4200) {
+                // Avoid a too long error in the database
+                $logMsg = mb_substr($dbMsg, 0, 2048, 'UTF-8')
+                    . "\n\n[... Truncated - See log for full message ...]\n\n"
+                    . mb_substr($dbMsg, -2048, null, 'UTF-8');
+            }
+            $this->db->saveLogMessage(
+                $context,
+                $msg,
+                $level,
+                getmypid(),
+                $timestamp
+            );
         }
     }
 }

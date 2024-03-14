@@ -1,10 +1,11 @@
 <?php
+
 /**
  * SolrUpdater Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2012-2021.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Solr;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -40,11 +42,11 @@ use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\PerformanceCounter;
 use RecordManager\Base\Utils\WorkerPoolManager;
 
-if (function_exists('pcntl_async_signals')) {
-    pcntl_async_signals(true);
-} else {
-    declare(ticks = 10);
-}
+use function count;
+use function defined;
+use function in_array;
+use function is_array;
+use function strlen;
 
 /**
  * SolrUpdater Class
@@ -60,6 +62,38 @@ if (function_exists('pcntl_async_signals')) {
 class SolrUpdater
 {
     use \RecordManager\Base\Record\CreateRecordTrait;
+
+    /**
+     * Field processing rule for copy
+     *
+     * @var int
+     */
+    public const RULE_COPY = 1;
+
+    /**
+     * Field processing rule for delete
+     *
+     * @var int
+     */
+    public const RULE_DELETE = 2;
+
+    /**
+     * Field processing rule for move
+     *
+     * @var int
+     */
+    public const RULE_MOVE = 3;
+
+    /**
+     * Mappings from keywords to field processing rules
+     *
+     * @var array
+     */
+    protected $ruleMap = [
+        'copy' => self::RULE_COPY,
+        'delete' => self::RULE_DELETE,
+        'move' => self::RULE_MOVE,
+    ];
 
     /**
      * Database
@@ -127,21 +161,21 @@ class SolrUpdater
     /**
      * Formats that denote journals
      *
-     * @var array
+     * @var array<string>
      */
     protected $journalFormats;
 
     /**
      * Formats that denote ejournals
      *
-     * @var array
+     * @var array<string>
      */
     protected $eJournalFormats;
 
     /**
      * Formats that denote journals and ejournals
      *
-     * @var array
+     * @var array<string>
      */
     protected $allJournalFormats;
 
@@ -186,6 +220,13 @@ class SolrUpdater
      * @var int
      */
     protected $updateRetryWait;
+
+    /**
+     * Field values that are not indexed
+     *
+     * @var array
+     */
+    protected $nonIndexedValues = [0, 0.0, ''];
 
     /**
      * Solr Update Buffer
@@ -294,6 +335,13 @@ class SolrUpdater
     ];
 
     /**
+     * Fields to sum as numeric values when merging deduplicated records
+     *
+     * @var array
+     */
+    protected $summedFields = [];
+
+    /**
      * Fields to copy back from the merged dedup record to all the member records
      *
      * @var array
@@ -309,10 +357,12 @@ class SolrUpdater
 
     /**
      * Fields that are analyzed when scoring records for merging order
+     *
+     * @var array
      */
     protected $scoredFields = [
         'title', 'author', 'author2', 'author_corporate', 'topic', 'contents',
-        'series', 'genre', 'era', 'allfields', 'publisher'
+        'series', 'genre', 'era', 'allfields', 'publisher',
     ];
 
     /**
@@ -321,7 +371,7 @@ class SolrUpdater
      * @var array
      */
     protected $buildingFields = [
-        'building'
+        'building',
     ];
 
     /**
@@ -565,6 +615,8 @@ class SolrUpdater
      * @param WorkerPoolManager       $workerPoolManager Worker pool manager
      *
      * @throws \Exception
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function __construct(
         array $config,
@@ -593,15 +645,14 @@ class SolrUpdater
         $this->metadataRecordCache = new \cash\LRUCache(100);
         $this->recordDataCache = new \cash\LRUCache(100);
 
-        $this->journalFormats = $config['Solr']['journal_formats']
-            ?? ['Journal', 'Serial', 'Newspaper'];
+        $this->journalFormats = (array)($config['Solr']['journal_formats']
+            ?? ['Journal', 'Serial', 'Newspaper']);
 
-        $this->eJournalFormats = isset($config['Solr']['ejournal_formats'])
-            ? $config['Solr']['journal_formats']
-            : ['eJournal'];
+        $this->eJournalFormats = (array)($config['Solr']['ejournal_formats']
+            ?? ['eJournal']);
 
         $this->allJournalFormats
-            = array_merge($this->journalFormats, $this->eJournalFormats);
+            = [...$this->journalFormats, ...$this->eJournalFormats];
 
         if (isset($config['Solr']['hierarchical_facets'])) {
             $this->hierarchicalFacets = $config['Solr']['hierarchical_facets'];
@@ -628,6 +679,11 @@ class SolrUpdater
             $this->singleFields = explode(',', $config['Solr']['single_fields']);
         }
         $this->singleFields = array_flip($this->singleFields);
+
+        if (isset($config['Solr']['summed_fields'])) {
+            $this->summedFields = explode(',', $config['Solr']['summed_fields']);
+        }
+        $this->summedFields = array_flip($this->summedFields);
 
         if (isset($config['Solr']['scored_fields'])) {
             $this->scoredFields = explode(',', $config['Solr']['scored_fields']);
@@ -707,6 +763,13 @@ class SolrUpdater
         }
         if (isset($config['Solr Field Limits'])) {
             $this->maxFieldLengths = $config['Solr Field Limits'];
+        }
+
+        if (isset($config['Solr']['non_indexed_values'])) {
+            $this->nonIndexedValues
+                = '' !== $config['Solr']['non_indexed_values']
+                ? (array)$config['Solr']['non_indexed_values']
+                : [];
         }
 
         // Load settings
@@ -814,7 +877,7 @@ class SolrUpdater
                 ? gmdate('Y-m-d H:i:s\Z', $fromTimestamp) : 'the beginning';
 
             $this->log
-                ->logInfo('updateRecords', "Creating record list (from $from)");
+                ->logInfo('updateRecords', "Creating record list from $from");
             $params = [];
             if ($singleId) {
                 $params['_id'] = $singleId;
@@ -872,7 +935,8 @@ class SolrUpdater
                 // Track earliest encountered timestamp:
                 if (isset($record['updated'])) {
                     $recordTS = $this->db->getUnixTime($record['updated']);
-                    if (null === $earliestRecordTimestamp
+                    if (
+                        null === $earliestRecordTimestamp
                         || $recordTS < $earliestRecordTimestamp
                     ) {
                         $earliestRecordTimestamp = $recordTS;
@@ -881,7 +945,8 @@ class SolrUpdater
                 // Add deduplicated records to their own processing pool:
                 if (isset($record['dedup_id'])) {
                     $id = (string)$record['dedup_id'];
-                    if ($prevId !== $id
+                    if (
+                        $prevId !== $id
                         && $this->db->addIdToTrackingCollection($trackingName, $id)
                     ) {
                         $this->workerPoolManager->addRequest(
@@ -942,7 +1007,7 @@ class SolrUpdater
                     $this->log->logInfo(
                         'updateRecords',
                         'Processing dedup records from '
-                        . gmdate('Y-m-d\TH:i:s\Z', $earliestRecordTimestamp)
+                        . gmdate('Y-m-d H:i:s\Z', $earliestRecordTimestamp)
                     );
                 } elseif (null !== $fromTimestamp) {
                     $dedupParams['changed']
@@ -950,7 +1015,7 @@ class SolrUpdater
                     $this->log->logInfo(
                         'updateRecords',
                         'Processing dedup records from '
-                        . gmdate('Y-m-d\TH:i:s\Z', $fromTimestamp)
+                        . gmdate('Y-m-d H:i:s\Z', $fromTimestamp)
                     );
                 } else {
                     $this->log->logWarning(
@@ -966,7 +1031,7 @@ class SolrUpdater
                     [],
                     function ($record) use ($handler, &$count) {
                         $record = [
-                            'dedup_id' => (string)$record['_id']
+                            'dedup_id' => (string)$record['_id'],
                         ];
                         $result = $handler($record);
 
@@ -1009,14 +1074,16 @@ class SolrUpdater
                     . " $verb"
             );
 
-            if (isset($lastIndexingDate)) {
+            if (null !== $lastIndexingDate) {
                 // Reset database connection since it could have timed out during
                 // the process:
                 $this->db->resetConnection();
                 $this->setLastUpdateDate($lastUpdateKey, $lastIndexingDate);
             }
 
-            if (!$noCommit && !$this->dumpPrefix
+            if (
+                !$noCommit
+                && !$this->dumpPrefix
                 && ($this->deletedRecords > 0 || $this->updatedRecords > 0)
             ) {
                 $this->log->logInfo('updateRecords', 'Final commit...');
@@ -1030,92 +1097,6 @@ class SolrUpdater
             );
         }
         $this->workerPoolManager->destroyWorkerPools();
-    }
-
-    /**
-     * Determine if processing dedup records is needed for the given source
-     * specification
-     *
-     * @param string $sourceId Source specification
-     *
-     * @return bool
-     */
-    protected function needToProcessDedupRecords(string $sourceId): bool
-    {
-        if (!$sourceId) {
-            return true;
-        }
-        $sources = explode(',', $sourceId);
-        foreach ($sources as $source) {
-            $source = trim($source);
-            if ('' === $source) {
-                continue;
-            }
-            if (strncmp($source, '-', 1) === 0) {
-                return true;
-            }
-            if ($this->settings[$source]['dedup'] ?? false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Handle records processed by record workers
-     *
-     * @param bool $block    Whether to block until all requests are completed
-     * @param bool $noCommit Whether to disable automatic commits
-     *
-     * @return void
-     */
-    protected function handleRecords(bool $block, bool $noCommit): void
-    {
-        while ($this->workerPoolManager->checkForResults('record')
-            || $this->workerPoolManager->requestsPending('record')
-        ) {
-            while ($this->workerPoolManager->checkForResults('record')) {
-                $result = $this->workerPoolManager->getResult('record');
-                $this->mergedComponents += $result['mergedComponents'];
-                foreach ($result['deleted'] as $id) {
-                    ++$this->deletedRecords;
-                    $this->bufferedDelete($id);
-                }
-                foreach ($result['records'] as $record) {
-                    ++$this->updatedRecords;
-                    $this->bufferedUpdate($record, $noCommit);
-                }
-            }
-            if ($block) {
-                usleep(10);
-            } else {
-                break;
-            }
-        }
-
-        // Check for results in the deduplicated record pool:
-        while ($this->workerPoolManager->checkForResults('dedup')
-            || $this->workerPoolManager->requestsPending('dedup')
-        ) {
-            while ($this->workerPoolManager->checkForResults('dedup')) {
-                $result = $this->workerPoolManager->getResult('dedup');
-                $this->mergedComponents += $result['mergedComponents'];
-                foreach ($result['deleted'] as $id) {
-                    ++$this->deletedRecords;
-                    $this->bufferedDelete($id);
-                }
-                foreach ($result['records'] as $record) {
-                    ++$this->updatedRecords;
-                    $this->bufferedUpdate($record, $noCommit);
-                }
-            }
-            if ($block) {
-                usleep(10);
-            } else {
-                break;
-            }
-        }
     }
 
     /**
@@ -1144,7 +1125,7 @@ class SolrUpdater
         $result = [
             'deleted' => [],
             'records' => [],
-            'mergedComponents' => 0
+            'mergedComponents' => 0,
         ];
         $dedupRecord = $this->db->getDedup($dedupId);
         if (empty($dedupRecord)) {
@@ -1175,7 +1156,8 @@ class SolrUpdater
                 if (in_array($record['source_id'], $this->nonIndexedSources)) {
                     return true;
                 }
-                if ($record['deleted'] || ($record['suppressed'] ?? false)
+                if (
+                    $record['deleted'] || ($record['suppressed'] ?? false)
                     || ($sourceId && $delete && $record['source_id'] == $sourceId)
                 ) {
                     $result['deleted'][] = $record['_id'];
@@ -1245,7 +1227,8 @@ class SolrUpdater
                 if ($fieldkey == 'author=author2') {
                     $fieldkey = 'author2';
                 }
-                if (substr($fieldkey, -3, 3) == '_mv'
+                if (
+                    str_ends_with($fieldkey, '_mv')
                     || isset($this->mergedFields[$fieldkey])
                 ) {
                     // For hierarchical fields we need to store all combinations
@@ -1307,16 +1290,31 @@ class SolrUpdater
         $result = [
             'deleted' => [],
             'records' => [],
-            'mergedComponents' => 0
+            'mergedComponents' => 0,
         ];
 
+        $recordId = (string)$record['_id'];
         if ($record['deleted'] || ($record['suppressed'] ?? false)) {
-            $result['deleted'][] = (string)$record['_id'];
+            $result['deleted'][] = $recordId;
         } else {
             $mergedComponents = 0;
-            $data = $this->createSolrArray($record, $mergedComponents);
+            $this->log->writelnVerbose("Single record $recordId");
+            try {
+                $data = $this->createSolrArray($record, $mergedComponents);
+            } catch (\TypeError $e) {
+                $this->log->logFatal(
+                    'processSingleRecord',
+                    "Failed to create Solr array for $recordId: " . (string)$e
+                );
+                throw $e;
+            } catch (\Exception $e) {
+                $this->log->logFatal(
+                    'processSingleRecord',
+                    "Failed to create Solr array for $recordId: " . (string)$e
+                );
+                throw $e;
+            }
             if ($data !== false) {
-                $this->log->writelnVerbose("Single record {$record['_id']}");
                 $this->log->writelnVeryVerbose(
                     function () use ($data) {
                         return $this->prettyPrint($data, true);
@@ -1339,7 +1337,12 @@ class SolrUpdater
      */
     public function deleteDataSource($sourceId)
     {
-        $this->solrRequest('{ "delete": { "query": "id:' . $sourceId . '.*" } }');
+        $request = [
+            'delete' => [
+                'query' => "id:$sourceId.*",
+            ],
+        ];
+        $this->solrRequest(json_encode($request));
         $this->solrRequest('{ "commit": {} }', 4 * 60 * 60);
     }
 
@@ -1370,12 +1373,12 @@ class SolrUpdater
      */
     public function countValues($sourceId, $field, $mapped = false)
     {
-        $this->log->logInfo('countValues', "Creating record list");
+        $this->log->logInfo('countValues', 'Creating record list');
         $params = ['deleted' => false];
         if ($sourceId) {
             $params['source_id'] = $sourceId;
         }
-        $this->log->logInfo('countValues', "Counting values");
+        $this->log->logInfo('countValues', 'Counting values');
         $values = [];
         $count = 0;
         $this->db->iterateRecords(
@@ -1411,7 +1414,7 @@ class SolrUpdater
                             'source_id' => $source,
                             'institution' => $settings['institution'],
                             'format' => $settings['format'],
-                            'id_prefix' => $settings['idPrefix']
+                            'id_prefix' => $settings['idPrefix'],
                         ];
                         $data = $settings['solrTransformationXSLT']
                             ->transformToSolrArray(
@@ -1446,7 +1449,7 @@ class SolrUpdater
                             $result = [];
                             arsort($values, SORT_NUMERIC);
                             foreach ($values as $key => $value) {
-                                $result[] = str_pad($value, 10, ' ', STR_PAD_LEFT)
+                                $result[] = str_pad((string)$value, 10, ' ', STR_PAD_LEFT)
                                     . ": $key";
                             }
                             return implode(PHP_EOL, $result) . PHP_EOL . PHP_EOL;
@@ -1460,7 +1463,7 @@ class SolrUpdater
             ->writelnConsole('Result list has ' . count($values) . ' entries:');
         foreach ($values as $key => $value) {
             $this->log->writelnConsole(
-                str_pad($value, 10, ' ', STR_PAD_LEFT) . ": $key"
+                str_pad((string)$value, 10, ' ', STR_PAD_LEFT) . ": $key"
             );
         }
     }
@@ -1468,13 +1471,22 @@ class SolrUpdater
     /**
      * Check Solr index for orphaned records
      *
+     * @param bool    $reportOnly Whether to just print record IDs instead of
+     *                            deleting them from the index.
+     * @param ?string $query      Query to use for Solr records (use null for default
+     *                            '*:*')
+     *
      * @return void
      */
-    public function checkIndexedRecords()
+    public function checkIndexedRecords(bool $reportOnly, ?string $query)
     {
+        if (null === $query) {
+            $query = '*:*';
+        }
         $request = $this->initSolrRequest(\HTTP_Request2::METHOD_GET);
         $baseUrl = $this->config['Solr']['search_url']
-            . '?q=*:*&sort=id+asc&wt=json&fl=id,record_format&rows=1000';
+            . '?q=' . urlencode($query)
+            . '&sort=id+asc&wt=json&fl=id,record_format&rows=1000';
 
         $this->initBufferedUpdate();
         $count = 0;
@@ -1501,17 +1513,33 @@ class SolrUpdater
 
             foreach ($records as $record) {
                 $id = $record['id'];
-                if ('merged' === ($record['record_format'] ?? $record['recordtype'])
-                ) {
+                $format = $record['record_format'] ?? $record['recordtype'];
+                $merged = 'merged' === $format;
+                if ($merged) {
                     $dbRecord = $this->db->getDedup($id);
                 } else {
                     $dbRecord = $this->db->getRecord($id);
                 }
                 if (!$dbRecord || !empty($dbRecord['deleted'])) {
-                    $this->bufferedDelete($id);
-                    ++$orphanRecordCount;
-                    if ('merged' === $record['record_format']) {
-                        ++$orphanDedupCount;
+                    if ($reportOnly) {
+                        $msg = 'Found orphan ' . ($merged ? 'merged' : 'single')
+                            . " record $id in index (database record ";
+                        if ($dbRecord) {
+                            $ts = $this->db->getUnixTime(
+                                $dbRecord[$merged ? 'changed' : 'updated']
+                            );
+                            $msg .= 'deleted ' . date('Y-m-d H:i:s', $ts);
+                        } else {
+                            $msg .= 'missing';
+                        }
+                        $msg .= ')';
+                        $this->log->logWarning('SolrCheck', $msg);
+                    } else {
+                        $this->bufferedDelete((string)$id);
+                        ++$orphanRecordCount;
+                        if ($merged) {
+                            ++$orphanDedupCount;
+                        }
                     }
                 }
             }
@@ -1554,6 +1582,8 @@ class SolrUpdater
      * @param string $stateKey State key
      *
      * @return ?int
+     *
+     * @psalm-suppress UndefinedClass
      */
     public function getLastUpdateDate(string $stateKey)
     {
@@ -1584,7 +1614,7 @@ class SolrUpdater
             $this->db->saveState(
                 [
                     '_id' => $stateKey,
-                    'value' => $timestamp
+                    'value' => $timestamp,
                 ]
             );
         }
@@ -1604,880 +1634,6 @@ class SolrUpdater
             $result .= ' ' . $this->config['Solr']['update_url'];
         }
         return $result;
-    }
-
-    /**
-     * Initialize worker pool manager and the pools for processing records and
-     * Solr updates
-     *
-     * @return void
-     */
-    protected function initWorkerPools()
-    {
-        $this->workerPoolManager->createWorkerPool(
-            'solr',
-            $this->solrUpdateWorkers,
-            $this->solrUpdateWorkers,
-            [$this, 'solrRequest']
-        );
-        $this->workerPoolManager->createWorkerPool(
-            'record',
-            $this->recordWorkers,
-            $this->recordWorkers,
-            [$this, 'processSingleRecord']
-        );
-        $this->workerPoolManager->createWorkerPool(
-            'dedup',
-            $this->dedupWorkers,
-            $this->dedupWorkers,
-            [$this, 'processDedupRecord']
-        );
-    }
-
-    /**
-     * Initialize or reload data source settings
-     *
-     * @param array $dataSourceConfig Optional data source settings to use instead
-     *                                of reading them from the ini file
-     *
-     * @return void
-     */
-    protected function initDatasources($dataSourceConfig = null)
-    {
-        if (null === $dataSourceConfig) {
-            $dataSourceConfig = $this->configReader->get('datasources.ini', true);
-            $this->fieldMapper->initDataSourceConfig($dataSourceConfig);
-        }
-        $this->settings = [];
-        foreach ($dataSourceConfig as $source => $settings) {
-            if (!isset($settings['format'])) {
-                throw new \Exception(
-                    "Error: format not set for data source $source"
-                );
-            }
-            $this->settings[$source] = $settings;
-            $this->settings[$source]['idPrefix'] = isset($settings['idPrefix'])
-                && $settings['idPrefix'] ? $settings['idPrefix'] : $source;
-            $this->settings[$source]['componentParts']
-                = isset($settings['componentParts']) && $settings['componentParts']
-                    ? $settings['componentParts'] : 'as_is';
-            $this->settings[$source]['indexMergedParts']
-                = $settings['indexMergedParts'] ?? true;
-            $this->settings[$source]['solrTransformationXSLT']
-                = isset($settings['solrTransformation'])
-                    && $settings['solrTransformation']
-                    ? new \RecordManager\Base\Utils\XslTransformation(
-                        RECMAN_BASE_PATH . '/transformations',
-                        $settings['solrTransformation']
-                    ) : null;
-            if (!isset($this->settings[$source]['dedup'])) {
-                $this->settings[$source]['dedup'] = false;
-            }
-
-            $this->settings[$source]['extraFields'] = [];
-            foreach ($settings['extraFields'] ?? $settings['extrafields'] ?? []
-                as $extraField
-            ) {
-                [$field, $value] = explode(':', $extraField, 2);
-                $this->settings[$source]['extraFields'][] = [$field => $value];
-            }
-
-            if (isset($settings['index']) && !$settings['index']) {
-                $this->nonIndexedSources[] = $source;
-            }
-        }
-    }
-
-    /**
-     * Create Solr array for the given record
-     *
-     * @param array $record           Database record
-     * @param int   $mergedComponents Number of component parts merged to the
-     *                                record
-     * @param array $dedupRecord      Database dedup record
-     *
-     * @return array|false
-     * @throws \Exception
-     *
-     * @psalm-suppress RedundantCondition
-     */
-    protected function createSolrArray(
-        array $record,
-        &$mergedComponents,
-        $dedupRecord = null
-    ) {
-        $mergedComponents = 0;
-
-        $source = $record['source_id'];
-        if (!isset($this->settings[$source])) {
-            // Try to reload data source settings as they might have been updated
-            // during a long run
-            $this->initDatasources();
-            if (!isset($this->settings[$source])) {
-                $this->log->logError(
-                    'createSolrArray',
-                    "No settings found for data source '$source', record "
-                        . $record['_id']
-                );
-                return false;
-            }
-        }
-
-        $metadataRecord = $this->createRecord(
-            $record['format'],
-            $this->metadataUtils->getRecordData($record, true),
-            $record['oai_id'],
-            $record['source_id']
-        );
-
-        $settings = $this->settings[$source];
-        $hiddenComponent = $this->metadataUtils->isHiddenComponentPart(
-            $settings,
-            $record,
-            $metadataRecord
-        );
-
-        if ($hiddenComponent && !$settings['indexMergedParts']) {
-            return false;
-        }
-
-        $warnings = [];
-
-        $hasComponentParts = false;
-        $components = null;
-        if (!isset($record['host_record_id'])) {
-            // Fetch info whether component parts exist and need to be merged
-            if (!$record['linking_id']) {
-                if ($this->db) {
-                    $this->log->logError(
-                        'createSolrArray',
-                        "linking_id missing for record '{$record['_id']}'"
-                    );
-                    $warnings[] = 'linking_id missing';
-                }
-            } else {
-                $params = [
-                    'host_record_id' => [
-                        '$in' => array_values((array)$record['linking_id'])
-                    ],
-                    'deleted' => false,
-                    'suppressed' => ['$in' => [null, false]],
-                ];
-                if (!empty($settings['componentPartSourceId'])) {
-                    $sourceParams = [];
-                    foreach ($settings['componentPartSourceId'] as $componentSource
-                    ) {
-                        $sourceParams[] = ['source_id' => $componentSource];
-                    }
-                    $params['$or'] = $sourceParams;
-                } else {
-                    $params['source_id'] = $record['source_id'];
-                }
-                $component = $this->db ? $this->db->findRecord($params) : null;
-                $hasComponentParts = !empty($component);
-
-                $format = $metadataRecord->getFormat();
-                $merge = false;
-                if ($settings['componentParts'] == 'merge_all') {
-                    $merge = true;
-                } elseif (!in_array($format, $this->allJournalFormats)) {
-                    $merge = true;
-                } elseif (in_array($format, $this->journalFormats)
-                    && $settings['componentParts'] == 'merge_non_earticles'
-                ) {
-                    $merge = true;
-                }
-
-                if ($merge && $hasComponentParts) {
-                    $components = $this->db->findRecords(
-                        $params,
-                        ['limit' => 10000] // An arbitrary limit, but we something
-                    );
-                }
-            }
-        }
-
-        if ($hasComponentParts && null !== $components) {
-            $changeDate = null;
-            $mergedComponents += $metadataRecord->mergeComponentParts(
-                $components,
-                $changeDate
-            );
-            // Use latest date as the host record date
-            // @phpstan-ignore-next-line
-            if (null !== $changeDate && $changeDate > $record['date']) {
-                $record['date'] = $changeDate;
-            }
-        }
-        if (isset($settings['solrTransformationXSLT'])) {
-            $params = [
-                'source_id' => $source,
-                'institution' => $settings['institution'],
-                'format' => $settings['format'],
-                'id_prefix' => $settings['idPrefix']
-            ];
-            $data = $settings['solrTransformationXSLT']
-                ->transformToSolrArray($metadataRecord->toXML(), $params);
-        } else {
-            $data = $metadataRecord->toSolrArray($this->db);
-        }
-
-        $data['id'] = $this->createSolrId($record['_id']);
-
-        $this->enrich($source, $settings, $metadataRecord, $data, '');
-
-        if (null !== $dedupRecord && $this->dedupIdField) {
-            $data[$this->dedupIdField] = (string)$dedupRecord['_id'];
-        }
-
-        // Record links between host records and component parts
-        $hostDataToCopy = [];
-        if ($metadataRecord->getIsComponentPart()) {
-            if ($this->db && !empty($record['host_record_id'])) {
-                $hostRecords = $this->db->findRecords(
-                    [
-                        'source_id' => $record['source_id'],
-                        'linking_id' => [
-                            '$in' => array_values((array)$record['host_record_id'])
-                        ]
-                    ],
-                    ['limit' => 10000] // An arbitrary limit, but we need something
-                );
-                $hostRecordsFound = false;
-                foreach ($hostRecords as $hostRecord) {
-                    $hostRecordsFound = true;
-                    if ($this->hierarchyParentIdField) {
-                        $data[$this->hierarchyParentIdField][]
-                            = $this->createSolrId($hostRecord['_id']);
-                    }
-                    $hostMetadataRecord = $this->metadataRecordCache
-                        ->get($hostRecord['_id']);
-                    if (null === $hostMetadataRecord) {
-                        $hostMetadataRecord = $this->createRecord(
-                            $hostRecord['format'],
-                            $this->metadataUtils->getRecordData($hostRecord, true),
-                            $hostRecord['oai_id'],
-                            $hostRecord['source_id']
-                        );
-                        $this->metadataRecordCache
-                            ->put($hostRecord['_id'], $hostMetadataRecord);
-                    }
-                    $hostTitle = $hostMetadataRecord->getTitle();
-                    if ($this->hierarchyParentTitleField) {
-                        $data[$this->hierarchyParentTitleField][] = $hostTitle;
-                    }
-                    if ($this->containerTitleField
-                        && empty($data[$this->containerTitleField])
-                    ) {
-                        $data[$this->containerTitleField] = $hostTitle;
-                    }
-                    if ($this->copyFromParentRecord) {
-                        // Collect data to copy here, but do the actual copying in
-                        // the end to avoid duplicate mapping etc.
-                        $hostId = 'host_' . $hostRecord['_id'];
-                        $hostData = $this->recordDataCache->get($hostId);
-                        if (null === $hostData) {
-                            $hostData = $hostMetadataRecord->toSolrArray($this->db);
-                            $this->augmentAndProcessFields(
-                                $hostData,
-                                $hostRecord,
-                                $hostMetadataRecord,
-                                $source,
-                                $settings
-                            );
-                            $this->recordDataCache->put($hostId, $hostData);
-                        }
-                        $hostDataToCopy[] = $hostData;
-                    }
-                }
-
-                if (!$hostRecordsFound) {
-                    $this->log->logWarning(
-                        'createSolrArray',
-                        "Any of host records ["
-                            . implode(', ', (array)$record['host_record_id'])
-                            . "] not found for record '" . $record['_id'] . "'"
-                    );
-                    $warnings[] = 'host record missing';
-                    if ($this->containerTitleField) {
-                        $data[$this->containerTitleField]
-                            = $metadataRecord->getContainerTitle();
-                    }
-                }
-            }
-
-            if ($this->containerVolumeField) {
-                $data[$this->containerVolumeField] = $metadataRecord->getVolume();
-            }
-            if ($this->containerIssueField) {
-                $data[$this->containerIssueField] = $metadataRecord->getIssue();
-            }
-            if ($this->containerStartPageField) {
-                $data[$this->containerStartPageField]
-                    = $metadataRecord->getStartPage();
-            }
-            if ($this->containerReferenceField) {
-                $data[$this->containerReferenceField]
-                    = $metadataRecord->getContainerReference();
-            }
-        } else {
-            // Add prefixes to hierarchy linking fields
-            $hierarchyFields = [
-                $this->hierarchyTopIdField,
-                $this->hierarchyParentIdField,
-                $this->isHierarchyIdField
-            ];
-            foreach ($hierarchyFields as $field) {
-                if (!$field) {
-                    continue;
-                }
-                if (isset($data[$field]) && $data[$field]) {
-                    $data[$field] = $this->createSolrId(
-                        ($settings['idPrefix'] ?? $record['source_id'])
-                        . '.' . $data[$field]
-                    );
-                }
-            }
-        }
-        if ($hasComponentParts) {
-            if ($this->isHierarchyIdField) {
-                $data[$this->isHierarchyIdField]
-                    = $this->createSolrId($record['_id']);
-            }
-            if ($this->isHierarchyTitleField) {
-                $data[$this->isHierarchyTitleField] = $metadataRecord->getTitle();
-            }
-        }
-
-        if ($hiddenComponent) {
-            $data['hidden_component_boolean'] = true;
-        }
-
-        // Work identification keys
-        $this->addWorkKeys($data, $metadataRecord);
-
-        $this->augmentAndProcessFields(
-            $data,
-            $record,
-            $metadataRecord,
-            $source,
-            $settings
-        );
-
-        foreach ($hostDataToCopy as $hostData) {
-            $this->copyParentDataToChild($hostData, $data);
-        }
-
-        if (!empty($this->warningsField)) {
-            $warnings = array_merge(
-                $warnings,
-                $metadataRecord->getProcessingWarnings()
-            );
-            if ($warnings) {
-                $data[$this->warningsField] = $warnings;
-            }
-        }
-
-        $this->enrich($source, $settings, $metadataRecord, $data, 'final');
-
-        return $data;
-    }
-
-    /**
-     * Add work identification keys
-     *
-     * @param array          $data           Field array
-     * @param AbstractRecord $metadataRecord Metadata record
-     *
-     * @return void
-     */
-    protected function addWorkKeys(array &$data, AbstractRecord $metadataRecord)
-    {
-        if (!$this->workKeysField
-            || !($workIdSets = $metadataRecord->getWorkIdentificationData())
-        ) {
-            return;
-        }
-        $keys = [];
-        $addAnalytical = $this->config['Solr']['work_keys_from_analytical_entries']
-            ?? false;
-        foreach ($workIdSets as $workIds) {
-            $setType = $workIds['type'] ?? 'main';
-            if (!$addAnalytical && 'analytical' === $setType) {
-                continue;
-            }
-            foreach ($workIds['titles'] ?? [] as $titleData) {
-                $title = $this->metadataUtils->normalizeKey(
-                    $titleData['value'],
-                    $this->unicodeNormalizationForm
-                );
-                if ('uniform' === $titleData['type']) {
-                    $keys[] = "UT $title";
-                } else {
-                    foreach ($workIds['authors'] ?? [] as $authorData) {
-                        $author = $this->metadataUtils->normalizeKey(
-                            $authorData['value'],
-                            $this->unicodeNormalizationForm
-                        );
-                        $keys[] = "AT $author $title";
-                    }
-                }
-            }
-            foreach ($workIds['titlesAltScript'] ?? [] as $titleData) {
-                $title = $this->metadataUtils->normalizeKey(
-                    $titleData['value'],
-                    $this->unicodeNormalizationForm
-                );
-                if ('uniform' === $titleData['type']) {
-                    $keys[] = "UT $title";
-                } else {
-                    foreach ($workIds['authorsAltScript'] ?? [] as $authorData) {
-                        $author = $this->metadataUtils->normalizeKey(
-                            $authorData['value'],
-                            $this->unicodeNormalizationForm
-                        );
-                        $keys[] = "AT $author $title";
-                    }
-                }
-            }
-        }
-        if ($keys) {
-            $data[$this->workKeysField] = $keys;
-        }
-    }
-
-    /**
-     * Add extra fields from settings etc. and map the values
-     *
-     * @param array          $data           Field array
-     * @param mixed          $record         Database record
-     * @param AbstractRecord $metadataRecord Metadata record
-     * @param string         $source         Source ID
-     * @param array          $settings       Settings
-     *
-     * @return void
-     */
-    protected function augmentAndProcessFields(
-        array &$data,
-        $record,
-        AbstractRecord $metadataRecord,
-        string $source,
-        array $settings
-    ): void {
-        if (!isset($data['institution']) && !empty($settings['institution'])) {
-            $data['institution'] = $settings['institution'];
-        }
-
-        foreach ($settings['extraFields'] as $extraField) {
-            $fieldName = key($extraField);
-            $fieldValue = current($extraField);
-            if (isset($data[$fieldName])) {
-                if (!is_array($data[$fieldName])) {
-                    $data[$fieldName] = [$data[$fieldName]];
-                }
-                $data[$fieldName][] = $fieldValue;
-            } else {
-                $data[$fieldName] = $fieldValue;
-            }
-        }
-
-        // Special case: Special values for building (institution/location).
-        // Used by default if building is set as a hierarchical facet.
-        // This version adds institution to building before mapping files are
-        // processed.
-        if (($this->buildingHierarchy || isset($settings['institutionInBuilding']))
-            && !empty($settings['addInstitutionToBuildingBeforeMapping'])
-        ) {
-            $this->addInstitutionToBuilding($data, $source, $settings);
-        }
-
-        // Map field values according to any mapping files
-        if (!$this->disableMappings) {
-            $data = $this->fieldMapper->mapValues($source, $data);
-        }
-
-        // Special case: Special values for building (institution/location).
-        // Used by default if building is set as a hierarchical facet.
-        // This version adds institution to building after mapping files are
-        // processed.
-        if (($this->buildingHierarchy || isset($settings['institutionInBuilding']))
-            && empty($settings['addInstitutionToBuildingBeforeMapping'])
-        ) {
-            $this->addInstitutionToBuilding($data, $source, $settings);
-        }
-
-        // Hierarchical facets
-        foreach ($this->hierarchicalFacets as $facet) {
-            if (!isset($data[$facet])) {
-                continue;
-            }
-            $array = [];
-            if (!is_array($data[$facet])) {
-                $data[$facet] = [$data[$facet]];
-            }
-            foreach ($data[$facet] as $datavalue) {
-                if ($datavalue === '') {
-                    continue;
-                }
-                if (is_array($datavalue)) {
-                    $values = array_map(
-                        function ($s) {
-                            return str_replace('/', ' ', $s);
-                        },
-                        $datavalue
-                    );
-                } else {
-                    $values = explode('/', $datavalue);
-                }
-                $hierarchyString = '';
-                $valueCount = count($values);
-                for ($i = 0; $i < $valueCount; $i++) {
-                    $hierarchyString .= '/' . $values[$i];
-                    $array[] = ($i) . $hierarchyString . '/';
-                }
-            }
-            $data[$facet] = $array;
-        }
-
-        if (!isset($data['allfields'])) {
-            $all = [];
-            foreach ($data as $key => $field) {
-                if (in_array(
-                    $key,
-                    [
-                        'fullrecord', 'thumbnail', 'id', 'recordtype',
-                        'record_format', 'ctrlnum'
-                    ]
-                )
-                ) {
-                    continue;
-                }
-                if (is_array($field)) {
-                    $all = array_merge($all, $field);
-                } else {
-                    $all[] = $field;
-                }
-            }
-            $data['allfields'] = $this->metadataUtils->array_iunique($all);
-        }
-
-        $data['first_indexed']
-            = $this->metadataUtils->formatTimestamp(
-                $this->db ? $this->db->getUnixTime($record['created'])
-                    : $record['created']
-            );
-        $data['last_indexed'] = $this->metadataUtils->formatTimestamp(
-            $this->db ? $this->db->getUnixTime($record['date']) : $record['date']
-        );
-        if (!isset($data['fullrecord'])) {
-            $data['fullrecord'] = $metadataRecord->toXML();
-        }
-
-        if (isset($this->config['Solr']['format_in_allfields'])
-            && $this->config['Solr']['format_in_allfields']
-        ) {
-            if (!is_array($data['format'])) {
-                $data['format'] = [$data['format']];
-            }
-            foreach ($data['format'] as $format) {
-                // Replace numbers since they may be be considered word boundaries
-                $data['allfields'][] = str_replace(
-                    ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-                    ['ax', 'bx', 'cx', 'dx', 'ex', 'fx', 'gx', 'hx', 'ix', 'jx'],
-                    $this->metadataUtils->normalizeKey(
-                        $format,
-                        $this->unicodeNormalizationForm
-                    )
-                );
-            }
-        }
-
-        $this->normalizeFields($data);
-    }
-
-    /**
-     * Normalize and clean up fields
-     *
-     * @param array $data Field array
-     *
-     * @return void
-     */
-    protected function normalizeFields(array &$data)
-    {
-        foreach ($data as $key => &$values) {
-            if (is_array($values)) {
-                foreach ($values as $key2 => &$value) {
-                    $value = $this->metadataUtils->normalizeUnicode(
-                        $value,
-                        $this->unicodeNormalizationForm
-                    );
-                    $value = $this->trimFieldLength($key, $value);
-                    if ('' === $value || '0' === $value || '0.0' === $value) {
-                        unset($values[$key2]);
-                    }
-                }
-                if (empty($values)) {
-                    unset($data[$key]);
-                } else {
-                    $values = array_values(array_unique($values));
-                }
-            } elseif ($key !== 'fullrecord') {
-                $values = $this->metadataUtils->normalizeUnicode(
-                    $values,
-                    $this->unicodeNormalizationForm
-                );
-                $values = $this->trimFieldLength($key, $values);
-
-                if ('' === $values || '0' === $values || '0.0' === $values
-                ) {
-                    unset($data[$key]);
-                }
-            }
-        }
-    }
-
-    /**
-     * Prefix building with institution code according to the settings
-     *
-     * @param array  $data     Record data
-     * @param string $source   Source ID
-     * @param array  $settings Data source settings
-     *
-     * @return void
-     */
-    protected function addInstitutionToBuilding(&$data, $source, $settings)
-    {
-        $useInstitution = $settings['institutionInBuilding'] ?? 'institution';
-        switch ($useInstitution) {
-        case 'driver':
-            $institutionCode = $data['institution'];
-            break;
-        case 'none':
-            $institutionCode = '';
-            break;
-        case 'source':
-            $institutionCode = $source;
-            break;
-        case 'institution/source':
-            $institutionCode = isset($settings['institution'])
-                ? $settings['institution'] . '/' . $source
-                : '/' . $source;
-            break;
-        default:
-            $institutionCode = $settings['institution'] ?? '';
-            break;
-        }
-        if ($institutionCode) {
-            foreach ($this->buildingFields as $field) {
-                if (!empty($data[$field])) {
-                    if (is_array($data[$field])) {
-                        foreach ($data[$field] as &$building) {
-                            // Allow also empty values that might result from
-                            // mapping tables
-                            if (is_array($building)) {
-                                // Predefined hierarchy, prepend to it
-                                if (!empty($building)) {
-                                    array_unshift($building, $institutionCode);
-                                }
-                            } elseif ($building !== '') {
-                                $building = "$institutionCode/$building";
-                            } elseif ('building' === $field) {
-                                $building = $institutionCode;
-                            }
-                        }
-                    } else {
-                        $data[$field] = $institutionCode . '/' . $data[$field];
-                    }
-                } elseif ('building' === $field) {
-                    $data[$field] = [$institutionCode];
-                }
-            }
-        }
-    }
-
-    /**
-     * Merge Solr records into a dedup record
-     *
-     * @param array $records Array of records to merge including the database record
-     *                       and Solr array
-     *
-     * @return array Dedup record Solr array
-     */
-    protected function mergeRecords($records)
-    {
-        // Analyze the records to find the best record to be used as the base
-        foreach ($records as &$record) {
-            $fieldCount = 0;
-            $uppercase = 0;
-            $titleLen = isset($record['solr']['title'])
-                ? mb_strlen($record['solr']['title'], 'UTF-8') : 0;
-            $fields = array_intersect_key($record['solr'], $this->scoredFields);
-            array_walk_recursive(
-                $fields,
-                function ($field) use (&$fieldCount, &$uppercase) {
-                    ++$fieldCount;
-
-                    $upper = preg_match_all('/[\p{Lu}]/u', $field);
-                    $all = preg_match_all('/[\p{L}0-9]/u', $field);
-                    if ($all && $upper / $all > 0.95) {
-                        ++$uppercase;
-                    }
-                }
-            );
-            if (0 === $fieldCount) {
-                $record['score'] = 0;
-            } else {
-                $baseScore = $fieldCount + $titleLen;
-                $uppercaseRatio = $uppercase / $fieldCount;
-                $record['score'] = 0 == $uppercaseRatio ? $fieldCount
-                    : $baseScore / $uppercaseRatio;
-            }
-        }
-        unset($record);
-
-        // Sort records
-        usort(
-            $records,
-            function ($a, $b) {
-                return $b['score'] - $a['score'];
-            }
-        );
-
-        $merged = [];
-
-        foreach ($records as $record) {
-            $add = $record['solr'];
-
-            if (empty($merged)) {
-                $merged['local_ids_str_mv'] = [$add['id']];
-            } else {
-                $merged['local_ids_str_mv'][] = $add['id'];
-            }
-            foreach ($add as $key => $value) {
-                $authorSpecial = $key == 'author'
-                    && isset($this->mergedFields['author=author2']);
-                if (substr($key, -3, 3) == '_mv' || isset($this->mergedFields[$key])
-                    || ($authorSpecial && isset($merged['author'])
-                    && $merged['author'] !== $value)
-                ) {
-                    if ($authorSpecial) {
-                        $key = 'author2';
-                    }
-                    if (!isset($merged[$key])) {
-                        $merged[$key] = [];
-                    } elseif (!is_array($merged[$key])) {
-                        $merged[$key] = [$merged[$key]];
-                    }
-                    $values = is_array($value) ? $value : [$value];
-                    $merged[$key] = array_values(
-                        array_merge($merged[$key], $values)
-                    );
-                } elseif (isset($this->singleFields[$key])
-                    || ($authorSpecial && !isset($merged[$key]))
-                ) {
-                    if (empty($merged[$key])) {
-                        $merged[$key] = $value;
-                    }
-                } elseif ($key == 'allfields') {
-                    if (!isset($merged['allfields'])) {
-                        $merged['allfields'] = [];
-                    }
-                    $merged['allfields'] = array_values(
-                        array_merge($merged['allfields'], $add['allfields'])
-                    );
-                }
-            }
-        }
-
-        return $merged;
-    }
-
-    /**
-     * Copy configured fields from merged dedup record to the member records
-     *
-     * @param array $merged  Merged record
-     * @param array $records Array of member records
-     *
-     * @return void
-     */
-    protected function copyMergedDataToMembers($merged, &$records)
-    {
-        foreach ($this->copyFromMergedRecord as $copyField) {
-            if (empty($merged[$copyField])) {
-                continue;
-            }
-            foreach ($records as &$member) {
-                $member['solr'][$copyField] = array_values(
-                    array_unique(
-                        array_merge(
-                            (array)($member['solr'][$copyField] ?? []),
-                            (array)$merged[$copyField]
-                        )
-                    )
-                );
-            }
-        }
-    }
-
-    /**
-     * Copy configured fields from a parent record to the child records
-     *
-     * This may add duplicate fields.
-     *
-     * @param array $parent Parent record
-     * @param array $child  Child record array
-     *
-     * @return void
-     */
-    protected function copyParentDataToChild($parent, &$child)
-    {
-        foreach ($this->copyFromParentRecord as $copyField) {
-            if (empty($parent[$copyField])) {
-                continue;
-            }
-            if (empty($child[$copyField])) {
-                $child[$copyField] = (array)$parent[$copyField];
-            } else {
-                $child[$copyField] = array_merge(
-                    (array)($child[$copyField] ?? []),
-                    (array)$parent[$copyField]
-                );
-            }
-        }
-    }
-
-    /**
-     * Initialize a Solr request object
-     *
-     * @param string $method  HTTP method
-     * @param int    $timeout Timeout in seconds (optional)
-     *
-     * @return \HTTP_Request2
-     */
-    protected function initSolrRequest($method, $timeout = null)
-    {
-        $request = $this->httpClientManager->createClient(
-            $this->config['Solr']['update_url'],
-            $method
-        );
-        if ($timeout !== null) {
-            $request->setConfig('timeout', $timeout);
-        }
-        $request->setHeader('Connection', 'Keep-Alive');
-        // At least some combinations of PHP + curl cause both Transfer-Encoding and
-        // Content-Length to be set in certain cases. Set follow_redirects to true to
-        // invoke the PHP workaround in the curl adapter.
-        $request->setConfig('follow_redirects', true);
-        if (isset($this->config['Solr']['username'])
-            && isset($this->config['Solr']['password'])
-        ) {
-            $request->setAuth(
-                $this->config['Solr']['username'],
-                $this->config['Solr']['password'],
-                \HTTP_Request2::AUTH_BASIC
-            );
-        }
-        return $request;
     }
 
     /**
@@ -2534,7 +1690,7 @@ class SolrUpdater
                         'solrRequest',
                         "Solr server request failed ($code), retrying in "
                             . "{$this->updateRetryWait} seconds..."
-                            . "Beginning of response: "
+                            . 'Beginning of response: '
                             . substr($response->getBody(), 0, 1000)
                     );
                     sleep($this->updateRetryWait);
@@ -2553,6 +1709,1047 @@ class SolrUpdater
                 $code
             );
         }
+    }
+
+    /**
+     * Determine if processing dedup records is needed for the given source
+     * specification
+     *
+     * @param string $sourceId Source specification
+     *
+     * @return bool
+     */
+    protected function needToProcessDedupRecords(string $sourceId): bool
+    {
+        if (!$sourceId) {
+            return true;
+        }
+        $sources = explode(',', $sourceId);
+        foreach ($sources as $source) {
+            $source = trim($source);
+            if ('' === $source) {
+                continue;
+            }
+            if (str_starts_with($source, '-')) {
+                return true;
+            }
+            if ($this->settings[$source]['dedup'] ?? false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle records processed by record workers
+     *
+     * @param bool $block    Whether to block until all requests are completed
+     * @param bool $noCommit Whether to disable automatic commits
+     *
+     * @return void
+     */
+    protected function handleRecords(bool $block, bool $noCommit): void
+    {
+        while (
+            $this->workerPoolManager->checkForResults('record')
+            || $this->workerPoolManager->requestsPending('record')
+        ) {
+            while ($this->workerPoolManager->checkForResults('record')) {
+                $result = $this->workerPoolManager->getResult('record');
+                $this->mergedComponents += $result['mergedComponents'];
+                foreach ($result['deleted'] as $id) {
+                    ++$this->deletedRecords;
+                    $this->bufferedDelete((string)$id);
+                }
+                foreach ($result['records'] as $record) {
+                    ++$this->updatedRecords;
+                    $this->bufferedUpdate($record, $noCommit);
+                }
+            }
+            if ($block) {
+                usleep(10);
+            } else {
+                break;
+            }
+        }
+
+        // Check for results in the deduplicated record pool:
+        while (
+            $this->workerPoolManager->checkForResults('dedup')
+            || $this->workerPoolManager->requestsPending('dedup')
+        ) {
+            while ($this->workerPoolManager->checkForResults('dedup')) {
+                $result = $this->workerPoolManager->getResult('dedup');
+                $this->mergedComponents += $result['mergedComponents'];
+                foreach ($result['deleted'] as $id) {
+                    ++$this->deletedRecords;
+                    $this->bufferedDelete((string)$id);
+                }
+                foreach ($result['records'] as $record) {
+                    ++$this->updatedRecords;
+                    $this->bufferedUpdate($record, $noCommit);
+                }
+            }
+            if ($block) {
+                usleep(10);
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Initialize worker pool manager and the pools for processing records and
+     * Solr updates
+     *
+     * @return void
+     */
+    protected function initWorkerPools()
+    {
+        $this->workerPoolManager->createWorkerPool(
+            'solr',
+            $this->solrUpdateWorkers,
+            $this->solrUpdateWorkers,
+            [$this, 'solrRequest']
+        );
+        $this->workerPoolManager->createWorkerPool(
+            'record',
+            $this->recordWorkers,
+            $this->recordWorkers,
+            [$this, 'processSingleRecord']
+        );
+        $this->workerPoolManager->createWorkerPool(
+            'dedup',
+            $this->dedupWorkers,
+            $this->dedupWorkers,
+            [$this, 'processDedupRecord']
+        );
+    }
+
+    /**
+     * Initialize or reload data source settings
+     *
+     * @param array $dataSourceConfig Optional data source settings to use instead
+     *                                of reading them from the ini file
+     *
+     * @return void
+     */
+    protected function initDatasources($dataSourceConfig = null)
+    {
+        if (null === $dataSourceConfig) {
+            $dataSourceConfig = $this->configReader->get('datasources.ini', true);
+            $this->fieldMapper->initDataSourceConfig($dataSourceConfig);
+        }
+        $this->settings = [];
+        foreach ($dataSourceConfig as $source => $settings) {
+            if (!isset($settings['format'])) {
+                throw new \Exception(
+                    "Error: format not set for data source $source"
+                );
+            }
+            $this->settings[$source] = $settings;
+            $this->settings[$source]['idPrefix'] = !empty($settings['idPrefix'])
+                ? $settings['idPrefix'] : $source;
+            $this->settings[$source]['componentParts']
+                = !empty($settings['componentParts'])
+                ? $settings['componentParts'] : 'as_is';
+            $this->settings[$source]['indexMergedParts']
+                = $settings['indexMergedParts'] ?? true;
+            $this->settings[$source]['solrTransformationXSLT']
+                = !empty($settings['solrTransformation'])
+                ? new \RecordManager\Base\Utils\XslTransformation(
+                    RECMAN_BASE_PATH . '/transformations',
+                    $settings['solrTransformation']
+                ) : null;
+            $this->settings[$source]['dedup'] ??= false;
+
+            $this->settings[$source]['extraFields'] = [];
+            foreach ($settings['extraFields'] ?? $settings['extrafields'] ?? [] as $extraField) {
+                [$field, $value] = explode(':', $extraField, 2);
+                $this->settings[$source]['extraFields'][] = [$field => $value];
+            }
+
+            if (!($settings['index'] ?? true)) {
+                $this->nonIndexedSources[] = $source;
+            }
+
+            foreach ($settings['fieldRules'] ?? [] as $ruleStr) {
+                $ruleParts = explode(' ', $ruleStr);
+                $rule['op'] = $this->ruleMap[$ruleParts[0]] ?? null;
+                if (
+                    null === $rule['op']
+                    || (self::RULE_DELETE === $rule['op'] && empty($ruleParts[1]))
+                    || (self::RULE_DELETE !== $rule['op'] && empty($ruleParts[2]))
+                ) {
+                    throw new \Exception(
+                        "Invalid field rule for $source: '$ruleStr'"
+                    );
+                }
+                $rule['src'] = $ruleParts[1];
+                $rule['dst'] = $ruleParts[2] ?? null;
+                $rule['extra'] = $ruleParts[3] ?? null;
+                $this->settings[$source]['fieldProcessingRules'][] = $rule;
+            }
+        }
+    }
+
+    /**
+     * Create Solr array for the given record
+     *
+     * @param array $record           Database record
+     * @param int   $mergedComponents Number of component parts merged to the
+     *                                record
+     * @param array $dedupRecord      Database dedup record
+     *
+     * @return array|false
+     * @throws \TypeError
+     * @throws \Exception
+     *
+     * @psalm-suppress RedundantCondition
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function createSolrArray(
+        array $record,
+        &$mergedComponents,
+        $dedupRecord = null
+    ) {
+        $mergedComponents = 0;
+
+        $source = $record['source_id'];
+        if (!isset($this->settings[$source])) {
+            // Try to reload data source settings as they might have been updated
+            // during a long run
+            $this->initDatasources();
+            if (!isset($this->settings[$source])) {
+                $this->log->logError(
+                    'createSolrArray',
+                    "No settings found for data source '$source', record "
+                        . $record['_id']
+                );
+                return false;
+            }
+        }
+
+        $metadataRecord = $this->createRecord(
+            $record['format'],
+            $this->metadataUtils->getRecordData($record, true),
+            $record['oai_id'],
+            $record['source_id']
+        );
+
+        $settings = $this->settings[$source];
+        $hiddenComponent = $this->metadataUtils->isHiddenComponentPart(
+            $settings,
+            $record,
+            $metadataRecord
+        );
+
+        if ($hiddenComponent && !$settings['indexMergedParts']) {
+            return false;
+        }
+
+        $warnings = [];
+
+        $hasComponentParts = false;
+        $components = null;
+        if (!isset($record['host_record_id'])) {
+            // Fetch info whether component parts exist and need to be merged
+            if (empty($record['linking_id'])) {
+                if ($this->db) {
+                    $this->log->logError(
+                        'createSolrArray',
+                        "linking_id missing for record '{$record['_id']}'"
+                    );
+                    $warnings[] = 'linking_id missing';
+                }
+            } else {
+                $params = [
+                    'host_record_id' => [
+                        '$in' => array_values((array)$record['linking_id']),
+                    ],
+                    'deleted' => false,
+                    'suppressed' => ['$in' => [null, false]],
+                ];
+                if (!empty($settings['componentPartSourceId'])) {
+                    $sourceParams = [];
+                    foreach ($settings['componentPartSourceId'] as $componentSource) {
+                        $sourceParams[] = ['source_id' => $componentSource];
+                    }
+                    $params['$or'] = $sourceParams;
+                } else {
+                    $params['source_id'] = $record['source_id'];
+                }
+                $component = $this->db ? $this->db->findRecord($params) : null;
+                $hasComponentParts = !empty($component);
+
+                $format = $metadataRecord->getFormat();
+                $merge = false;
+                if ($settings['componentParts'] == 'merge_all') {
+                    $merge = true;
+                } elseif (!in_array($format, $this->allJournalFormats)) {
+                    $merge = true;
+                } elseif (
+                    in_array($format, $this->journalFormats)
+                    && $settings['componentParts'] == 'merge_non_earticles'
+                ) {
+                    $merge = true;
+                }
+
+                if ($merge && $hasComponentParts) {
+                    $components = $this->db->findRecords(
+                        $params,
+                        ['limit' => 10000] // An arbitrary limit, but we something
+                    );
+                }
+            }
+        }
+
+        if ($hasComponentParts && null !== $components) {
+            $changeDate = null;
+            $mergedComponents += $metadataRecord->mergeComponentParts(
+                $components,
+                $changeDate
+            );
+            // Use latest date as the host record date
+            // @phpstan-ignore-next-line
+            if (null !== $changeDate && $changeDate > $record['date']) {
+                $record['date'] = $changeDate;
+            }
+        }
+        if (isset($settings['solrTransformationXSLT'])) {
+            $params = [
+                'source_id' => $source,
+                'institution' => $settings['institution'],
+                'format' => $settings['format'],
+                'id_prefix' => $settings['idPrefix'],
+            ];
+            $data = $settings['solrTransformationXSLT']
+                ->transformToSolrArray($metadataRecord->toXML(), $params);
+        } else {
+            $data = $metadataRecord->toSolrArray($this->db);
+        }
+
+        $data['id'] = $this->createSolrId($record['_id']);
+
+        $this->enrich($source, $settings, $metadataRecord, $data, '');
+
+        if (null !== $dedupRecord && $this->dedupIdField) {
+            $data[$this->dedupIdField] = (string)$dedupRecord['_id'];
+        }
+
+        // Record links between host records and component parts
+        $hostDataToCopy = [];
+        if ($metadataRecord->getIsComponentPart()) {
+            if ($this->db && !empty($record['host_record_id'])) {
+                $hostRecords = $this->db->findRecords(
+                    [
+                        'source_id' => $record['source_id'],
+                        'linking_id' => [
+                            '$in' => array_values((array)$record['host_record_id']),
+                        ],
+                        'deleted' => false,
+                    ],
+                    ['limit' => 10000] // An arbitrary limit, but we need something
+                );
+                $hostRecordsFound = false;
+                foreach ($hostRecords as $hostRecord) {
+                    $hostRecordsFound = true;
+                    if ($this->hierarchyParentIdField) {
+                        $data[$this->hierarchyParentIdField][]
+                            = $this->createSolrId($hostRecord['_id']);
+                    }
+                    $hostMetadataRecord = $this->metadataRecordCache
+                        ->get($hostRecord['_id']);
+                    if (null === $hostMetadataRecord) {
+                        $hostMetadataRecord = $this->createRecord(
+                            $hostRecord['format'],
+                            $this->metadataUtils->getRecordData($hostRecord, true),
+                            $hostRecord['oai_id'],
+                            $hostRecord['source_id']
+                        );
+                        $this->metadataRecordCache
+                            ->put($hostRecord['_id'], $hostMetadataRecord);
+                    }
+                    $hostTitle = $hostMetadataRecord->getTitle();
+                    if ($this->hierarchyParentTitleField) {
+                        $data[$this->hierarchyParentTitleField][] = $hostTitle;
+                    }
+                    if (
+                        $this->containerTitleField
+                        && empty($data[$this->containerTitleField])
+                    ) {
+                        $data[$this->containerTitleField] = $hostTitle;
+                    }
+                    if ($this->copyFromParentRecord) {
+                        // Collect data to copy here, but do the actual copying in
+                        // the end to avoid duplicate mapping etc.
+                        $hostId = 'host_' . $hostRecord['_id'];
+                        $hostData = $this->recordDataCache->get($hostId);
+                        if (null === $hostData) {
+                            $hostData = $hostMetadataRecord->toSolrArray($this->db);
+                            $this->augmentAndProcessFields(
+                                $hostData,
+                                $hostRecord,
+                                $hostMetadataRecord,
+                                $source,
+                                $settings
+                            );
+                            $this->recordDataCache->put($hostId, $hostData);
+                        }
+                        $hostDataToCopy[] = $hostData;
+                    }
+                }
+
+                if (!$hostRecordsFound) {
+                    $this->log->logWarning(
+                        'createSolrArray',
+                        'Any of host records ['
+                            . implode(', ', (array)$record['host_record_id'])
+                            . "] not found for record '" . $record['_id'] . "'"
+                    );
+                    $warnings[] = 'host record missing';
+                    if ($this->containerTitleField) {
+                        $data[$this->containerTitleField]
+                            = $metadataRecord->getContainerTitle();
+                    }
+                }
+            }
+
+            if ($this->containerVolumeField) {
+                $data[$this->containerVolumeField] = $metadataRecord->getVolume();
+            }
+            if ($this->containerIssueField) {
+                $data[$this->containerIssueField] = $metadataRecord->getIssue();
+            }
+            if ($this->containerStartPageField) {
+                $data[$this->containerStartPageField]
+                    = $metadataRecord->getStartPage();
+            }
+            if ($this->containerReferenceField) {
+                $data[$this->containerReferenceField]
+                    = $metadataRecord->getContainerReference();
+            }
+        } else {
+            // Add prefixes to hierarchy linking fields
+            $hierarchyFields = [
+                $this->hierarchyTopIdField,
+                $this->hierarchyParentIdField,
+                $this->isHierarchyIdField,
+            ];
+            foreach ($hierarchyFields as $field) {
+                if (!$field) {
+                    continue;
+                }
+                if (isset($data[$field]) && $data[$field]) {
+                    $data[$field] = $this->createSolrId(
+                        ($settings['idPrefix'] ?? $record['source_id'])
+                        . '.' . $data[$field]
+                    );
+                }
+            }
+        }
+        if ($hasComponentParts) {
+            if ($this->isHierarchyIdField) {
+                $data[$this->isHierarchyIdField]
+                    = $this->createSolrId($record['_id']);
+            }
+            if ($this->isHierarchyTitleField) {
+                $data[$this->isHierarchyTitleField] = $metadataRecord->getTitle();
+            }
+        }
+
+        if ($hiddenComponent) {
+            $data['hidden_component_boolean'] = true;
+        }
+
+        // Work identification keys
+        $this->addWorkKeys($data, $metadataRecord);
+
+        $this->augmentAndProcessFields(
+            $data,
+            $record,
+            $metadataRecord,
+            $source,
+            $settings
+        );
+
+        foreach ($hostDataToCopy as $hostData) {
+            $this->copyParentDataToChild($hostData, $data);
+        }
+
+        if (!empty($this->warningsField)) {
+            $warnings = [
+                ...$warnings,
+                ...(array)$metadataRecord->getProcessingWarnings(),
+            ];
+            if ($warnings) {
+                $data[$this->warningsField] = $warnings;
+            }
+        }
+
+        $this->enrich($source, $settings, $metadataRecord, $data, 'final');
+
+        return $data;
+    }
+
+    /**
+     * Add work identification keys
+     *
+     * @param array          $data           Field array
+     * @param AbstractRecord $metadataRecord Metadata record
+     *
+     * @return void
+     */
+    protected function addWorkKeys(array &$data, AbstractRecord $metadataRecord)
+    {
+        if (
+            !$this->workKeysField
+            || !($workIdSets = $metadataRecord->getWorkIdentificationData())
+        ) {
+            return;
+        }
+        $keys = [];
+        $addAnalytical = $this->config['Solr']['work_keys_from_analytical_entries']
+            ?? false;
+        $allAuthors = $this->config['Solr']['work_keys_from_all_authors'] ?? true;
+        foreach ($workIdSets as $workIds) {
+            $setType = $workIds['type'] ?? 'main';
+            if (!$addAnalytical && 'analytical' === $setType) {
+                continue;
+            }
+            foreach ($workIds['titles'] ?? [] as $titleData) {
+                $title = $this->metadataUtils->normalizeKey(
+                    $titleData['value'],
+                    $this->unicodeNormalizationForm
+                );
+                if ('uniform' === $titleData['type']) {
+                    $keys[] = "UT $title";
+                } else {
+                    foreach ($workIds['authors'] ?? [] as $authorData) {
+                        $author = $this->metadataUtils->normalizeKey(
+                            $authorData['value'],
+                            $this->unicodeNormalizationForm
+                        );
+                        $keys[] = "AT $author $title";
+                        if (!$allAuthors) {
+                            break;
+                        }
+                    }
+                }
+            }
+            foreach ($workIds['titlesAltScript'] ?? [] as $titleData) {
+                $title = $this->metadataUtils->normalizeKey(
+                    $titleData['value'],
+                    $this->unicodeNormalizationForm
+                );
+                if ('uniform' === $titleData['type']) {
+                    $keys[] = "UT $title";
+                } else {
+                    foreach ($workIds['authorsAltScript'] ?? [] as $authorData) {
+                        $author = $this->metadataUtils->normalizeKey(
+                            $authorData['value'],
+                            $this->unicodeNormalizationForm
+                        );
+                        $keys[] = "AT $author $title";
+                        if (!$allAuthors) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if ($keys) {
+            $data[$this->workKeysField] = $keys;
+        }
+    }
+
+    /**
+     * Add extra fields from settings etc. and map the values
+     *
+     * @param array          $data           Field array
+     * @param mixed          $record         Database record
+     * @param AbstractRecord $metadataRecord Metadata record
+     * @param string         $source         Source ID
+     * @param array          $settings       Settings
+     *
+     * @return void
+     */
+    protected function augmentAndProcessFields(
+        array &$data,
+        $record,
+        AbstractRecord $metadataRecord,
+        string $source,
+        array $settings
+    ): void {
+        if (!isset($data['institution']) && !empty($settings['institution'])) {
+            $data['institution'] = $settings['institution'];
+        }
+
+        foreach ($settings['extraFields'] as $extraField) {
+            $fieldName = key($extraField);
+            $fieldValue = current($extraField);
+            if (isset($data[$fieldName])) {
+                if (!is_array($data[$fieldName])) {
+                    $data[$fieldName] = [$data[$fieldName]];
+                }
+                $data[$fieldName][] = $fieldValue;
+            } else {
+                $data[$fieldName] = $fieldValue;
+            }
+        }
+
+        // Special case: Special values for building (institution/location).
+        // Used by default if building is set as a hierarchical facet.
+        // This version adds institution to building before mapping files are
+        // processed.
+        if (
+            ($this->buildingHierarchy || isset($settings['institutionInBuilding']))
+            && !empty($settings['addInstitutionToBuildingBeforeMapping'])
+        ) {
+            $this->addInstitutionToBuilding($data, $source, $settings);
+        }
+
+        // Process any field rules:
+        $this->processFieldRules($source, $data);
+
+        // Map field values according to any mapping files
+        if (!$this->disableMappings) {
+            $this->fieldMapper->mapValues($source, $data);
+        }
+
+        // Special case: Special values for building (institution/location).
+        // Used by default if building is set as a hierarchical facet.
+        // This version adds institution to building after mapping files are
+        // processed.
+        if (
+            ($this->buildingHierarchy || isset($settings['institutionInBuilding']))
+            && empty($settings['addInstitutionToBuildingBeforeMapping'])
+        ) {
+            $this->addInstitutionToBuilding($data, $source, $settings);
+        }
+
+        // Hierarchical facets
+        foreach ($this->hierarchicalFacets as $facet) {
+            if (!isset($data[$facet])) {
+                continue;
+            }
+            $array = [];
+            if (!is_array($data[$facet])) {
+                $data[$facet] = [$data[$facet]];
+            }
+            foreach ($data[$facet] as $datavalue) {
+                if ($datavalue === '') {
+                    continue;
+                }
+                if (is_array($datavalue)) {
+                    $values = array_map(
+                        function ($s) {
+                            return str_replace('/', ' ', $s);
+                        },
+                        $datavalue
+                    );
+                } else {
+                    $values = explode('/', $datavalue);
+                }
+                $hierarchyString = '';
+                $valueCount = count($values);
+                for ($i = 0; $i < $valueCount; $i++) {
+                    $hierarchyString .= '/' . $values[$i];
+                    $array[] = ($i) . $hierarchyString . '/';
+                }
+            }
+            $data[$facet] = $array;
+        }
+
+        if (!isset($data['allfields'])) {
+            $all = [];
+            // phpcs:ignore
+            /** @psalm-var string|array<int, string> $field */
+            foreach ($data as $key => $field) {
+                if (
+                    in_array(
+                        $key,
+                        [
+                            'fullrecord', 'thumbnail', 'id', 'recordtype',
+                            'record_format', 'ctrlnum',
+                        ]
+                    )
+                ) {
+                    continue;
+                }
+                if (is_array($field)) {
+                    $all = [...$all, ...$field];
+                } else {
+                    $all[] = $field;
+                }
+            }
+            $data['allfields'] = $this->metadataUtils->array_iunique($all);
+        }
+
+        $data['first_indexed']
+            = $this->metadataUtils->formatTimestamp(
+                $this->db ? $this->db->getUnixTime($record['created'])
+                    : $record['created']
+            );
+        $data['last_indexed'] = $this->metadataUtils->formatTimestamp(
+            $this->db ? $this->db->getUnixTime($record['date']) : $record['date']
+        );
+        if (!isset($data['fullrecord'])) {
+            $data['fullrecord'] = $metadataRecord->toXML();
+        }
+
+        if ($this->config['Solr']['format_in_allfields'] ?? false) {
+            if (!is_array($data['format'])) {
+                $data['format'] = [$data['format']];
+            }
+            foreach ($data['format'] as $format) {
+                // Replace numbers since they may be be considered word boundaries
+                $data['allfields'][] = str_replace(
+                    ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                    ['ax', 'bx', 'cx', 'dx', 'ex', 'fx', 'gx', 'hx', 'ix', 'jx'],
+                    $this->metadataUtils->normalizeKey(
+                        $format,
+                        $this->unicodeNormalizationForm
+                    )
+                );
+            }
+        }
+
+        $this->normalizeFields($data);
+    }
+
+    /**
+     * Normalize and clean up fields
+     *
+     * @param array $data Field array
+     *
+     * @return void
+     */
+    protected function normalizeFields(array &$data)
+    {
+        foreach ($data as $key => &$values) {
+            if (is_array($values)) {
+                foreach ($values as $key2 => &$value) {
+                    $value = $this->metadataUtils->normalizeUnicode(
+                        $value,
+                        $this->unicodeNormalizationForm
+                    );
+                    $value = $this->trimFieldLength($key, $value);
+                    if (in_array($value, $this->nonIndexedValues, true)) {
+                        unset($values[$key2]);
+                    }
+                }
+                if (empty($values)) {
+                    unset($data[$key]);
+                } else {
+                    $values = array_values(array_unique($values));
+                }
+            } elseif ($key !== 'fullrecord') {
+                $values = $this->metadataUtils->normalizeUnicode(
+                    $values,
+                    $this->unicodeNormalizationForm
+                );
+                $values = $this->trimFieldLength($key, $values);
+
+                if (in_array($values, $this->nonIndexedValues, true)) {
+                    unset($data[$key]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process any field rules
+     *
+     * @param string                                   $source Source ID
+     * @param array<string, string|array<int, string>> $data   Field array
+     *
+     * @return void
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function processFieldRules(string $source, array &$data): void
+    {
+        foreach ($this->settings[$source]['fieldProcessingRules'] ?? [] as $rule) {
+            $src = $rule['src'];
+            if (!($fieldValue = ($data[$src] ?? null) ?: $rule['extra'])) {
+                continue;
+            }
+            $dst = $rule['dst'];
+            if (in_array($rule['op'], [self::RULE_COPY, self::RULE_MOVE])) {
+                if (!isset($data[$dst])) {
+                    $data[$dst] = $fieldValue;
+                } else {
+                    $data[$dst] = [
+                        ...(array)$data[$dst],
+                        ...(array)$fieldValue,
+                    ];
+                }
+            }
+            if (
+                in_array($rule['op'], [self::RULE_DELETE, self::RULE_MOVE])
+                && isset($data[$src])
+            ) {
+                unset($data[$src]);
+            }
+        }
+    }
+
+    /**
+     * Prefix building with institution code according to the settings
+     *
+     * @param array<string, string|array<int, string>> $data     Record data
+     * @param string                                   $source   Source ID
+     * @param array                                    $settings Data source settings
+     *
+     * @return void
+     */
+    protected function addInstitutionToBuilding(&$data, $source, $settings)
+    {
+        $useInstitution = $settings['institutionInBuilding'] ?? 'institution';
+        switch ($useInstitution) {
+            case 'driver':
+                $institutionCode = $data['institution'];
+                break;
+            case 'none':
+                $institutionCode = '';
+                break;
+            case 'source':
+                $institutionCode = $source;
+                break;
+            case 'institution/source':
+                $institutionCode = isset($settings['institution'])
+                    ? $settings['institution'] . '/' . $source
+                    : '/' . $source;
+                break;
+            default:
+                $institutionCode = $settings['institution'] ?? '';
+                break;
+        }
+        if ($institutionCode) {
+            foreach ($this->buildingFields as $field) {
+                if (!empty($data[$field])) {
+                    if (is_array($data[$field])) {
+                        foreach ($data[$field] as &$building) {
+                            // Allow also empty values that might result from
+                            // mapping tables
+                            if (is_array($building)) {
+                                // Predefined hierarchy, prepend to it
+                                array_unshift($building, $institutionCode);
+                            } elseif ($building !== '') {
+                                $building = "$institutionCode/$building";
+                            } elseif ('building' === $field) {
+                                $building = $institutionCode;
+                            }
+                        }
+                    } else {
+                        $data[$field] = $institutionCode . '/' . $data[$field];
+                    }
+                } elseif ('building' === $field) {
+                    $data[$field] = [$institutionCode];
+                }
+            }
+        }
+    }
+
+    /**
+     * Merge Solr records into a dedup record
+     *
+     * @param array $records Array of records to merge including the database record
+     *                       and Solr array
+     *
+     * @return array Dedup record Solr array
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function mergeRecords($records)
+    {
+        // Analyze the records to find the best record to be used as the base
+        foreach ($records as &$record) {
+            $fieldCount = 0;
+            $uppercase = 0;
+            $titleLen = isset($record['solr']['title'])
+                ? mb_strlen($record['solr']['title'], 'UTF-8') : 0;
+            $fields = array_intersect_key($record['solr'], $this->scoredFields);
+            array_walk_recursive(
+                $fields,
+                function ($field) use (&$fieldCount, &$uppercase) {
+                    ++$fieldCount;
+
+                    $upper = preg_match_all('/[\p{Lu}]/u', $field);
+                    $all = preg_match_all('/[\p{L}0-9]/u', $field);
+                    if ($all && $upper / $all > 0.95) {
+                        ++$uppercase;
+                    }
+                }
+            );
+            if (0 === $fieldCount) {
+                $record['score'] = 0;
+            } else {
+                $baseScore = $fieldCount + $titleLen;
+                $uppercaseRatio = $uppercase / $fieldCount;
+                $record['score'] = 0 == $uppercaseRatio ? $fieldCount
+                    : $baseScore / $uppercaseRatio;
+            }
+        }
+        unset($record);
+
+        // Sort records
+        usort(
+            $records,
+            function ($a, $b) {
+                return $b['score'] - $a['score'];
+            }
+        );
+
+        // phpcs:ignore
+        /** @psalm-var list<string> $merged */
+        $merged = [];
+
+        foreach ($records as $record) {
+            $add = $record['solr'];
+
+            if (empty($merged)) {
+                $merged['local_ids_str_mv'] = [$add['id']];
+            } else {
+                $merged['local_ids_str_mv'][] = $add['id'];
+            }
+            // phpcs:ignore
+            /** @psalm-var string|list<string> $value */
+            foreach ($add as $key => $value) {
+                $authorSpecial = $key == 'author'
+                    && isset($this->mergedFields['author=author2']);
+                if (
+                    str_ends_with($key, '_mv')
+                    || isset($this->mergedFields[$key])
+                    || ($authorSpecial && isset($merged['author'])
+                    && $merged['author'] !== $value)
+                ) {
+                    if ($authorSpecial) {
+                        $key = 'author2';
+                    }
+                    if (!isset($merged[$key])) {
+                        $merged[$key] = [];
+                    } elseif (!is_array($merged[$key])) {
+                        $merged[$key] = [$merged[$key]];
+                    }
+                    if (is_array($value)) {
+                        $merged[$key] = [...$merged[$key], ...$value];
+                    } else {
+                        $merged[$key][] = (string)$value;
+                    }
+                } elseif (
+                    isset($this->singleFields[$key])
+                    || ($authorSpecial && !isset($merged[$key]))
+                ) {
+                    if (empty($merged[$key])) {
+                        $merged[$key] = $value;
+                    }
+                } elseif (isset($this->summedFields[$key])) {
+                    $merged[$key] = ($merged[$key] ?? 0) + $value;
+                } elseif ($key == 'allfields') {
+                    $merged['allfields'] = [
+                        ...(array)($merged['allfields'] ?? []),
+                        ...(array)$add['allfields'],
+                    ];
+                }
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Copy configured fields from merged dedup record to the member records
+     *
+     * @param array<string, string|array<int, string>> $merged  Merged record
+     * @param array                                    $records Array of member
+     *                                                          records
+     *
+     * @return void
+     */
+    protected function copyMergedDataToMembers($merged, &$records)
+    {
+        foreach ($this->copyFromMergedRecord as $copyField) {
+            if (empty($merged[$copyField])) {
+                continue;
+            }
+            // phpcs:ignore
+            /** @psalm-var array<string, string|array<int, string>> $member */
+            foreach ($records as &$member) {
+                $member['solr'][$copyField] = array_values(
+                    array_unique(
+                        [
+                            ...(array)($member['solr'][$copyField] ?? []),
+                            ...(array)$merged[$copyField],
+                        ]
+                    )
+                );
+            }
+        }
+    }
+
+    /**
+     * Copy configured fields from a parent record to the child records
+     *
+     * This may add duplicate fields.
+     *
+     * @param array<string, string|array<int, string>> $parent Parent record
+     * @param array<string, string|array<int, string>> $child  Child record array
+     *
+     * @return void
+     */
+    protected function copyParentDataToChild($parent, &$child)
+    {
+        foreach ($this->copyFromParentRecord as $copyField) {
+            if (empty($parent[$copyField])) {
+                continue;
+            }
+            if (empty($child[$copyField])) {
+                $child[$copyField] = (array)$parent[$copyField];
+            } else {
+                $child[$copyField] = [
+                    ...(array)$child[$copyField],
+                    ...(array)$parent[$copyField],
+                ];
+            }
+        }
+    }
+
+    /**
+     * Initialize a Solr request object
+     *
+     * @param string $method  HTTP method
+     * @param int    $timeout Timeout in seconds (optional)
+     *
+     * @return \HTTP_Request2
+     */
+    protected function initSolrRequest($method, $timeout = null)
+    {
+        $request = $this->httpClientManager->createClient(
+            $this->config['Solr']['update_url'],
+            $method
+        );
+        if ($timeout !== null) {
+            $request->setConfig('timeout', $timeout);
+        }
+        $request->setHeader('Connection', 'Keep-Alive');
+        // At least some combinations of PHP + curl cause both Transfer-Encoding and
+        // Content-Length to be set in certain cases. Set follow_redirects to true to
+        // invoke the PHP workaround in the curl adapter.
+        $request->setConfig('follow_redirects', true);
+        if (
+            isset($this->config['Solr']['username'])
+            && isset($this->config['Solr']['password'])
+        ) {
+            $request->setAuth(
+                $this->config['Solr']['username'],
+                $this->config['Solr']['password'],
+                \HTTP_Request2::AUTH_BASIC
+            );
+        }
+        return $request;
     }
 
     /**
@@ -2719,7 +2916,8 @@ class SolrUpdater
         }
         $this->buffer .= $jsonData;
         $this->bufferLen += strlen($jsonData);
-        if (++$this->buffered >= $this->maxUpdateRecords
+        if (
+            ++$this->buffered >= $this->maxUpdateRecords
             || $this->bufferLen > $this->maxUpdateSize
         ) {
             $request = "[\n{$this->buffer}\n]";
@@ -2738,7 +2936,9 @@ class SolrUpdater
             $result = true;
         }
         $sinceLastCommit = $this->updatedRecords - $this->lastCommitRecords;
-        if (!$noCommit && !$this->dumpPrefix
+        if (
+            !$noCommit
+            && !$this->dumpPrefix
             && $sinceLastCommit >= $this->commitInterval
         ) {
             $this->lastCommitRecords = $this->updatedRecords;
@@ -2759,18 +2959,20 @@ class SolrUpdater
      *
      * @param string $id Record ID
      *
-     * @return boolean False when buffering, true when buffer is flushed
+     * @return bool False when buffering, true when buffer is flushed
      */
-    protected function bufferedDelete($id)
+    protected function bufferedDelete(string $id): bool
     {
         if ($this->dumpPrefix) {
             return false;
         }
         $id = $this->createSolrId($id);
-        $this->bufferedDeletions[] = '"delete":{"id":"' . $id . '"}';
+        // Note: this is not quite JSON as the delete key is repeated
+        $this->bufferedDeletions[] = '"delete":{"id":' . json_encode($id) . '}';
         if (count($this->bufferedDeletions) >= 1000) {
-            $request = "{" . implode(',', $this->bufferedDeletions) . "}";
-            if (null !== $this->workerPoolManager
+            $request = '{' . implode(',', $this->bufferedDeletions) . '}';
+            if (
+                null !== $this->workerPoolManager
                 && $this->workerPoolManager->hasWorkerPool('solr')
             ) {
                 $this->workerPoolManager->addRequest('solr', $request);
@@ -2803,7 +3005,7 @@ class SolrUpdater
             }
         }
         if (!empty($this->bufferedDeletions)) {
-            $this->solrRequest("{" . implode(',', $this->bufferedDeletions) . "}");
+            $this->solrRequest('{' . implode(',', $this->bufferedDeletions) . '}');
             $this->bufferedDeletions = [];
         }
     }
@@ -2824,11 +3026,17 @@ class SolrUpdater
      */
     protected function enrich($source, $settings, $record, &$data, $stage = '')
     {
+        // phpcs:ignore
+        /** @psalm-var list<string> $globalEnrichments */
+        $globalEnrichments = (array)($this->config['Solr']['enrichment'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> $dsEnrichments */
+        $dsEnrichments = (array)($settings['enrichments'] ?? []);
         $enrichments = array_unique(
-            array_merge(
-                (array)($this->config['Solr']['enrichment'] ?? []),
-                (array)($settings['enrichments'] ?? [])
-            )
+            [
+                ...$globalEnrichments,
+                ...$dsEnrichments,
+            ]
         );
         foreach ($enrichments as $enrichmentSettings) {
             $parts = explode(',', $enrichmentSettings);
@@ -2898,7 +3106,7 @@ class SolrUpdater
      *
      * @return string
      */
-    protected function createSolrId($recordId)
+    protected function createSolrId(string $recordId): string
     {
         $parts = explode('.', $recordId, 2);
         if ($id = ($parts[1] ?? null)) {
@@ -2934,15 +3142,15 @@ class SolrUpdater
             if ('' === trim($source)) {
                 continue;
             }
-            if (strncmp($source, '-', 1) === 0) {
+            if (str_starts_with($source, '-')) {
                 if (preg_match('/^-\/(.+)\/$/', $source, $matches)) {
                     $regex = new \RecordManager\Base\Database\Regex($matches[1]);
                     $sourceExclude[] = [
-                        'source_id' => $regex
+                        'source_id' => $regex,
                     ];
                 } else {
                     $sourceExclude[] = [
-                        'source_id' => substr($source, 1)
+                        'source_id' => substr($source, 1),
                     ];
                 }
             } else {
@@ -2960,7 +3168,7 @@ class SolrUpdater
      *
      * @return string
      */
-    protected function trimFieldLength($field, $value)
+    protected function trimFieldLength(string $field, string $value): string
     {
         if (empty($this->maxFieldLengths)) {
             return $value;
@@ -2972,27 +3180,27 @@ class SolrUpdater
                 if ('__default__' === $key) {
                     continue;
                 }
-                $left = strncmp('*', $key, 1) === 0;
+                $left = str_starts_with($key, '*');
                 if ($left) {
                     $key = substr($key, 1);
                 }
-                $right = substr($key, -1) === '*';
+                $right = str_ends_with($key, '*');
                 if ($right) {
                     $key = substr($key, 0, -1);
                 }
 
                 if ($left && $right) {
-                    if (strpos($field, $key) !== false) {
+                    if (str_contains($field, $key)) {
                         $foundLimit = $limit;
                         break;
                     }
                 } elseif ($left) {
-                    if ($key === substr($field, -strlen($key))) {
+                    if (str_ends_with($field, $key)) {
                         $foundLimit = $limit;
                         break;
                     }
                 } elseif ($right) {
-                    if (strncmp($key, $field, strlen($key)) === 0) {
+                    if (str_starts_with($field, $key)) {
                         $foundLimit = $limit;
                         break;
                     }

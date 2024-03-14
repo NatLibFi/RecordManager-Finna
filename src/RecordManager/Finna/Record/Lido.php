@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Lido record class
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2022.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,12 +23,22 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
+use function boolval;
+use function count;
+use function in_array;
+use function intval;
+use function strlen;
 
 /**
  * Lido record class
@@ -37,6 +48,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -44,6 +56,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MediaTypeTrait;
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -78,7 +91,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @var array
      */
     protected $relatedWorkRelationTypes = [
-        'Kokoelma', 'kuuluu kokoelmaan', 'kokoelma'
+        'Kokoelma', 'kuuluu kokoelmaan', 'kokoelma',
     ];
 
     /**
@@ -90,7 +103,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $relatedWorkRelationTypesExtended = [
         'Kokoelma', 'kokoelma', 'kuuluu kokoelmaan', 'Arkisto', 'arkisto',
         'Alakokoelma', 'alakokoelma', 'Erityiskokoelma', 'erityiskokoelma',
-        'Hankintaerä', 'hankintaerä'
+        'Hankintaerä', 'hankintaerä',
     ];
 
     /**
@@ -101,12 +114,54 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Location labels which should be included when getting location information.
+     *
+     * @var array
+     */
+    protected $includedLocationLabels = ['prt', 'kiinteistötunnus'];
+
+    /**
+     * Location labels which should be excluded when getting location information.
+     *
+     * @var array
+     */
+    protected $excludedLocationLabels;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->excludedLocationLabels
+            = $this->config['LidoRecord']['excluded_location_labels'] ?? [
+                'tarkempi paikka',
+            ];
+
+        $this->initMediaTypeTrait($config);
+    }
+
+    /**
      * Return fields to be indexed in Solr
      *
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -134,7 +189,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             $institutionParts = explode('/', $data['institution']);
             $data['building'] = reset($institutionParts);
         }
-        if ($data['collection']
+        if (
+            $data['collection']
             && $this->getDriverParam('collectionInBuilding', false)
         ) {
             if (isset($data['building']) && $data['building']) {
@@ -143,21 +199,6 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $data['building'] = $data['collection'];
             }
         }
-
-        // REMOVE THIS ONCE TUUSULA IS FIXED
-        // sometimes there are multiple subjects in one element
-        // separated with commas like "foo, bar, baz" (Tuusula)
-        $topic = [];
-        if (isset($data['topic']) && is_array($data['topic'])) {
-            foreach ($data['topic'] as $subject) {
-                $exploded = explode(',', $subject);
-                foreach ($exploded as $explodedSubject) {
-                    $topic[] = trim($explodedSubject);
-                }
-            }
-        }
-        $data['topic'] = $data['topic_facet'] = $topic;
-        // END OF TUUSULA FIX
 
         $data['artist_str_mv'] = $this->getActors('valmistus', 'taiteilija');
         $data['photographer_str_mv'] = $this->getActors('valmistus', 'valokuvaaja');
@@ -193,15 +234,15 @@ class Lido extends \RecordManager\Base\Record\Lido
         } else {
             $dateSources = [
                 'suunnittelu' => 'design', 'tuotanto' => 'production',
-                'kuvaus' => 'photography'
+                'kuvaus' => 'photography',
             ];
             foreach ($dateSources as $dateSource => $field) {
                 $daterange = $this->getDateRange($dateSource);
                 if ($daterange) {
-                    $data[$field . '_daterange'] = $this->dateRangeToStr($daterange);
+                    $rangeStr = $this->dateRangeToStr($daterange);
+                    $data[$field . '_daterange'] = $rangeStr;
                     if (!isset($data['search_daterange_mv'])) {
-                        $data['search_daterange_mv'][]
-                            = $data[$field . '_daterange'];
+                        $data['search_daterange_mv'][] = $rangeStr;
                     }
                     if (!isset($data['main_date_str'])) {
                         $data['main_date_str']
@@ -222,19 +263,21 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['datasource_str_mv'] = $this->source;
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 $data['free_online_str_mv'] = $this->source;
             }
             if ($this->hasHiResImages()) {
-                $data['hires_image_boolean'] = true;
+                $data['hires_image_boolean'] = '1';
                 $data['hires_image_str_mv'] = $this->source;
             }
         }
-
-        $data['location_geo'] = $this->getEventPlaceLocations();
+        $data['location_geo'] = [
+            ...$this->getEventPlaceCoordinates(),
+            ...$this->getRepositoryLocationCoordinates(),
+        ];
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
 
@@ -249,7 +292,15 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
-
+        $data['language'] = $this->getLanguages();
+        // do not index online urls as they display extra information in Finna
+        $onlineUrls = $this->getOnlineUrls();
+        $data['media_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mediaType')
+            )
+        );
+        $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         return $data;
     }
 
@@ -262,61 +313,23 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getLocations()
     {
-        // Subject places
         $subjectLocations = [];
         foreach ($this->getSubjectNodes() as $subject) {
-            // Try first to find non-hierarchical street address and city.
-            // E.g. Musketti.
-            $mainPlace = '';
-            $subLocation = '';
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                foreach ($subjectPlace->place as $place) {
-                    if (!isset($place->namePlaceSet->appellationValue)
-                        || !isset($place->placeClassification)
-                    ) {
-                        continue;
-                    }
-                    $classification = strtolower($place->placeClassification->term);
-                    if (strstr($classification, 'kunta') !== false
-                        || strstr($classification, 'kaupunki') !== false
-                        || strstr($classification, 'kylä') !== false
-                    ) {
-                        $mainPlace .= ' '
-                            . (string)$place->namePlaceSet->appellationValue;
-                    } elseif (strstr($classification, 'katuosoite') !== false
-                        || strstr($classification, 'kartano') !== false
-                        || strstr($classification, 'tila') !== false
-                        || strstr($classification, 'talo') !== false
-                        || strstr($classification, 'rakennus') !== false
-                        || strstr($classification, 'alue') !== false
-                    ) {
-                        $subLocation .= ' ' . (string)$place->namePlaceSet
-                            ->appellationValue;
-                    }
+            foreach ($subject->subjectPlace as $placeNode) {
+                if (!empty($placeNode->place->gml)) {
+                    return [];
                 }
-            }
-            if ('' !== $mainPlace && '' !== $subLocation) {
-                $subjectLocations = array_merge(
-                    $subjectLocations,
-                    $this->splitAddresses(trim($mainPlace), trim($subLocation))
-                );
-                continue;
-            }
-            // Handle a hierarchical place
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                foreach ($subjectPlace->place as $place) {
-                    if ($place->namePlaceSet->appellationValue) {
-                        $mainPlace
-                            = (string)$place->namePlaceSet->appellationValue;
-                        $subLocation = $this->getSubLocation($place);
-                        if ($mainPlace && !$subLocation) {
-                            $subjectLocations[] = $mainPlace;
-                        } else {
-                            foreach (preg_split('/( tai |\. )/', $subLocation)
-                                as $subPart
-                            ) {
-                                $subjectLocations[] = "$mainPlace $subPart";
-                            }
+                if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
+                    $subjectLocations = [
+                        ...$subjectLocations,
+                        ...$this->splitLocation((string)$placeNode->displayPlace),
+                    ];
+                    continue;
+                }
+                foreach ($placeNode->place as $place) {
+                    if ($result = $this->getHierarchicalLocations($place)) {
+                        foreach ($result as $location) {
+                            $subjectLocations[] = implode(', ', $location);
                         }
                     }
                 }
@@ -330,89 +343,64 @@ class Lido extends \RecordManager\Base\Record\Lido
             $subjectLocations
         );
 
-        // Event places
         $locations = [];
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
-                // If there is already gml in the record, don't return anything for
-                // geocoding
-                if (!empty($eventNode->eventPlace->place->gml)) {
-                    return [];
-                }
-                $hasValue = !empty(
-                    $eventNode->eventPlace->place->namePlaceSet->appellationValue
-                );
-                if ($hasValue) {
-                    $mainPlace = (string)$eventNode->eventPlace->place->namePlaceSet
-                        ->appellationValue;
-                    $subLocation = $this->getSubLocation(
-                        $eventNode->eventPlace->place
-                    );
-                    if ($mainPlace && !$subLocation) {
-                        $locations = array_merge(
-                            $locations,
-                            explode('/', $mainPlace)
-                        );
-                    } else {
-                        $locations = array_merge(
-                            $locations,
-                            $this->splitAddresses($mainPlace, $subLocation)
-                        );
+                foreach ($eventNode->eventPlace as $placeNode) {
+                    if (!empty($placeNode->place->gml)) {
+                        return [];
                     }
-                } elseif (!empty($eventNode->eventPlace->place->partOfPlace)) {
-                    // Flat part of place structure (e.g. Musketti)
-                    $haveStreet = false;
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if (isset($part->placeClassification->term)
-                            && $part->placeClassification->term == 'katuosoite'
-                            && !empty($part->namePlaceSet->appellationValue)
-                        ) {
-                            $haveStreet = true;
-                            break;
+                    if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
+                        $locations = [
+                            ...$subjectLocations,
+                            ...$this->splitLocation((string)$placeNode->displayPlace),
+                        ];
+                        continue;
+                    }
+                    foreach ($placeNode->place as $place) {
+                        if ($result = $this->getHierarchicalLocations($place)) {
+                            foreach ($result as $location) {
+                                $locations[] = implode(', ', $location);
+                            }
                         }
                     }
-                    $parts = [];
-                    foreach ($eventNode->eventPlace->place->partOfPlace as $part) {
-                        if ($haveStreet && isset($part->placeClassification->term)
-                            && ($part->placeClassification->term == 'kaupunginosa'
-                            || $part->placeClassification->term == 'rakennus')
-                        ) {
-                            continue;
-                        }
-                        if (!empty($part->namePlaceSet->appellationValue)) {
-                            $parts[] = (string)$part->namePlaceSet->appellationValue;
-                        }
-                    }
-                    $locations[] = implode(' ', $parts);
-                } elseif (!empty($eventNode->eventPlace->displayPlace)) {
-                    // Split multiple locations separated with a slash
-                    $locations = array_merge(
-                        $locations,
-                        preg_split(
-                            '/[\/;]/',
-                            (string)$eventNode->eventPlace->displayPlace
-                        )
-                    );
                 }
             }
         }
 
+        $displayLocations = [];
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
+            ->repositoryWrap->repositorySet ?? [] as $set
+        ) {
+            if (empty($set->repositoryLocation)) {
+                continue;
+            }
+            if (!empty($set->repositoryLocation->gml)) {
+                return [];
+            }
+            if ($result = $this->getHierarchicalLocations($set->repositoryLocation)) {
+                foreach ($result as $location) {
+                    $displayLocations[] = implode(', ', $location);
+                }
+            }
+        }
         $accepted = [];
-        foreach ($locations as $location) {
-            if (str_word_count($location) == 1) {
-                foreach ($subjectLocations as $subjectLocation) {
-                    if (strncmp($subjectLocation, $location, strlen($location)) == 0
-                    ) {
-                        continue 2;
+        foreach ([$locations, $displayLocations] as $results) {
+            foreach ($results as $location) {
+                if (preg_match_all("/[\pL']+/u", trim($location)) === 1) {
+                    foreach ($subjectLocations as $compare) {
+                        if (str_starts_with($compare, $location)) {
+                            continue 2;
+                        }
                     }
                 }
+                $accepted[] = $location;
             }
-            $accepted[] = $location;
         }
-
         return [
             'primary' => $this->processLocations($subjectLocations),
-            'secondary' => $this->processLocations($accepted)
+            'secondary' => $this->processLocations($accepted),
         ];
     }
 
@@ -428,6 +416,225 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return parent::getTopicIDs();
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        $result = [];
+        foreach ($this->getPlaceIDElements() as $placeID) {
+            if (!($id = trim((string)$placeID))) {
+                continue;
+            }
+            if (preg_match('/^https?:/', $id)) {
+                $result[] = $id;
+                continue;
+            }
+            if ($type = (string)($placeID['type'] ?? '')) {
+                $result[] = "($type)$id";
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get all the placeID elements
+     *
+     * @param bool $allEvents Return all events for event places
+     *
+     * @return array
+     */
+    protected function getPlaceIDElements(bool $allEvents = false): array
+    {
+        $result = [];
+        foreach ($this->getEventNodes($allEvents ? null : $this->getPlaceEvents()) as $eventNode) {
+            foreach ($eventNode->eventPlace as $eventPlace) {
+                foreach ($eventPlace->place->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
+                }
+            }
+        }
+        foreach ($this->getSubjectNodes() as $subject) {
+            foreach ($subject->subjectPlace as $subjectPlace) {
+                foreach ($subjectPlace->place->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
+                }
+            }
+        }
+        if ($allEvents) {
+            foreach (
+                $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
+                ?? [] as $set
+            ) {
+                foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
+                    $result[] = $placeID;
+                }
+            }
+        }
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
+            ?? [] as $set
+        ) {
+            foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
+                $attr = $placeID->attributes();
+                if (in_array($attr->type, $this->includedLocationLabels)) {
+                    $result[] = $placeID;
+                }
+                if ($attr->type == 'URI' && $attr->source == 'YSO') {
+                    $result[] = $placeID;
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get hierarchical locations as a multidimensional array.
+     *
+     * @param \SimpleXMLElement $elem Element to check for locations.
+     *
+     * @return array<int, array>
+     */
+    protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
+    {
+        $results = [];
+        $currentElements = [$elem];
+        do {
+            $current = array_shift($currentElements);
+
+            if (!empty($current->namePlaceSet->appellationValue)) {
+                // There can be multiple appellationValues in element, meaning multiple streets etc
+                $values = [];
+                $label = '';
+                foreach ($current->namePlaceSet as $name) {
+                    foreach ($name->appellationValue as $elemValue) {
+                        // We can assume that the label is same in each of different
+                        // appellationvalues under same parent
+                        // If this is not the case, then things are not going ok
+                        $currentLabel = trim((string)$elemValue->attributes()->label);
+                        if (in_array(strtolower($currentLabel), $this->excludedLocationLabels)) {
+                            // Locations with labels like "Torin kulman takaosa" should be skipped
+                            continue;
+                        }
+
+                        if ($label && $label !== $currentLabel) {
+                            // There seems to be different types of appellationValues so skip the new ones
+                            continue;
+                        }
+                        if (!$label) {
+                            $label = $currentLabel;
+                        }
+                        $values[] = trim((string)$elemValue);
+                    }
+                }
+                // If label is empty, use any placeClassification instead
+                if (!$label && !empty($current->placeClassification)) {
+                    $label = trim((string)$current->placeClassification);
+                }
+
+                // If label is still empty and we have multiple values, then only take the first one into account.
+                if (!$label && count($values) > 1) {
+                    $values = [array_shift($values)];
+                }
+                // Check do we create new elements into results or append current value into old results.
+                $newEntries = !$results;
+                foreach ($values as $value) {
+                    if ($newEntries) {
+                        $results[] = [$value];
+                    } else {
+                        foreach ($results as &$result) {
+                            $result[] = $value;
+                        }
+                        unset($result);
+                    }
+                }
+            }
+            // Check for any other partOfPlaces
+            if (!empty($current->partOfPlace)) {
+                foreach ($current->partOfPlace as $place) {
+                    $currentElements[] = $place;
+                }
+            }
+        } while (count($currentElements) > 0);
+        return $results;
+    }
+
+    /**
+     * Get repository location coordinates
+     *
+     * @return array<int, string>
+     */
+    protected function getRepositoryLocationCoordinates(): array
+    {
+        $results = [];
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
+            ->repositoryWrap->repositorySet ?? [] as $set
+        ) {
+            if (empty($set->repositoryLocation->gml)) {
+                continue;
+            }
+            if ($wkt = $this->convertGmlToWkt($set->repositoryLocation->gml)) {
+                $results[] = $wkt;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Split a location found from displayPlace element. Excludes all values
+     * found after splitting which has redundancy or has only a single value.
+     * Splitting is done from characters ; or /.
+     *
+     * @param string $location Location to split
+     *
+     * @return array<int, string>
+     */
+    protected function splitLocation(string $location): array
+    {
+        $splitted = preg_split(
+            '/[\/;]/',
+            $location
+        );
+        $results = [];
+        // Some locations might have redundancy, which causes problems.
+        // Try to detect them and discard them from the results
+        foreach ($splitted as $value) {
+            $value = trim($value);
+            $splitted = explode(' ', $value);
+
+            // If there is only one location then it can be really difficult
+            // to really determine where it should be located i.e Pohja or i.e lakes
+            // so in this case, skip the result
+            if (count($splitted) === 1) {
+                continue;
+            }
+            array_walk($splitted, function (&$part) {
+                $part = trim($part, ', ');
+            });
+            // If the result would be something like Mäntyharju, Mäntyharju skip it as it
+            // is too redundant
+            if (count(array_unique($splitted)) !== count($splitted)) {
+                continue;
+            }
+            $results[] = $value;
+        }
+        return $results;
+    }
+
+    /**
      * Process an array of locations
      *
      * @param array $locations Location strings
@@ -440,7 +647,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Try to split address lists like "Helsinki, Kalevankatu 17, 19" to separate
         // entries
         foreach ($locations as $location) {
-            if (preg_match('/(.+?) \d+, *\d+/', $location, $bodyMatches)
+            if (
+                preg_match('/(.+?) \d+, *\d+/', $location, $bodyMatches)
                 && preg_match_all('/ (\d+)(,|$)/', $location, $matches)
             ) {
                 $body = $bodyMatches[1];
@@ -455,7 +663,9 @@ class Lido extends \RecordManager\Base\Record\Lido
         // "Helsinki Uudenmaankatu 31, katurakennus" removed, but avoid changing e.g.
         // "Uusimaa, Helsinki, Malmi"
         foreach ($result as $item) {
-            if (str_word_count($item) > 2 && substr_count($item, ',') == 1
+            if (
+                preg_match_all("/[\pL']+/u", trim($item)) > 2
+                && substr_count($item, ',') == 1
                 && preg_match('/(.*[^\s]+\s+\d+),/', $item, $matches)
             ) {
                 $result[] = $matches[1];
@@ -471,9 +681,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             },
             $result
         );
-        $result = array_unique($result);
 
-        return $result;
+        return array_values(array_unique($result));
     }
 
     /**
@@ -482,14 +691,13 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @param string $mainPlace   Main location
      * @param string $subLocation Sublocation(s)
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function splitAddresses($mainPlace, $subLocation)
     {
         $locations = [];
         if (preg_match('/[^\s]+(\,(?!\s*\d)|\.|\s*\&)\s+[^\s]+/', $subLocation)) {
-            foreach (preg_split('/(\,(?!\s*\d)|\.|\s*\&)\s+/', $subLocation) as $sub
-            ) {
+            foreach (preg_split('/(\,(?!\s*\d)|\.|\s*\&)\s+/', $subLocation) as $sub) {
                 $locations[] = "$mainPlace $sub";
             }
         } else {
@@ -501,22 +709,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Return usage rights if any
      *
-     * @return array ['restricted'] or a more specific id if restricted,
+     * @return array<int, string> ['restricted'] or a more specific id if restricted,
      * empty array otherwise
      */
     protected function getUsageRights()
     {
-        $hasValue = isset(
-            $this->doc->lido->administrativeMetadata->resourceWrap->resourceSet
-        );
-        if (!$hasValue) {
-            return [];
-        }
-
         $result = [];
-        foreach ($this->doc->lido->administrativeMetadata->resourceWrap->resourceSet
-            as $set
-        ) {
+        foreach ($this->doc->lido->administrativeMetadata->resourceWrap->resourceSet ?? [] as $set) {
             if (isset($set->rightsResource->rightsType->conceptID)) {
                 $result[] = (string)$set->rightsResource->rightsType->conceptID;
             } else {
@@ -537,9 +736,9 @@ class Lido extends \RecordManager\Base\Record\Lido
      * #subjectComplexType
      * @return array
      */
-    public function getTopicIDs($exclude = ['iconclass'])
+    protected function getTopicIDs($exclude = ['iconclass']): array
     {
-        $result = parent::getTopicIDs();
+        $result = parent::getTopicIDs($exclude);
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 
@@ -550,34 +749,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getGeographicTopicIDs()
     {
-        $result = [];
-
-        $getPlaceID = function ($placeID) {
-            $id = trim((string)$placeID);
-            if (!preg_match('/^https?:/', $id)
-                && $type = (string)($placeID['type'] ?? '')
-            ) {
-                $id = "($type)$id";
-            }
-            return $id;
-        };
-
-        foreach ($this->getEventNodes($this->getPlaceEvents()) as $eventNode) {
-            foreach ($eventNode->eventPlace as $eventPlace) {
-                if (isset($eventPlace->place->placeID)) {
-                    $result[] = $getPlaceID($eventPlace->place->placeID);
-                }
-            }
-        }
-
-        foreach ($this->getSubjectNodes() as $subject) {
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                if (isset($subjectPlace->place->placeID)) {
-                    $result[] = $getPlaceID($subjectPlace->place->placeID);
-                }
-            }
-        }
-
+        $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
@@ -635,24 +807,21 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getDescription()
     {
-        $descriptionWrapDescriptions = [];
-        foreach ($this->getObjectDescriptionSetNodes(['provenienssi'])
-            as $set
-        ) {
+        $descriptions = [];
+        $title = $this->getTitle();
+        foreach ($this->getObjectDescriptionSetNodes(['provenienssi']) as $set) {
             foreach ($set->descriptiveNoteValue as $descriptiveNoteValue) {
-                $descriptionWrapDescriptions[] = (string)$descriptiveNoteValue;
+                $descriptions[] = (string)$descriptiveNoteValue;
             }
         }
-        if ($descriptionWrapDescriptions
-            && $this->getTitle() == implode('; ', $descriptionWrapDescriptions)
-        ) {
+        if ($descriptions && $title === implode('; ', $descriptions)) {
             // We have the description already in the title, don't repeat
-            $descriptionWrapDescriptions = [];
+            $descriptions = [];
         }
 
         // Also read in "description of subject" which contains data suitable for
         // this field
-        $title = str_replace([',', ';'], ' ', $this->getTitle());
+        $title = str_replace([',', ';'], ' ', $title);
         if ($this->getDriverParam('splitTitles', false)) {
             $titlePart = $this->metadataUtils->splitTitle($title);
             if ($titlePart) {
@@ -660,27 +829,16 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         $title = str_replace([',', ';'], ' ', $title);
-        $subjectDescriptions = [];
         foreach ($this->getSubjectSetNodes() as $set) {
             $subject = $set->displaySubject;
             $label = $subject['label'];
-            $checkTitle
-                = trim(str_replace([',', ';'], ' ', (string)$subject)) != $title;
-            if ((null === $label || 'aihe' === mb_strtolower($label, 'UTF-8'))
-                && $checkTitle
-            ) {
-                $subjectDescriptions[] = (string)$set->displaySubject;
+            $nonTitle = trim(str_replace([',', ';'], ' ', (string)$subject)) != $title;
+            if ($nonTitle && (null === $label || 'aihe' === mb_strtolower($label, 'UTF-8'))) {
+                $descriptions[] = (string)$set->displaySubject;
             }
         }
 
-        return trim(
-            implode(
-                ' ',
-                array_unique(
-                    array_merge($subjectDescriptions, $descriptionWrapDescriptions)
-                )
-            )
-        );
+        return trim(implode(' ', array_unique($descriptions)));
     }
 
     /**
@@ -696,7 +854,30 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getSubjectTerms($exclude = ['aihe', 'iconclass'])
     {
-        return parent::getSubjectTerms($exclude);
+        $results = [];
+        foreach ($this->getSubjectNodes($exclude) as $subject) {
+            foreach ($subject->subjectConcept as $concept) {
+                foreach ($concept->term as $term) {
+                    // Sometimes there are multiple subjects in one element separated with commas
+                    foreach (explode(',', (string)$term) as $explodedSubject) {
+                        if ($str = trim($explodedSubject)) {
+                            $results[] = $str;
+                        }
+                    }
+                }
+            }
+            // Add subject actors
+            foreach ($subject->subjectActor as $actor) {
+                foreach ($actor->actor->nameActorSet ?? [] as $name) {
+                    foreach ($name->appellationValue as $value) {
+                        if ($str = trim((string)$value)) {
+                            $results[] = $str;
+                        }
+                    }
+                }
+            }
+        }
+        return $results;
     }
 
     /**
@@ -725,7 +906,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         $displayDate = '';
         $periodName = '';
         foreach ($this->getEventNodes($event) as $eventNode) {
-            if (!$startDate
+            if (
+                !$startDate
                 && !empty($eventNode->eventDate->date->earliestDate)
                 && !empty($eventNode->eventDate->date->latestDate)
             ) {
@@ -760,7 +942,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             $startDate = '';
             $endDate = '';
             $displayDate = '';
-            if (!empty($node->subjectDate->date->earliestDate)
+            if (
+                !empty($node->subjectDate->date->earliestDate)
                 && !empty($node->subjectDate->date->latestDate)
             ) {
                 $startDate = (string)$node->subjectDate->date->earliestDate;
@@ -892,13 +1075,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Return the event place locations associated with specified event
+     * Return the event place coordinates associated with specified event
      *
      * @param string|array $event Event type(s) allowed (null = all types)
      *
-     * @return array WKT
+     * @return array<int, string> WKT
      */
-    protected function getEventPlaceLocations($event = null)
+    protected function getEventPlaceCoordinates($event = null)
     {
         $results = [];
         foreach ($this->getEventNodes($event) as $event) {
@@ -930,7 +1113,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             if (empty($gml->Polygon->outerBoundaryIs->LinearRing->coordinates)) {
                 $this->logger->logDebug(
                     'Lido',
-                    "GML Polygon missing outer boundary, record "
+                    'GML Polygon missing outer boundary, record '
                         . "{$this->source}." . $this->getID()
                 );
                 $this->storeWarning('gml polygon missing outer boundary');
@@ -955,7 +1138,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             if (empty($gml->LineString->coordinates)) {
                 $this->logger->logDebug(
                     'Lido',
-                    "GML LineString missing coordinates, record "
+                    'GML LineString missing coordinates, record '
                         . "{$this->source}." . $this->getID()
                 );
                 $this->storeWarning('gml linestring missing coordinates');
@@ -975,7 +1158,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if (!$coordinates) {
                     $this->logger->logDebug(
                         'Lido',
-                        "Empty pos in GML point, record "
+                        'Empty pos in GML point, record '
                             . "{$this->source}." . $this->getID(),
                         true
                     );
@@ -991,7 +1174,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if (!$coordinates) {
                     $this->logger->logDebug(
                         'Lido',
-                        "Empty coordinates in GML point, record "
+                        'Empty coordinates in GML point, record '
                             . "{$this->source}." . $this->getID(),
                         true
                     );
@@ -1007,7 +1190,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             if (null === $lat || null === $lon) {
                 $this->logger->logDebug(
                     'Lido',
-                    "GML Point does not contain pos or coordinates, record "
+                    'GML Point does not contain pos or coordinates, record '
                         . "{$this->source}." . $this->getID(),
                     true
                 );
@@ -1016,9 +1199,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
             $lat = trim($lat);
             $lon = trim($lon);
-            if ('' === $lat || '' === $lon || $lat < -90 || $lat > 90 || $lon < -180
-                || $lon > 180
-            ) {
+            if ('' === $lat || '' === $lon || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
                 $this->logger->logDebug(
                     'Lido',
                     "Discarding invalid coordinates '$lat,$lon', record "
@@ -1074,7 +1255,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             'rautakausi' => ['-0500-01-01T00:00:00Z','1299-12-31T23:59:59Z'],
             'keskiaika' => ['1300-01-01T00:00:00Z','1550-12-31T23:59:59Z'],
             'ajoittamaton' => null,
-            'tuntematon' => null
+            'tuntematon' => null,
         ];
         $dmyToDmyPeriods = '/(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)\s*'
             . '-\s*(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)/';
@@ -1128,7 +1309,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 'syyskuu' => '09',
                 'lokakuu' => '10',
                 'marraskuu' => '11',
-                'joulukuu' => '12'
+                'joulukuu' => '12',
         ];
 
         $imprecise = false;
@@ -1371,18 +1552,17 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $endDate = $year;
             }
         } elseif (preg_match($ekrToEkr, $input, $matches)) {
-            $startDate = -$matches[1];
-            $endDate = -$matches[2];
+            $startDate = -(int)$matches[1];
+            $endDate = -(int)$matches[2];
         } elseif (preg_match($ekrToJkr, $input, $matches)) {
-            $startDate = -$matches[1];
+            $startDate = -(int)$matches[1];
             $endDate = $matches[2];
         } elseif (preg_match('/(-?\d?\d?\d\d) jälkeen/', $input, $matches)) {
             $year = $matches[1];
 
             $startDate = $year;
             $endDate = intval($year) + 9;
-        } elseif (preg_match('/(-?\d\d\d\d)\s*-\s*(-?\d\d\d\d)/', $input, $matches)
-        ) {
+        } elseif (preg_match('/(-?\d\d\d\d)\s*-\s*(-?\d\d\d\d)/', $input, $matches)) {
             $startDate = $matches[1];
             $endDate = $matches[2];
         } elseif (preg_match('/(-?\d{1-4})\s+-\s+(-?\d{1-4})/', $input, $matches)) {
@@ -1421,27 +1601,27 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         switch (strlen($startDate)) {
-        case 1:
-            $startDate = "000$startDate";
-            break;
-        case 2:
-            $startDate = "19$startDate";
-            break;
-        case 3:
-            $startDate = "0$startDate";
-            break;
+            case 1:
+                $startDate = "000$startDate";
+                break;
+            case 2:
+                $startDate = "19$startDate";
+                break;
+            case 3:
+                $startDate = "0$startDate";
+                break;
         }
         switch (strlen($endDate)) {
-        case 1:
-            $endDate = "000$endDate";
-            break;
-        case 2:
-            // Take into account possible negative sign
-            $endDate = substr($startDate, 0, -2) . $endDate;
-            break;
-        case 3:
-            $endDate = "0$endDate";
-            break;
+            case 1:
+                $endDate = "000$endDate";
+                break;
+            case 2:
+                // Take into account possible negative sign
+                $endDate = substr($startDate, 0, -2) . $endDate;
+                break;
+            case 3:
+                $endDate = "0$endDate";
+                break;
         }
 
         if ($imprecise) {
@@ -1457,7 +1637,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         // Trying to index dates into the future? I don't think so...
         $yearNow = date('Y');
-        if ($startDate > $yearNow || $endDate > $yearNow) {
+        if (substr($startDate, 0, 4) > $yearNow || substr($endDate, 0, 4) > $yearNow) {
             return null;
         }
 
@@ -1501,18 +1681,13 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getClassifications()
     {
-        $empty = empty(
-            $this->doc->lido->descriptiveMetadata
-                ->objectClassificationWrap->classificationWrap->classification
-        );
-        if ($empty) {
-            return [];
-        }
         $results = [];
-        foreach ($this->doc->lido->descriptiveMetadata->objectClassificationWrap
-            ->classificationWrap->classification as $classification
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectClassificationWrap
+            ->classificationWrap->classification ?? [] as $classification
         ) {
-            if (!empty($classification->term)) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' !== $type && !empty($classification->term)) {
                 foreach ($classification->term as $term) {
                     $results[] = (string)$term;
                 }
@@ -1526,7 +1701,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string $eventType Event type
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getEventNames($eventType)
     {
@@ -1548,17 +1723,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getRightsHolderLegalBodyName()
     {
-        $empty = empty(
-            $this->doc->lido->administrativeMetadata->rightsWorkWrap
-                ->rightsWorkSet
-        );
-        if ($empty) {
-            return '';
-        }
-
-        foreach ($this->doc->lido->administrativeMetadata->rightsWorkWrap
-            ->rightsWorkSet as $set
-        ) {
+        foreach ($this->doc->lido->administrativeMetadata->rightsWorkWrap->rightsWorkSet ?? [] as $set) {
             if (!empty($set->rightsHolder->legalBodyName->appellationValue)) {
                 return (string)$set->rightsHolder->legalBodyName->appellationValue;
             }
@@ -1573,15 +1738,8 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getRecordSourceOrganization()
     {
-        $empty = empty(
-            $this->doc->lido->administrativeMetadata->recordWrap
-                ->recordSource->legalBodyName->appellationValue
-        );
-        if ($empty) {
-            return '';
-        }
-        return (string)$this->doc->lido->administrativeMetadata->recordWrap
-            ->recordSource->legalBodyName->appellationValue;
+        return (string)($this->doc->lido->administrativeMetadata->recordWrap
+            ->recordSource->legalBodyName->appellationValue ?? '');
     }
 
     /**
@@ -1589,7 +1747,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #objectWorkTypeWrap
-     * @return string|array
+     * @return array<int, string>
      */
     protected function getObjectWorkTypes()
     {
@@ -1598,11 +1756,11 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Check for image links and add a work type for images
         $imageTypes = [
             'Kuva', 'Kuva, Valokuva', 'Valokuva', 'dia', 'kuva', 'negatiivi',
-            'photograph', 'valoku', 'valokuva', 'valokuvat'
+            'photograph', 'valoku', 'valokuva', 'valokuvat',
         ];
         $imageResourceTypes = [
             '', 'image_thumb', 'thumb', 'medium', 'image_large', 'large', 'zoomview',
-            'image_master', 'image_original'
+            'image_master', 'image_original',
         ];
         if (empty(array_intersect($imageTypes, $result))) {
             foreach ($this->getResourceSetNodes() as $set) {
@@ -1630,7 +1788,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @param string[] $relatedWorkRelType Which relation types to use
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getRelatedWorks($relatedWorkRelType)
     {
@@ -1650,12 +1808,13 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #objectMeasurementsSetComplexType
-     * @return array
+     * @return array<int, string>
      */
     protected function getMeasurements()
     {
         $results = [];
-        foreach ($this->doc->lido->descriptiveMetadata->objectIdentificationWrap
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
             ->objectMeasurementsWrap->objectMeasurementsSet ?? [] as $set
         ) {
             $setResults = [];
@@ -1666,20 +1825,15 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
             // Use measurementsSet if there's no displayMeasurements:
             if (!$setResults) {
-                foreach ($set->objectMeasurements->measurementsSet ?? []
-                    as $measurements
-                ) {
+                foreach ($set->objectMeasurements->measurementsSet ?? [] as $measurements) {
                     $parts = [];
-                    if ($type = trim((string)($measurements->measurementType ?? ''))
-                    ) {
+                    if ($type = trim((string)($measurements->measurementType ?? ''))) {
                         $parts[] = $type;
                     }
-                    if ($val = trim((string)($measurements->measurementValue ?? ''))
-                    ) {
+                    if ($val = trim((string)($measurements->measurementValue ?? ''))) {
                         $parts[] = $val;
                     }
-                    if ($unit = trim((string)($measurements->measurementUnit ?? ''))
-                    ) {
+                    if ($unit = trim((string)($measurements->measurementUnit ?? ''))) {
                         $parts[] = $unit;
                     }
                     if ($parts) {
@@ -1690,9 +1844,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             if ($setResults) {
                 // Add extents:
                 $extents = [];
-                foreach ($set->objectMeasurements->extentMeasurements ?? []
-                    as $extent
-                ) {
+                foreach ($set->objectMeasurements->extentMeasurements ?? [] as $extent) {
                     if ($value = trim((string)$extent)) {
                         $extents[] = $value;
                     }
@@ -1700,7 +1852,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if ($extents) {
                     $extents = implode(', ', $extents);
                     foreach ($setResults as &$current) {
-                        if (strpos($current, $extents) === false) {
+                        if (!str_contains($current, $extents)) {
                             $current .= " ($extents)";
                         }
                     }
@@ -1718,15 +1870,15 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #eventComplexType
-     * @return array
+     * @return array<int, string>
      */
     protected function getCulture()
     {
         $results = [];
         foreach ($this->getEventNodes() as $event) {
             foreach ($event->culture as $culture) {
-                if ($culture->term) {
-                    $results[] = (string)$culture->term;
+                if ($value = trim((string)($culture->term ?? ''))) {
+                    $results[] = $value;
                 }
             }
         }
@@ -1743,12 +1895,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getRights()
     {
         foreach ($this->getResourceSetNodes() as $set) {
-            $empty = empty(
-                $set->rightsResource->rightsHolder->legalBodyName->appellationValue
-            );
-            if (!$empty) {
-                return (string)$set->rightsResource->rightsHolder->legalBodyName
-                    ->appellationValue;
+            if ($rights = (string)($set->rightsResource->rightsHolder->legalBodyName->appellationValue ?? '')) {
+                return $rights;
             }
         }
         return '';
@@ -1768,8 +1916,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     if (!empty($link)) {
                         $attributes = $node->attributes();
                         $type = (string)$attributes->type;
-                        if ('image_original' === $type || 'image_master' === $type
-                        ) {
+                        if ('image_original' === $type || 'image_master' === $type) {
                             return true;
                         }
                     }
@@ -1783,7 +1930,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get categories
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getCategories(): array
     {
@@ -1838,7 +1985,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchy fields
+     * Get hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
@@ -1881,5 +2028,82 @@ class Lido extends \RecordManager\Base\Record\Lido
             return boolval($free);
         }
         return $this->getDriverParam('freeOnlineDefault', true);
+    }
+
+    /**
+     * Get all language codes
+     *
+     * @return array Language codes
+     */
+    protected function getLanguages(): array
+    {
+        $classifications = $this->doc->lido->descriptiveMetadata
+                ->objectClassificationWrap->classificationWrap->classification ?? [];
+        $result = [];
+        foreach ($classifications as $classification) {
+            $type = trim((string)$classification->attributes()->type);
+            if ('language' === $type) {
+                foreach ($classification->term as $lang) {
+                    if ($trimmed = trim((string)$lang)) {
+                        $result[] = $trimmed;
+                    }
+                }
+            }
+        }
+        return array_unique($result);
+    }
+
+    /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    protected function getOnlineUrls(): array
+    {
+        $results = [];
+        foreach ($this->getResourceSetNodes() as $set) {
+            foreach ($set->resourceRepresentation as $node) {
+                if (empty($node->linkResource)) {
+                    continue;
+                }
+                $result = [
+                    'url' => trim($node->linkResource),
+                    'desc' => trim($set->resourceDescription),
+                    'source' => $this->source,
+                ];
+                $mediaType = $this->getLinkMediaType(
+                    trim($node->linkResource),
+                    trim($node->linkResource->attributes()->formatResource),
+                    trim($node->attributes()->type)
+                );
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Get other identifiers except ISBN, ISSN and identifiers which are URLs.
+     * Contains: workIDs, placeIDs.
+     *
+     * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#placeID
+     * @see    https://lido-schema.org/schema/v1.1/lido-v1.1.html#workID
+     * @return array
+     */
+    protected function getOtherIdentifiers(): array
+    {
+        $filterUrls = function ($el) {
+            $trimmed = trim((string)$el);
+            return !preg_match('/^https?:/', $el) ? $trimmed : '';
+        };
+        $identifiers = $this->getIdentifiersByType([], ['issn', 'isbn']);
+        $result = array_merge(
+            array_map($filterUrls, $identifiers),
+            array_map($filterUrls, $this->getPlaceIDElements(true)),
+        );
+        return array_values(array_filter(array_unique($result)));
     }
 }

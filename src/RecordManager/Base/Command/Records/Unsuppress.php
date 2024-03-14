@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Unsuppress records
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2020-2021.
+ * Copyright (C) The National Library of Finland 2020-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -112,7 +114,7 @@ class Unsuppress extends AbstractBase
     {
         $params = [
             'deleted' => false,
-            'suppressed' => ['$in' => [null, false]],
+            'suppressed' => true,
         ];
         if ($sourceId) {
             $params['source_id'] = $sourceId;
@@ -122,7 +124,7 @@ class Unsuppress extends AbstractBase
         }
         $total = $this->db->countRecords($params);
         $count = 0;
-        $this->logger->logInfo('suppress', "Processing $total records");
+        $this->logger->logInfo('unsuppress', "Processing $total records");
         $pc = new PerformanceCounter();
 
         $this->db->iterateRecords(
@@ -130,16 +132,15 @@ class Unsuppress extends AbstractBase
             [],
             function ($record) use (&$count, $pc) {
                 $source = $record['source_id'];
-                if (!isset($this->dataSourceConfig[$source])) {
+                if (!($settings = $this->dataSourceConfig[$source] ?? null)) {
                     $this->logger->logFatal(
-                        'suppress',
+                        'unsuppress',
                         "Data source configuration missing for '$source'"
                     );
                     return false;
                 }
-                $settings = $this->dataSourceConfig[$source];
                 $record['suppressed'] = false;
-                if ($settings['dedup']) {
+                if ($settings['dedup'] ?? false) {
                     $record['update_needed'] = true;
                 }
                 $record['updated'] = $this->db->getTimestamp();

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * PDO access class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) The National Library of Finland 2020-2021.
  *
@@ -25,7 +26,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Database;
+
+use function count;
+use function in_array;
+use function intval;
+use function is_array;
+use function is_bool;
 
 /**
  * PDO access class
@@ -98,6 +106,13 @@ class PDODatabase extends AbstractDatabase
     protected $lastRecordAttrsId = [];
 
     /**
+     * Whether to use index hints (MySQL/MariaDB)
+     *
+     * @var bool
+     */
+    protected $useIndexHints = false;
+
+    /**
      * Constructor.
      *
      * @param array $config Database settings
@@ -111,6 +126,7 @@ class PDODatabase extends AbstractDatabase
         $this->dsn = $config['connection'] ?? '';
         $this->username = $config['username'] ?? '';
         $this->password = $config['password'] ?? '';
+        $this->useIndexHints = (bool)($config['use_index_hints'] ?? false);
     }
 
     /**
@@ -374,7 +390,8 @@ class PDODatabase extends AbstractDatabase
         while ($collection = $res->fetchColumn()) {
             $nameParts = explode('_', (string)$collection);
             $collTime = $nameParts[2] ?? null;
-            if (is_numeric($collTime)
+            if (
+                is_numeric($collTime)
                 && $collTime != time() - $minAge * 60 * 60 * 24
             ) {
                 try {
@@ -414,7 +431,7 @@ class PDODatabase extends AbstractDatabase
      */
     public function dropTrackingCollection($collectionName)
     {
-        if (strncmp($collectionName, 'tracking_', 9) !== 0) {
+        if (!str_starts_with($collectionName, 'tracking_')) {
             throw new \Exception(
                 "Invalid tracking collection name: '$collectionName'"
             );
@@ -483,20 +500,46 @@ class PDODatabase extends AbstractDatabase
     }
 
     /**
-     * Find a single ontology enrichment record
+     * Find a single linked data enrichment record
      *
      * @param array $filter  Search filter
      * @param array $options Options such as sorting
      *
      * @return array|null
      */
-    public function findOntologyEnrichment($filter, $options = [])
+    public function findLinkedDataEnrichment($filter, $options = [])
     {
         return $this->findPDORecord(
-            $this->ontologyEnrichmentCollection,
+            $this->linkedDataEnrichmentCollection,
             $filter,
             $options
         );
+    }
+
+    /**
+     * Save a linked data enrichment record
+     *
+     * @param array $record Linked data enrichment record
+     *
+     * @return array Saved record (with a new _id if it didn't have one)
+     */
+    public function saveLinkedDataEnrichment($record)
+    {
+        $record['timestamp'] = $this->getTimestamp();
+        try {
+            return $this->savePDORecord(
+                $this->linkedDataEnrichmentCollection,
+                $record
+            );
+        } catch (\PDOException $e) {
+            // Since this can be done by multiple workers simultaneously, we might
+            // encounter duplicate inserts at the same time, so ignore duplicate key
+            // errors.
+            if (($e->errorInfo[1] ?? 0) == 1062) {
+                return $record;
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -590,6 +633,27 @@ class PDODatabase extends AbstractDatabase
     }
 
     /**
+     * Get database handle
+     *
+     * @return \PDO
+     */
+    public function getDb(): \PDO
+    {
+        if (null === $this->db) {
+            $this->db = new \PDO($this->dsn, $this->username, $this->password);
+            $this->db
+                ->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+            $this->pid = getmypid();
+        } elseif ($this->pid !== getmypid()) {
+            throw new \Exception(
+                'PID ' . getmypid() . ': database already connected by PID '
+                . $this->pid
+            );
+        }
+        return $this->db;
+    }
+
+    /**
      * Get a record
      *
      * @param string $collection Collection
@@ -656,6 +720,9 @@ class PDODatabase extends AbstractDatabase
         [$where, $params] = $this->filterToSQL($collection, $filter);
         [$fields, $sqlOptions] = $this->optionsToSQL($options);
         $sql = "select $fields from $collection";
+        if ($hints = $this->getIndexHints($collection, $filter, $options)) {
+            $sql .= " $hints";
+        }
         if ($where) {
             $sql .= " where $where";
         }
@@ -798,7 +865,7 @@ class PDODatabase extends AbstractDatabase
                             [
                                 $record['_id'],
                                 $key,
-                                $value
+                                $value,
                             ]
                         );
                     }
@@ -811,7 +878,7 @@ class PDODatabase extends AbstractDatabase
                             [
                                 $record['_id'],
                                 $key,
-                                $value
+                                $value,
                             ]
                         );
                     }
@@ -971,7 +1038,7 @@ class PDODatabase extends AbstractDatabase
                 $keys = array_keys($value);
                 $supportedKeys = [
                     '$or', '$nor', '$in', '$ne', '$exists', '$gt', '$gte', '$lt',
-                    '$lte'
+                    '$lte',
                 ];
                 if (array_diff($keys, $supportedKeys)) {
                     throw new \Exception(
@@ -997,23 +1064,26 @@ class PDODatabase extends AbstractDatabase
                     $values = (array)$value['$in'];
                     $valueCount = count($values);
                     // Special handling for null
-                    $nullKey = array_search(null, $values);
+                    $nullKey = array_search(null, $values, true);
                     if (false !== $nullKey) {
                         unset($values[$nullKey]);
                         --$valueCount;
                         $whereParts[] = $this->mapFieldToQuery(
                             $collection,
                             $field,
-                            ' IS NULL OR'
+                            ' IS NULL'
                         );
+                        if ($valueCount) {
+                            $whereParts[] = 'OR';
+                        }
                     }
                     if ($valueCount > 1) {
-                        $match = ' in (' . rtrim(str_repeat('?,', $valueCount), ',')
+                        $match = ' IN (' . rtrim(str_repeat('?,', $valueCount), ',')
                             . ')';
                         $whereParts[]
                             = $this->mapFieldToQuery($collection, $field, $match);
                         $params = array_merge($params, $values);
-                    } else {
+                    } elseif ($values) {
                         $whereParts[]
                             = $this->mapFieldToQuery($collection, $field, '=?');
                         $params[] = reset($values);
@@ -1119,7 +1189,8 @@ class PDODatabase extends AbstractDatabase
      */
     protected function optionsToSQL(array $options): array
     {
-        if (array_diff(array_keys($options), ['skip', 'limit', 'sort', 'projection'])
+        if (
+            array_diff(array_keys($options), ['skip', 'limit', 'sort', 'projection'])
         ) {
             throw new \Exception('Unsupported options: ' . print_r($options, true));
         }
@@ -1166,82 +1237,33 @@ class PDODatabase extends AbstractDatabase
     }
 
     /**
-     * Get database handle
+     * Check if the database is MySQL or MariaDB
      *
-     * @return \PDO
+     * @return bool
      */
-    public function getDb(): \PDO
+    protected function isMySQLCompatible(): bool
     {
-        if (null === $this->db) {
-            $this->db = new \PDO($this->dsn, $this->username, $this->password);
-            $this->db
-                ->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-            $this->pid = getmypid();
-        } elseif ($this->pid !== getmypid()) {
-            throw new \Exception(
-                'PID ' . getmypid() . ': database already connected by PID '
-                . $this->pid
-            );
-        }
-        return $this->db;
-    }
-}
-
-/**
- * Result iterator class that adds any attributes to each returned record
- *
- * @category DataManagement
- * @package  RecordManager
- * @author   Ere Maijala <ere.maijala@helsinki.fi>
- * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
- * @link     https://github.com/NatLibFi/RecordManager
- */
-class PDOResultIterator extends \IteratorIterator
-{
-    /**
-     * Database
-     *
-     * @var PDODatabase
-     */
-    protected $db;
-
-    /**
-     * Collection
-     *
-     * @var string
-     */
-    protected $collection;
-
-    /**
-     * Constructor
-     *
-     * @param \Traversable $iterator   Iterator
-     * @param PDODatabase  $db         Database
-     * @param string       $collection Collection
-     */
-    public function __construct(
-        \Traversable $iterator,
-        PDODatabase $db,
-        string $collection
-    ) {
-        parent::__construct($iterator);
-
-        $this->db = $db;
-        $this->collection = $collection;
+        return str_starts_with($this->dsn, 'mysql')
+            || str_starts_with($this->dsn, 'mariadb');
     }
 
     /**
-     * Get the current value
+     * Get index hints
      *
-     * @return mixed
+     * @param string $collection Collection
+     * @param array  $filter     Search filter
+     * @param array  $options    Options such as sorting
+     *
+     * @return string
      */
-    #[\ReturnTypeWillChange]
-    public function current()
+    protected function getIndexHints(string $collection, array $filter, array $options): string
     {
-        $result = parent::current();
-        if ($result) {
-            $result += $this->db->getRecordAttrs($this->collection, $result['_id']);
+        if (!$this->useIndexHints || !$this->isMySQLCompatible()) {
+            return '';
         }
-        return $result;
+        if ('record' === $collection && isset($options['sort']['_id']) && isset($filter['source_id'])) {
+            return 'USE INDEX (source_update_needed)';
+        }
+        return '';
     }
 }

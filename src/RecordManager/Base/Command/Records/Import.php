@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Import
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -33,6 +35,9 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function array_slice;
+use function strlen;
 
 /**
  * Import
@@ -87,14 +92,13 @@ class Import extends AbstractBase
         $files = $input->getArgument('file');
         $delete = $input->getOption('delete');
 
-        if (!isset($this->dataSourceConfig[$source])) {
+        if (!($settings = $this->dataSourceConfig[$source] ?? null)) {
             $this->logger->logFatal(
                 'import',
                 "Settings not found for data source $source"
             );
             throw new \Exception("Error: settings not found for $source\n");
         }
-        $settings = &$this->dataSourceConfig[$source];
         $count = 0;
         $filelist = glob($files);
         if (empty($filelist)) {
@@ -112,7 +116,7 @@ class Import extends AbstractBase
             } else {
                 $this->logger->logInfo(
                     'import',
-                    "Complex recordXPath, cannot use streaming loader"
+                    'Complex recordXPath, cannot use streaming loader'
                 );
                 $count += $this->fullLoad($file, $source, $delete);
             }
@@ -159,7 +163,7 @@ class Import extends AbstractBase
             }
             $data = $xml->readOuterXML();
             if ($settings['preTransformation']) {
-                $this->logger->writelnDebug("Executing pretransformation");
+                $this->logger->writelnDebug('Executing pretransformation');
                 $data = $this->pretransform($data, $source);
             }
 
@@ -167,7 +171,7 @@ class Import extends AbstractBase
             if ($settings['oaiIDXPath']) {
                 $doc = new \DOMDocument();
                 $doc->loadXML($data);
-                $xpath = new \DOMXpath($doc);
+                $xpath = new \DOMXPath($doc);
                 $xNodes = $xpath->query($settings['oaiIDXPath']);
                 if ($xNodes->length == 0 || !$xNodes->item(0)->nodeValue) {
                     $this->logger->logFatal(
@@ -255,7 +259,7 @@ class Import extends AbstractBase
         if ($path === $xpath) {
             return true;
         }
-        if (strncmp('//', $xpath, 2) === 0) {
+        if (str_starts_with($xpath, '//')) {
             $xpath = substr($xpath, 1);
             return substr($path, -strlen($xpath)) == $xpath;
         }

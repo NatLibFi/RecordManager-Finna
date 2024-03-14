@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Forward authority Record Class
  *
@@ -25,7 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
+
+use function in_array;
 
 /**
  * Forward authority Record Class
@@ -77,7 +81,7 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
     /**
      * Get other names associated with the person
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getUseForHeadings(): array
     {

@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Suppress records
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2020-2021.
+ * Copyright (C) The National Library of Finland 2020-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -133,16 +135,15 @@ class Suppress extends AbstractBase
                 $pc
             ) {
                 $source = $record['source_id'];
-                if (!isset($this->dataSourceConfig[$source])) {
+                if (!($settings = $this->dataSourceConfig[$source] ?? null)) {
                     $this->logger->logFatal(
                         'suppress',
                         "Data source configuration missing for '$source'"
                     );
                     return false;
                 }
-                $settings = $this->dataSourceConfig[$source];
                 $record['suppressed'] = true;
-                if ($settings['dedup'] && isset($record['dedup_id'])) {
+                if (($settings['dedup'] ?? false) && isset($record['dedup_id'])) {
                     $this->dedupHandler->removeFromDedupRecord(
                         $record['dedup_id'],
                         $record['_id']

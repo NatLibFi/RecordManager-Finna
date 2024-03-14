@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Harvesting Base Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (c) The National Library of Finland 2011-2021.
+ * Copyright (c) The National Library of Finland 2011-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,12 +26,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Http\ClientManager as HttpClientManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function get_class;
 
 /**
  * Harvesting Base Class
@@ -278,6 +282,21 @@ abstract class AbstractBase
      * @return void
      */
     abstract public function harvest($callback);
+
+    /**
+     * Harvest a single record.
+     *
+     * @param callable $callback Function to be called to store a harvested record
+     * @param string   $id       Record ID
+     *
+     * @return void
+     */
+    public function harvestSingle(callable $callback, string $id): void
+    {
+        throw new \Exception(
+            'Harvesting a single record not supported by the harvesting method'
+        );
+    }
 
     /**
      * Return the number of changed records

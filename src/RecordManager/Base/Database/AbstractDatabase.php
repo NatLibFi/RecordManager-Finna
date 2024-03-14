@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Abstract database access class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) The National Library of Finland 2020-2022.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Database;
 
 /**
@@ -79,6 +81,13 @@ abstract class AbstractDatabase implements DatabaseInterface
      * @var string
      */
     protected $ontologyEnrichmentCollection = 'ontologyEnrichment';
+
+    /**
+     * Linked data enrichment collection name
+     *
+     * @var string
+     */
+    protected $linkedDataEnrichmentCollection = 'ldEnrichment';
 
     /**
      * Log message collection name
@@ -231,7 +240,7 @@ abstract class AbstractDatabase implements DatabaseInterface
             $currentFilter = $filter;
             if (null !== $lastId) {
                 $currentFilter['_id'] = [
-                    '$gt' => $lastId
+                    '$gt' => $lastId,
                 ];
             }
             $records = $findMethod(
@@ -241,7 +250,7 @@ abstract class AbstractDatabase implements DatabaseInterface
                     [
                         'skip' => 0,
                         'limit' => $limit,
-                        'sort' => ['_id' => 1]
+                        'sort' => ['_id' => 1],
                     ]
                 )
             );

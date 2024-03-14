@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Create Preview Record
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Controller;
 
 use RecordManager\Base\Database\DatabaseInterface;
@@ -36,6 +38,8 @@ use RecordManager\Base\Utils\LineBasedMarcFormatter;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\XslTransformation;
+
+use function in_array;
 
 /**
  * Create Preview Record
@@ -144,12 +148,14 @@ class CreatePreview extends AbstractBase
 
         if ('marc' !== $format && substr(trim($metadata), 0, 1) === '<') {
             $doc = new \DOMDocument();
-            if ($this->metadataUtils->loadXML($metadata, $doc)) {
-                $root = $doc->childNodes->item(0);
-                if (in_array($root->nodeName, ['records', 'collection'])) {
-                    // This is a collection of records, get the first one
-                    $metadata = $doc->saveXML($root->childNodes->item(0));
-                }
+            $errors = '';
+            if (false === $this->metadataUtils->loadXML($metadata, $doc, 0, $errors)) {
+                throw new \Exception("Could not parse XML record: $errors");
+            }
+            $root = $doc->childNodes->item(0);
+            if (in_array($root->nodeName, ['records', 'collection'])) {
+                // This is a collection of records, get the first one
+                $metadata = $doc->saveXML($root->childNodes->item(0));
             }
         }
 
@@ -163,7 +169,7 @@ class CreatePreview extends AbstractBase
             'oai_id' => '_preview',
             '_id' => '_preview',
             'created' => $timestamp,
-            'date' => $timestamp
+            'date' => $timestamp,
         ];
 
         // Normalize the record
@@ -172,7 +178,7 @@ class CreatePreview extends AbstractBase
                 'source_id' => $source,
                 'institution' => $settings['institution'],
                 'format' => $settings['format'],
-                'id_prefix' => $settings['idPrefix'] ?? ''
+                'id_prefix' => $settings['idPrefix'] ?? '',
             ];
             $normalizationXSLT = new XslTransformation(
                 RECMAN_BASE_PATH . '/transformations',
@@ -221,7 +227,7 @@ class CreatePreview extends AbstractBase
             $result[] = [
                 'id' => $id,
                 'format' => $config['format'] ?? '',
-                'institution' => $config['institution']
+                'institution' => $config['institution'],
             ];
         }
 
@@ -239,10 +245,9 @@ class CreatePreview extends AbstractBase
     protected function oaipmhTransform($metadata, $transformations)
     {
         $doc = new \DOMDocument();
-        if (!$this->metadataUtils->loadXML($metadata, $doc)) {
-            throw new \Exception(
-                'Could not parse XML record'
-            );
+        $errors = '';
+        if (false === $this->metadataUtils->loadXML($metadata, $doc, 0, $errors)) {
+            throw new \Exception("Could not parse XML record: $errors");
         }
         foreach ((array)$transformations as $transformation) {
             $style = new \DOMDocument();

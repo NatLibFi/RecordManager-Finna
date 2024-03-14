@@ -1,8 +1,9 @@
 <?php
+
 /**
  * LIDO Record Driver Test Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2020-2022.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Record;
 
 use RecordManager\Base\Record\Lido;
@@ -38,7 +40,7 @@ use RecordManager\Base\Record\Lido;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class LidoTest extends RecordTest
+class LidoTest extends RecordTestBase
 {
     /**
      * Test LIDO record handling
@@ -59,15 +61,15 @@ class LidoTest extends RecordTest
                 . ' Säädökset',
             'title' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen;'
                 . ' Säädökset',
-            'title_sort' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen;'
-                . ' Säädökset',
+            'title_sort' => 'luonnonsuojelusäädökset toimittanut raimo luhtanen'
+                . ' säädökset',
             'title_alt' => [],
             'format' => 'Kirja',
             'identifier' => '26054',
             'institution' => 'Test Institution',
             'author' => [
                 'Designer, Test',
-                'Luhtanen, Raimo'
+                'Luhtanen, Raimo',
             ],
             'author_sort' => 'Designer, Test',
             'topic_facet' => [
@@ -78,12 +80,9 @@ class LidoTest extends RecordTest
                 'retkeily',
                 'ulkoilu',
             ],
-            'material_str_mv' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'geographic' => [
-            ],
+            'material_str_mv' => [],
+            'geographic_facet' => [],
+            'geographic' => [],
             'era' => [],
             'era_facet' => [],
             'collection' => '',
@@ -116,7 +115,7 @@ class LidoTest extends RecordTest
                 'M011-320623',
                 'Test Institution',
                 '247394',
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -132,7 +131,7 @@ class LidoTest extends RecordTest
                     [
                         'type' => 'author',
                         'value' => 'Luhtanen, Raimo',
-                    ]
+                    ],
                 ],
                 'authorsAltScript' => [],
                 'titles' => [
@@ -143,7 +142,7 @@ class LidoTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
@@ -163,9 +162,9 @@ class LidoTest extends RecordTest
                 '__unit_test_no_source__' => [
                     'driverParams' => [
                         'mergeTitleValues=false',
-                        'mergeTitleSets=false'
-                    ]
-                ]
+                        'mergeTitleSets=false',
+                    ],
+                ],
             ]
         );
         $fields = $record->toSolrArray();
@@ -176,16 +175,16 @@ class LidoTest extends RecordTest
             'title_full' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
             'title_short' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
             'title' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
-            'title_sort' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
+            'title_sort' => 'luonnonsuojelusäädökset toimittanut raimo luhtanen',
             'title_alt' => [
-                'Säädökset'
+                'Säädökset',
             ],
             'format' => 'Kirja',
             'identifier' => '26054',
             'institution' => 'Test Institution',
             'author' => [
                 'Designer, Test',
-                'Luhtanen, Raimo'
+                'Luhtanen, Raimo',
             ],
             'author_sort' => 'Designer, Test',
             'topic_facet' => [
@@ -196,12 +195,9 @@ class LidoTest extends RecordTest
                 'retkeily',
                 'ulkoilu',
             ],
-            'material_str_mv' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'geographic' => [
-            ],
+            'material_str_mv' => [],
+            'geographic_facet' => [],
+            'geographic' => [],
             'era' => [],
             'era_facet' => [],
             'collection' => '',
@@ -234,7 +230,7 @@ class LidoTest extends RecordTest
                 'M011-320623',
                 'Test Institution',
                 '247394',
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -250,7 +246,7 @@ class LidoTest extends RecordTest
                     [
                         'type' => 'author',
                         'value' => 'Luhtanen, Raimo',
-                    ]
+                    ],
                 ],
                 'authorsAltScript' => [],
                 'titles' => [
@@ -265,10 +261,44 @@ class LidoTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
+    }
+
+    /**
+     * Test LIDO title handling when title equals work type
+     *
+     * @return void
+     */
+    public function testLido3TitleEqualsWorkType()
+    {
+        $record = $this->createRecord(Lido::class, 'lido3.xml');
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals('Maisema', $fields['title']);
+        $this->assertEquals('Maisema', $fields['title_full']);
+        $this->assertEquals('Maisema', $fields['title_short']);
+        $this->assertEquals('maisema', $fields['title_sort']);
+
+        $record = $this->createRecord(
+            Lido::class,
+            'lido3.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'allowTitleToMatchFormat=true',
+                    ],
+                ],
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals('Maalaus', $fields['title']);
+        $this->assertEquals('Maalaus', $fields['title_full']);
+        $this->assertEquals('Maalaus', $fields['title_short']);
+        $this->assertEquals('maalaus', $fields['title_sort']);
     }
 
     /**
@@ -295,7 +325,7 @@ class LidoTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');

@@ -9,12 +9,12 @@
 
   <!-- Main Target -->
   <target name="main" description="main target">
-    <echo>No main build target. Use ci-tasks for normal tests.</echo>
+    <echo>No main build target. Use qa-tasks for normal tests.</echo>
   </target>
 
-  <!-- Continuous Integration Tasks -->
-  <target name="ci-tasks" description="continuous integration tasks">
-    <phingcall target="phpunit"/>
+  <!-- Quality Assurance Tasks -->
+  <target name="qa-tasks" description="Quality assurance tasks">
+    <phingcall target="phpunitfast"/>
     <phingcall target="phpcs"/>
     <phingcall target="php-cs-fixer-dryrun"/>
     <phingcall target="psalm"/>
@@ -22,13 +22,31 @@
   </target>
 
   <!-- PHPUnit -->
-  <target name="phpunit" description="Run tests">
+  <target name="phpunit" description="Run tests with coverage reports">
+    <if>
+      <not><available type="dir" file="${builddir}/reports"/></not>
+      <then>
+        <mkdir dir="${builddir}/reports"/>
+      </then>
+    </if>
+    <if>
+      <not><available type="dir" file="${builddir}/reports/coverage"/></not>
+      <then>
+        <mkdir dir="${builddir}/reports/coverage"/>
+      </then>
+    </if>
+    <exec command="XDEBUG_MODE=coverage ${basedir}/vendor/bin/phpunit -c ${basedir}/tests/phpunit.xml --coverage-clover ${builddir}/reports/coverage/clover.xml --coverage-html ${builddir}/reports/coverage/ ${basedir}/tests ${phpunit_extra_params}" passthru="true" checkreturn="true" />
+  </target>
+  <target name="phpunitfast" description="Run tests">
     <exec command="${basedir}/vendor/bin/phpunit -c ${basedir}/tests/phpunit.xml ${basedir}/tests ${phpunit_extra_params}" passthru="true" checkreturn="true" />
   </target>
 
   <!-- PHP CodeSniffer -->
+  <target name="phpcbf">
+    <exec command="${basedir}/vendor/bin/phpcbf --standard=${basedir}/tests/phpcs.xml" escape="false" passthru="true" checkreturn="true" />
+  </target>
   <target name="phpcs">
-    <exec command="${basedir}/vendor/bin/phpcs --standard=${basedir}/tests/phpcs.xml" escape="false" passthru="true" checkreturn="true" />
+    <exec command="${basedir}/vendor/bin/phpcs -s --standard=${basedir}/tests/phpcs.xml" escape="false" passthru="true" checkreturn="true" />
   </target>
 
   <!-- php-cs-fixer (first task applies fixes, second task simply checks if they are needed) -->

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * HTTP-based File Harvesting Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) The National Library of Finland 2011-2020.
  *
@@ -25,10 +26,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Exception\HttpRequestException;
 use RecordManager\Base\Utils\XmlSecurity;
+
+use function call_user_func;
+use function count;
 
 /**
  * HTTPFiles Class
@@ -150,7 +155,7 @@ class HTTPFiles extends AbstractBase
                         . ':' . $error->column . ': ' . $error->message;
                 }
                 $this->fatalMsg("Could not parse XML response: $errors");
-                throw new \Exception("Failed to parse XML response");
+                throw new \Exception('Failed to parse XML response');
             }
             libxml_use_internal_errors($saveUseErrors);
 
@@ -192,7 +197,7 @@ class HTTPFiles extends AbstractBase
                 if ($try < 5) {
                     $this->warningMsg(
                         "Request '$urlStr' failed (" . $e->getMessage()
-                        . "), retrying in 30 seconds..."
+                        . '), retrying in 30 seconds...'
                     );
                     sleep(30);
                     continue;
@@ -204,7 +209,7 @@ class HTTPFiles extends AbstractBase
                 if ($code >= 300) {
                     $this->warningMsg(
                         "Request '$urlStr' failed ($code), "
-                        . "retrying in 30 seconds..."
+                        . 'retrying in 30 seconds...'
                     );
                     sleep(30);
                     continue;
@@ -235,7 +240,8 @@ class HTTPFiles extends AbstractBase
                 $this->warningMsg("Invalid filename date in '$filename'");
                 continue;
             }
-            if ($date > $this->startDate
+            if (
+                $date > $this->startDate
                 && (!$this->endDate || $date <= $this->endDate)
             ) {
                 $files[] = $filename;
@@ -274,7 +280,7 @@ class HTTPFiles extends AbstractBase
                 if ($try < 5) {
                     $this->warningMsg(
                         "Request '$urlStr' failed (" . $e->getMessage()
-                        . "), retrying in 30 seconds..."
+                        . '), retrying in 30 seconds...'
                     );
                     sleep(30);
                     continue;
@@ -286,7 +292,7 @@ class HTTPFiles extends AbstractBase
                 if ($code >= 300) {
                     $this->warningMsg(
                         "Request '$urlStr' failed ($code), retrying in "
-                        . "30 seconds..."
+                        . '30 seconds...'
                     );
                     sleep(30);
                     continue;
@@ -315,7 +321,7 @@ class HTTPFiles extends AbstractBase
         while ($xml->read() && $xml->name !== $this->recordElem) {
         }
         $count = 0;
-        $doc = new \DOMDocument;
+        $doc = new \DOMDocument();
         while ($xml->name == $this->recordElem) {
             ++$count;
             $expanded = $xml->expand();

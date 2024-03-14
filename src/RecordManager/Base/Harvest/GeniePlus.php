@@ -1,8 +1,9 @@
 <?php
+
 /**
  * GeniePlus API Harvesting Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) Villanova University 2022.
  *
@@ -25,10 +26,17 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Exception\HttpRequestException;
 use RecordManager\Base\Utils\LineBasedMarcFormatter;
+
+use function array_slice;
+use function call_user_func;
+use function count;
+use function func_get_args;
+use function intval;
 
 /**
  * GeniePlus Class
@@ -170,7 +178,7 @@ class GeniePlus extends AbstractBase
      * @var array
      */
     protected $httpOptions = [
-        'timeout' => 600
+        'timeout' => 600,
     ];
 
     /**
@@ -214,7 +222,8 @@ class GeniePlus extends AbstractBase
         parent::init($source, $verbose, $reharvest);
 
         $settings = $this->dataSourceConfig[$source] ?? [];
-        if (empty($settings['geniePlusDatabase'])
+        if (
+            empty($settings['geniePlusDatabase'])
             || empty($settings['geniePlusOauthId'])
             || empty($settings['geniePlusUsername'])
             || empty($settings['geniePlusPassword'])
@@ -260,18 +269,6 @@ class GeniePlus extends AbstractBase
     }
 
     /**
-     * Reformat a date for use in API queries
-     *
-     * @param string $date Date in YYYY-MM-DD format
-     *
-     * @return string      Date in MM/DD/YYYY format.
-     */
-    protected function reformatDate($date)
-    {
-        return date('n/j/Y', strtotime($date));
-    }
-
-    /**
      * Harvest all available documents.
      *
      * @param callable $callback Function to be called to store a harvested record
@@ -295,7 +292,7 @@ class GeniePlus extends AbstractBase
             'page-size' => $this->batchSize,
             'page' => floor($this->startPosition / $this->batchSize),
             'fields' => implode(',', $fields),
-            'command' => "DtTmModifd > '1/1/1980 1:00:00 PM' sortby DtTmModifd"
+            'command' => "DtTmModifd > '1/1/1980 1:00:00 PM' sortby DtTmModifd",
         ];
 
         if (!empty($this->startDate) || !empty($this->endDate)) {
@@ -341,6 +338,20 @@ class GeniePlus extends AbstractBase
                 gmdate('Y-m-d\TH:i:s\Z', $harvestStartTime)
             );
         }
+    }
+
+    /**
+     * Reformat a date for use in API queries
+     *
+     * @param string $date Date in YYYY-MM-DD format
+     *
+     * @return string      Date in MM/DD/YYYY format.
+     *
+     * @psalm-suppress FalsableReturnStatement
+     */
+    protected function reformatDate($date)
+    {
+        return date('n/j/Y', strtotime($date));
     }
 
     /**
@@ -461,7 +472,7 @@ class GeniePlus extends AbstractBase
         }
         $json = json_decode($response, true);
         if (!isset($json['total'])) {
-            throw new \Exception("Total missing from response; unexpected format!");
+            throw new \Exception('Total missing from response; unexpected format!');
         }
         if (!isset($json['records'])) {
             return 0;

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Tests for CreatePreview controller
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2022.
  *
@@ -25,11 +26,13 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Controller;
 
 use RecordManager\Base\Controller\CreatePreview;
 use RecordManager\Base\Database\PDODatabase;
 use RecordManager\Base\Deduplication\DedupHandler;
+use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Splitter\PluginManager as SplitterPluginManager;
 use RecordManager\Base\Utils\LineBasedMarcFormatter;
@@ -60,7 +63,7 @@ class CreatePreviewTest extends \PHPUnit\Framework\TestCase
         'test' => [
             'institution' => 'Test',
             'format' => 'marc',
-        ]
+        ],
     ];
 
     /**
@@ -71,7 +74,7 @@ class CreatePreviewTest extends \PHPUnit\Framework\TestCase
     public function testCreatePreview()
     {
         $record = $this->getFixture('Controller/CreatePreview/preview_marc.xml');
-        $preview = $this->getCreatePreview($record);
+        $preview = $this->getCreatePreview();
 
         $result = $preview->launch(
             $record,
@@ -103,7 +106,11 @@ class CreatePreviewTest extends \PHPUnit\Framework\TestCase
             [],
             $this->dataSourceConfig,
             $logger,
-            $metadataUtils
+            $metadataUtils,
+            function ($data) {
+                return new \RecordManager\Base\Marc\Marc($data);
+            },
+            new FormatCalculator()
         );
         $recordPM = $this->createMock(RecordPluginManager::class);
         $recordPM->expects($this->once())

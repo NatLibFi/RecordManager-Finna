@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Ead record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2019.
  *
@@ -25,9 +26,13 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function count;
+use function in_array;
 
 /**
  * Ead record class
@@ -47,35 +52,35 @@ class Ead extends AbstractRecord
     /**
      * Archive fonds format
      *
-     * @return string
+     * @var string
      */
     protected $fondsType = 'fonds';
 
     /**
      * Archive collection format
      *
-     * @return string
+     * @var string
      */
     protected $collectionType = 'collection';
 
     /**
      * Archive series format
      *
-     * @return string
+     * @var string
      */
     protected $seriesType = 'series';
 
     /**
      * Archive subseries format
      *
-     * @return string
+     * @var string
      */
     protected $subseriesType = 'subseries';
 
     /**
      * Undefined type
      *
-     * @return string
+     * @var string
      */
     protected $undefinedType = null;
 
@@ -100,7 +105,8 @@ class Ead extends AbstractRecord
      */
     public function getID()
     {
-        if (isset($this->doc->{'add-data'})
+        if (
+            isset($this->doc->{'add-data'})
             && isset($this->doc->{'add-data'}->attributes()->identifier)
         ) {
             return (string)$this->doc->{'add-data'}->attributes()->identifier;
@@ -148,7 +154,7 @@ class Ead extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -210,8 +216,7 @@ class Ead extends AbstractRecord
 
         if (isset($doc->did->repository)) {
             $data['institution']
-                = (string)($doc->did->repository->corpname
-                ?? $doc->did->repository);
+                = (string)($doc->did->repository->corpname ?? $doc->did->repository);
         }
 
         $data['series'] = $this->getSeries();
@@ -220,7 +225,8 @@ class Ead extends AbstractRecord
         $data['title'] = '';
         // Ini handling returns true as '1':
         $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
-        if ('1' === $prependTitle
+        if (
+            '1' === $prependTitle
             || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
         ) {
             if ($data['title_sub'] && $data['title_sub'] != $data['title_short']) {
@@ -230,7 +236,7 @@ class Ead extends AbstractRecord
         $data['title'] .= $data['title_short'];
         $data['title_full'] = $data['title_sort'] = $data['title'];
         $data['title_sort'] = mb_strtolower(
-            $this->metadataUtils->stripLeadingPunctuation($data['title_sort']),
+            $this->metadataUtils->stripPunctuation($data['title_sort']),
             'UTF-8'
         );
 
@@ -285,6 +291,10 @@ class Ead extends AbstractRecord
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)$doc->did->unittitle;
         }
+        if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+            $data['title_in_hierarchy']
+                = trim($this->getUnitId() . ' ' . $data['title']);
+        }
 
         return $data;
     }
@@ -292,7 +302,7 @@ class Ead extends AbstractRecord
     /**
      * Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -301,13 +311,23 @@ class Ead extends AbstractRecord
     }
 
     /**
-     * Get topic identifiers.
+     * Get all topic identifiers (for enrichment)
      *
      * @return array
      */
-    public function getTopicIDs()
+    public function getRawTopicIds(): array
     {
         return $this->getTopicTerms(true);
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return [];
     }
 
     /**
@@ -335,6 +355,16 @@ class Ead extends AbstractRecord
     protected function getTopics()
     {
         return $this->getTopicTerms(false);
+    }
+
+    /**
+     * Get topic identifiers.
+     *
+     * @return array
+     */
+    protected function getTopicIDs(): array
+    {
+        return $this->getRawTopicIds();
     }
 
     /**
@@ -374,7 +404,7 @@ class Ead extends AbstractRecord
     {
         $noSubtitleFormats = [
             $this->fondsType,
-            $this->collectionType
+            $this->collectionType,
         ];
         if (in_array($this->getFormat(), $noSubtitleFormats)) {
             return '';
@@ -395,7 +425,7 @@ class Ead extends AbstractRecord
             $this->collectionType,
             $this->seriesType,
             $this->subseriesType,
-            $this->undefinedType
+            $this->undefinedType,
         ];
 
         if (in_array($this->getFormat(), $nonSeriesFormats)) {
@@ -408,7 +438,8 @@ class Ead extends AbstractRecord
             if ($this->doc->{'add-data'}->archive) {
                 // Check that parent is not top-level record (archive)
                 $archiveAttr = $addData->archive->attributes();
-                if (isset($parentAttr->id) && isset($archiveAttr->id)
+                if (
+                    isset($parentAttr->id) && isset($archiveAttr->id)
                     && (string)$parentAttr->id === (string)$archiveAttr->id
                 ) {
                     return '';
@@ -435,7 +466,7 @@ class Ead extends AbstractRecord
      *
      * @param \SimpleXMLElement $xml The XML document
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getAllFields($xml)
     {
@@ -447,7 +478,7 @@ class Ead extends AbstractRecord
             }
             $s = $this->getAllFields($field);
             if ($s) {
-                $allFields = array_merge($allFields, $s);
+                $allFields = [...$allFields, ...$s];
             }
         }
         return $allFields;
@@ -488,7 +519,8 @@ class Ead extends AbstractRecord
             }
             if (isset($el->geographiccoordinates)) {
                 $attr = $el->geographiccoordinates->attributes();
-                if (isset($attr->coordinatesystem)
+                if (
+                    isset($attr->coordinatesystem)
                     && (string)$attr->coordinatesystem === 'WGS84'
                 ) {
                     $coordinates = array_map(
@@ -500,10 +532,10 @@ class Ead extends AbstractRecord
                     }
                     [$lat, $lon] = $coordinates;
                     if ($this->geoField) {
-                        $data[$this->geoField] = "POINT(${lon} ${lat})";
+                        $data[$this->geoField] = "POINT($lon $lat)";
                     }
                     if ($this->geoCenterField) {
-                        $data[$this->geoCenterField] = "${lon} ${lat}";
+                        $data[$this->geoCenterField] = "$lon $lat";
                     }
                 }
             }

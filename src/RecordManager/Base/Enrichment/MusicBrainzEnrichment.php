@@ -1,10 +1,11 @@
 <?php
+
 /**
  * MusicBrainzEnrichment Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2019-2021.
+ * Copyright (C) The National Library of Finland 2019-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Enrichment;
 
 /**
@@ -48,6 +50,23 @@ class MusicBrainzEnrichment extends AbstractEnrichment
     protected $baseURL;
 
     /**
+     * Initialize settings
+     *
+     * @return void
+     */
+    public function init()
+    {
+        parent::init();
+
+        // Allow overriding of default cache expiration:
+        $expiration = $this->config['MusicBrainzEnrichment']['cache_expiration']
+            ?? null;
+        if (null !== $expiration) {
+            $this->maxCacheAge = 60 * $expiration;
+        }
+    }
+
+    /**
      * Enrich the record and return any additions in solrArray
      *
      * @param string $sourceId  Source ID
@@ -59,49 +78,46 @@ class MusicBrainzEnrichment extends AbstractEnrichment
     public function enrich($sourceId, $record, &$solrArray)
     {
         $this->baseURL = $this->config['MusicBrainzEnrichment']['url'] ?? '';
-        if (empty($this->baseURL)
+        if (
+            empty($this->baseURL)
             || !($record instanceof \RecordManager\Base\Record\Marc)
         ) {
             return;
         }
 
-        $leader = $record->getField('000');
-        if (substr($leader, 6, 1) !== 'j') {
-            return;
-        }
-
         $mbIds = [];
-        foreach ($record->getFields('024') as $field024) {
-            $ind1 = $record->getIndicator($field024, 1);
-            if (in_array($ind1, ['0', '1', '2', '3', '7'])
-                && ($id = $this->sanitizeId($record->getSubfield($field024, 'a')))
-            ) {
-                switch ($ind1) {
-                case '0':
-                    $type = 'isrc';
+        foreach ($record->getMusicIds() as $identifier) {
+            $id = $this->sanitizeId($identifier['id']);
+            $type = $this->sanitizeId($identifier['type']);
+            switch ($type) {
+                case 'isrc':
                     break;
-                case '7':
-                    $source = $record->getSubfield($field024, '2');
-                    if ('musicb' !== $source) {
-                        continue 2;
-                    }
+                case 'upc':
+                case 'ismn':
+                case 'ian':
+                    $type = 'catno';
+                    break;
+                case 'musicb':
                     $type = 'reid';
                     break;
                 default:
-                    $type = 'catno';
-                }
-                $query = "$type:\"" . addcslashes($id, '"\\') . '"';
-                if ('catno' === $type) {
-                    $query .= ' AND releaseaccent:"'
-                        . addcslashes($solrArray['title_short'], '"\\')
-                        . '"';
-                }
-                $mbIds = array_merge($mbIds, $this->getMBIDs($query));
+                    continue 2;
             }
+            $query = "$type:\"" . addcslashes($id, '"\\') . '"';
+            if ('catno' === $type) {
+                $query .= ' AND releaseaccent:"'
+                    . addcslashes($solrArray['title_short'], '"\\')
+                    . '"';
+            }
+            $newIds = $this->getMBIDs($query);
+            $mbIds = [...$mbIds, ...$newIds];
         }
-        foreach ($record->getFields('028') as $field028) {
-            $id = $this->sanitizeId($record->getSubfield($field028, 'a'));
-            $source = $this->sanitizeId($record->getSubfield($field028, 'b'));
+
+        $shortTitle = $record->getShortTitle();
+
+        foreach ($record->getPublisherNumbers() as $number) {
+            $id = $this->sanitizeId($number['id']);
+            $source = $this->sanitizeId($number['source']);
             $newIds = [];
             if ($id && $source) {
                 $query = 'catno:"' . addcslashes("$source $id", '"\\') . '"';
@@ -110,12 +126,12 @@ class MusicBrainzEnrichment extends AbstractEnrichment
             if (!$newIds && $id) {
                 $query = 'catno:"' . addcslashes($id, '"\\')
                     . '" AND releaseaccent:"'
-                    . addcslashes($solrArray['title_short'], '"\\')
+                    . addcslashes($shortTitle, '"\\')
                     . '"';
                 $newIds = $this->getMBIDs($query);
             }
             if ($newIds) {
-                $mbIds = array_merge($mbIds, $newIds);
+                $mbIds = [...$mbIds, ...$newIds];
             }
         }
         if ($mbIds) {
@@ -143,7 +159,7 @@ class MusicBrainzEnrichment extends AbstractEnrichment
      * @param string $query     Query
      * @param bool   $skipGroup Whether to skip checking release group
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getMBIDs($query, $skipGroup = false)
     {
@@ -152,7 +168,7 @@ class MusicBrainzEnrichment extends AbstractEnrichment
         // Search for a release
         $params = [
             'query' => $query,
-            'fmt' => 'json'
+            'fmt' => 'json',
         ];
         $url = $this->baseURL . '/ws/2/release?' . http_build_query($params);
         $data = $this->getExternalData($url, $query);

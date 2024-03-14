@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Base class for record drivers
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2022.
  *
@@ -25,11 +26,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function in_array;
 
 /**
  * Base class for record drivers
@@ -77,7 +81,7 @@ abstract class AbstractRecord
      *
      * @var string
      */
-    protected $source;
+    protected $source = '';
 
     /**
      * Record ID prefix
@@ -89,13 +93,15 @@ abstract class AbstractRecord
     /**
      * Warnings about problems in the record
      *
-     * @var array
+     * @var array<string>
      */
     protected $warnings = [];
 
     /**
      * A record-specific transient cache for results from methods that may get called
      * multiple times with same parameters e.g. during deduplication.
+     *
+     * @var array
      */
     protected $resultCache = [];
 
@@ -153,7 +159,8 @@ abstract class AbstractRecord
      */
     public function getLinkingIDs()
     {
-        return [$this->getID()];
+        $id = $this->getID();
+        return $id ? [$id] : [];
     }
 
     /**
@@ -168,20 +175,7 @@ abstract class AbstractRecord
      *
      * @return string
      */
-    public function toXML()
-    {
-        if (!isset($this->doc)) {
-            throw new \Exception('Document not set');
-        }
-        $xml = $this->doc->asXML();
-        if (false === $xml) {
-            throw new \Exception(
-                "Could not serialize record '{$this->source}."
-                . $this->getId() . "' to XML"
-            );
-        }
-        return $xml;
-    }
+    abstract public function toXML();
 
     /**
      * Normalize the record (optional)
@@ -218,7 +212,7 @@ abstract class AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -255,9 +249,9 @@ abstract class AbstractRecord
     }
 
     /**
-     * Return format from predefined values
+     * Return format(s) from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -329,7 +323,7 @@ abstract class AbstractRecord
      *
      * @return string
      */
-    public function getFullTitle()
+    public function getFullTitleForDebugging()
     {
         return '';
     }
@@ -432,9 +426,9 @@ abstract class AbstractRecord
      *
      * @return array
      */
-    public function getProcessingWarnings()
+    public function getProcessingWarnings(): array
     {
-        return array_unique($this->warnings);
+        return array_values(array_unique($this->warnings));
     }
 
     /**
@@ -452,8 +446,9 @@ abstract class AbstractRecord
                     continue;
                 }
                 foreach ((array)$solrFields[$field] as $value) {
-                    if (strncmp($value, '/', 1) === 0
-                        && strncmp($value, '/', -1) === 0
+                    if (
+                        str_starts_with($value, '/')
+                        && str_ends_with($value, '/')
                     ) {
                         $res = preg_match($filter, $value);
                         if (false === $res) {
@@ -517,7 +512,8 @@ abstract class AbstractRecord
         if ($title = $this->getTitle(true)) {
             $titles[] = ['type' => 'title', 'value' => $title];
         }
-        if (($titleNonSorting = $this->getTitle(false))
+        if (
+            ($titleNonSorting = $this->getTitle(false))
             && $title !== $titleNonSorting
         ) {
             $titles[] = ['type' => 'title', 'value' => $titleNonSorting];
@@ -551,7 +547,8 @@ abstract class AbstractRecord
      */
     protected function getDriverParam($parameter, $default = true)
     {
-        if (!isset($this->dataSourceConfig[$this->source]['driverParams'])
+        if (
+            !isset($this->dataSourceConfig[$this->source]['driverParams'])
         ) {
             return $default;
         }

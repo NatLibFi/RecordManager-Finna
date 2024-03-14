@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Tests for preview creation (stresses mapping file handling)
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2017-2021.
  *
@@ -25,8 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Solr;
 
+use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Utils\Logger;
 use RecordManagerTest\Base\Feature\FixtureTrait;
@@ -57,12 +60,12 @@ class PreviewCreatorTest extends \PHPUnit\Framework\TestCase
             'format' => 'marc',
             'building_mapping' => [
                 'building.map',
-                'building_sub.map,regexp'
+                'building_sub.map,regexp',
             ],
             'driverParams' => [
-                'subLocationInBuilding=c'
-            ]
-        ]
+                'subLocationInBuilding=c',
+            ],
+        ],
     ];
 
     /**
@@ -82,7 +85,11 @@ class PreviewCreatorTest extends \PHPUnit\Framework\TestCase
             [],
             $this->dataSourceConfig,
             $logger,
-            $metadataUtils
+            $metadataUtils,
+            function ($data) {
+                return new \RecordManager\Base\Marc\Marc($data);
+            },
+            new FormatCalculator()
         );
         $recordPM = $this->createMock(RecordPluginManager::class);
         $recordPM->expects($this->once())
@@ -101,7 +108,7 @@ class PreviewCreatorTest extends \PHPUnit\Framework\TestCase
             'oai_id' => '_preview',
             '_id' => '_preview',
             'created' => $timestamp,
-            'date' => $timestamp
+            'date' => $timestamp,
         ];
 
         $result = $preview->create($record);

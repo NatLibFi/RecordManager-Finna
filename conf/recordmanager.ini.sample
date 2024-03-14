@@ -10,17 +10,25 @@ abbreviations = abbreviations.lst
 ;full_title_prefixes = full-title-prefixes.lst
 ; Articles that should be removed from the beginning of a title for sorting
 articles = articles.lst
-; Deduplication handler class
+; Deduplication handler class (deprecated; use module configuration instead)
 ;dedup_handler = "\RecordManager\Base\Deduplication\DedupHandler"
 ; Whether to convert all language strings to lower case. Default is true.
 ;lowercase_language_strings = true
 ; Directory for temporary files (default is system's temp directory)
 ;temp_dir = /tmp
-; Which normalization form to use for UNICODE normalization when creating search keys
-; e.g. for deduplication. Default is NFKC. See http://unicode.org/reports/tr15/ for
+; UNICODE rules for folding/normalizing keys (e.g. work keys or deduplication search
+; keys). If not empty, these rules override the internal folding table and the
+; unicode_normalization_form and folding_ignore_characters settings below.
+; Default is:
+; ":: NFD; :: lower; :: Latin; :: [^[:letter:] [:number:]] Remove; :: NFKC;"
+; The following example will preserve Å, Ä and Ö:
+;key_folding_rules = ":: NFD; :: lower; a\U00000308>AE; o\U00000308>OE; a\U0000030A>AA; :: Latin; :: [:Nonspacing Mark:] Remove; :: [:Punctuation:] Remove; :: [:Whitespace:] Remove; :: NFKC; AE>ä; OE>ö; AA>å"
+; Which normalization form to use for UNICODE normalization e.g. when creating search
+; keys for deduplication. Default is NFKC. See http://unicode.org/reports/tr15/ for
 ; more information.
 unicode_normalization_form = NFKC
-; Which characters to keep intact when folding characters for normalized keys.
+; Which characters to keep intact when folding characters for normalized keys. Only
+; used when key_folding_rules is set to an empty string.
 ; e.g. folding_ignore_characters = 'åäöÅÄÖ'
 ;folding_ignore_characters = ''
 
@@ -64,6 +72,9 @@ counts = false
 ;username = "recman"
 ; Password
 ;password = "topsecret"
+; Whether to use index hints (MySQL/MariaDB). Recommended to keep disbled (default)
+; unless trying to solve performance issues.
+use_index_hints = false
 
 [Solr]
 ; Update URL. Note that RecordManager requires that the json update method be available.
@@ -96,6 +107,8 @@ track_updates_per_update_url = true
 copy_from_parent_record = building
 ; Fields that are added to the merged record if they don't already exist
 ;single_fields = title,publishDateSort
+; Fields that are summed together when creating the merged record
+;summed_fields = items_int,orders_int
 ; Fields that are used for scoring when selecting the base record for a merged record
 ;scored_fields = title,author,publisher,topic
 ; Fields that are handled as containing building data (e.g. affected by the
@@ -131,9 +144,12 @@ unicode_normalization_form = NFKC
 ; Enrichments used with all data sources
 ;enrichment[] = NominatimGeocoder
 ;enrichment[] = MusicBrainzEnrichment
+;enrichment[] = SkosmosEnrichment
 ; Whether to add work identification keys from analytical entries (MARC 7xx fields).
 ; Default is false.
-;work_keys_from_analytical_entries = true
+;work_keys_from_analytical_entries = false
+; Whether to add work identification keys from more than one author. Default is true.
+;work_keys_from_all_authors = true
 
 ; The following section can be used to change the Solr fields used when indexing
 ; records, particularly for hierarchical records. Any field can also be set to empty
@@ -157,6 +173,7 @@ unicode_normalization_form = NFKC
 ; unlimited. * may be used in the beginning or end as a wildcard.
 [Solr Field Limits]
 __default__ = 1024
+allfields = 32766
 fullrecord = 0
 fulltext = 0
 fulltext_unstemmed = 0
@@ -164,6 +181,13 @@ long_lat = 0
 contents = 0
 description = 0
 *_txt* = 0
+
+[Deduplication]
+; Identifiers ignored when deduplicating records. May be used to block e.g. invalid
+; ISBNs known to cause false matches. Use dashless ISBN-13 for ISBNs.
+; Optionally, a pipe and the beginning of a title may be added to limit the filtering
+; to a specific title.
+;ignored_ids[] = "9789511272229|Punaisen sirpin Karjala"
 
 ; OAI-PMH base configuration. Additionally, formats are configured in
 ; oai-pmh-formats.ini and sets in oai-pmh-sets.ini.
@@ -182,8 +206,8 @@ result_limit = 1000
 id_prefix = "oai:base.address:"
 
 [Enrichment]
-; Maximum lifetime of cached entries in minutes. Default is 1440 (24 hours)
-;cache_expiration = 1440
+; Maximum lifetime of cached entries in minutes. Default is 10080 (1 week).
+;cache_expiration = 10080
 
 [Log]
 log_file        = /var/log/recman.log
@@ -207,6 +231,8 @@ store_message_level = -1
 ; See https://pear.php.net/manual/en/package.http.http-request2.config.php for
 ; documentation on the valid parameters.
 [HTTP]
+; By default redirects (HTTP status 302) are not followed to avoid silent redirect
+; for each request, but they can be enabled by uncommenting the setting below:
 ;follow_redirects = true
 ;adapter = "HTTP_Request2_Adapter_Curl"
 ;ssl_verify_peer = false
@@ -221,6 +247,11 @@ disable_proxy_hosts[] = "::1"
 ; The following setting can be used to override the default RDA relator codes that
 ; are used to classify authors between primary and secondary
 ;primary_author_relators = "adp,aut,cmp"
+; Serialization format for Solr index. Valid values are:
+; JSON    - MARC-in-JSON (default)
+; MARCXML - MARCXML
+; ISO2709 - ISO 2709 with MARCXML for too long records
+;solr_serialization = JSON
 
 [ForwardRecord]
 ; The following settings can be used to override the default relator codes that
@@ -238,6 +269,7 @@ dewey-tens = dewey_tens.map
 dewey-ones = dewey_ones.map
 ;usage_rights_str_mv = usage_rights.map
 ;language = language_codes.map
+;media_type_str_mv = media_type_default.map
 
 [NominatimGeocoder]
 ; Please see http://wiki.openstreetmap.org/wiki/Nominatim_usage_policy before using
@@ -281,9 +313,14 @@ dewey-ones = dewey_ones.map
 ; Term transformations regular expressions applied if a match is not found
 search[] = '([^\s]+ st)\.'
 replace[] = '\1 street'
+; Maximum lifetime of cached entries in minutes. Default is taken from the Enrichment
+; section.
+;cache_expiration = 10080
 
-[OnkiLightEnrichment]
-; Service base URL
+; Skosmos enrichment settings
+[SkosmosEnrichment]
+; Service base URL or "database" to only use local records imported with
+; e.g. util:import-rdf
 ;base_url = "http://api.somewhere/rest/v1"
 ; URL prefixes to process
 ;url_prefix_allowed_list[] = "http://somewhere/"
@@ -294,13 +331,36 @@ replace[] = '\1 street'
 ; Solr field that contains centroids for the locations. Set to empty if no suitable
 ; field is available. The field should be a LatLonPointSpatialField.
 ;solr_center_field = center_coords_mv
+; Properties that cause location data of a node to be ignored. The setting key is the
+; property type to check, and value is a list containing all the IDs to ignore.
+;excluded_location_matches[http://www.yso.fi/onto/yso-meta/mmlPlaceType] = "mmlPlaceTypeExclude.lst"
+;excluded_location_matches[http://www.yso.fi/onto/yso-meta/wikidataPlaceType] = "wikidataPlaceTypeExclude.lst"
+; Allowed languages in enriched data. Default is to allow everything.
+;languages[] = "en"
+;languages[] = "fi"
+; In-memory cache size for enrichment results. Default is 10000. Set to 0 to
+; disable the cache. This cache contains enrichment results by identifier, which are
+; smaller and faster to use than record cache. Note that there is a separate cache
+; for each record worker (see Solr/record_workers).
+;enrichment_cache_size = 1000
+; In-memory cache size for linked data records. Default is 1000. Set to 0 to
+; disable the cache. This cache contains full linked data records, so it can be used
+; for retrieving main entities as well as exact matches, but the records are larger
+; than in the enrichment result cache. Note that there is a separate cache for each
+; record worker (see Solr/record_workers).
+;record_cache_size = 1000
 
 [MusicBrainzEnrichment]
 ; Note that you need to add the following line to any data source in datasources.ini
 ; for it to actually use the enrichment:
 ; enrichments[] = MusicBrainzEnrichment
+; or the following in Solr section of this file:
+; enrichment[] = MusicBrainzEnrichment
 ; Base url for the MusicBrainz server.
 ;url = "http://localhost:5000"
+; Maximum lifetime of cached entries in minutes. Default is taken from the Enrichment
+; section.
+;cache_expiration = 10080
 
 ; Settings for connecting to an authority database for enrichment.
 ; Settings defined in Database section are used if these are not defined.

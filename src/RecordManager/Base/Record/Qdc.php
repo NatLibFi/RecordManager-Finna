@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Qdc record class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2021.
+ * Copyright (C) The National Library of Finland 2011-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -65,6 +67,13 @@ class Qdc extends AbstractRecord
     protected $db;
 
     /**
+     * Record namespace identifier
+     *
+     * @var string
+     */
+    protected $recordNs = 'http://www.openarchives.org/OAI/2.0/oai_dc/';
+
+    /**
      * Constructor
      *
      * @param array             $config           Main configuration
@@ -101,10 +110,13 @@ class Qdc extends AbstractRecord
     {
         $this->XmlTraitSetData($source, $oaiID, $data);
 
-        if (empty($this->doc->recordID)) {
-            $p = strpos($oaiID, ':');
-            $p = strpos($oaiID, ':', $p + 1);
-            $this->doc->addChild('recordID', substr($oaiID, $p + 1));
+        if (
+            empty($this->doc->recordID)
+            && empty($this->doc->children($this->recordNs)->recordID)
+        ) {
+            $parts = explode(':', $oaiID);
+            $id = ('oai' === $parts[0] && !empty($parts[2])) ? $parts[2] : $oaiID;
+            $this->doc->addChild('recordID', $id);
         }
     }
 
@@ -115,7 +127,11 @@ class Qdc extends AbstractRecord
      */
     public function getID()
     {
-        return trim((string)$this->doc->recordID[0]);
+        $id = (string)$this->doc->recordID[0];
+        if ('' === $id) {
+            $id = (string)$this->doc->children($this->recordNs)->recordID[0];
+        }
+        return trim($id);
     }
 
     /**
@@ -124,7 +140,7 @@ class Qdc extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -147,7 +163,8 @@ class Qdc extends AbstractRecord
         }
 
         foreach ($doc->title as $title) {
-            if (!isset($data['title'])
+            if (
+                !isset($data['title'])
                 && $title->attributes()->{'type'} !== 'alternative'
             ) {
                 $data['title'] = $data['title_full'] = trim((string)$title);
@@ -167,6 +184,7 @@ class Qdc extends AbstractRecord
 
         $data['isbn'] = $this->getISBNs();
         $data['issn'] = $this->getISSNs();
+        $data['doi_str_mv'] = $this->getDOIs();
 
         $data['topic'] = $data['topic_facet'] = $this->getTopics();
         $data['url'] = $this->getUrls();
@@ -186,7 +204,7 @@ class Qdc extends AbstractRecord
      *
      * @return string
      */
-    public function getFullTitle()
+    public function getFullTitleForDebugging()
     {
         return trim((string)$this->doc->title);
     }
@@ -203,13 +221,10 @@ class Qdc extends AbstractRecord
     {
         $title = trim((string)$this->doc->title);
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            // Again, just in case stripping the article affected this
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
+        } else {
+            $title = $this->metadataUtils->stripTrailingPunctuation($title);
         }
-        $title = $this->metadataUtils->stripTrailingPunctuation($title);
         return $title;
     }
 
@@ -224,46 +239,6 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get primary authors
-     *
-     * @return array
-     */
-    protected function getPrimaryAuthors()
-    {
-        $result = [];
-        foreach ($this->getValues('creator') as $author) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($author);
-        }
-        return $result;
-    }
-
-    /**
-     * Get secondary authors
-     *
-     * @return array
-     */
-    protected function getSecondaryAuthors()
-    {
-        $result = [];
-        foreach ($this->getValues('contributor') as $contributor) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($contributor);
-        }
-        return $result;
-    }
-
-    /**
-     * Get corporate authors
-     *
-     * @return array
-     */
-    protected function getCorporateAuthors()
-    {
-        return [];
-    }
-
-    /**
      * Dedup: Return unique IDs (control numbers)
      *
      * @return array
@@ -274,7 +249,7 @@ class Qdc extends AbstractRecord
         $form = $this->config['Site']['unicode_normalization_form'] ?? 'NFKC';
         foreach ($this->doc->identifier as $identifier) {
             $identifier = strtolower(trim((string)$identifier));
-            if (strncmp('urn:', $identifier, 4) === 0) {
+            if (str_starts_with($identifier, 'urn:')) {
                 $arr[] = '(urn)' . $this->metadataUtils
                     ->normalizeKey($identifier, $form);
             }
@@ -348,7 +323,7 @@ class Qdc extends AbstractRecord
     /**
      * Dedup: Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -366,7 +341,7 @@ class Qdc extends AbstractRecord
             $date = trim($date);
             if (preg_match('{^(\d{4})$}', $date)) {
                 return $date;
-            } elseif (preg_match('{^(\d{4})-}', $date, $matches)) {
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
                 return $matches[1];
             }
         }
@@ -374,7 +349,7 @@ class Qdc extends AbstractRecord
             $date = trim($date);
             if (preg_match('{^(\d{4})$}', $date)) {
                 return $date;
-            } elseif (preg_match('{^(\d{4})-}', $date, $matches)) {
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
                 return $matches[1];
             }
         }
@@ -389,62 +364,6 @@ class Qdc extends AbstractRecord
     public function getPageCount()
     {
         return '';
-    }
-
-    /**
-     * Get an array of all fields relevant to allfields search
-     *
-     * @return array
-     */
-    protected function getAllFields()
-    {
-        $allFields = [];
-        foreach ($this->doc->children() as $field) {
-            $allFields[] = trim((string)$field);
-        }
-        return $allFields;
-    }
-
-    /**
-     * Return URLs associated with object
-     *
-     * @return array
-     */
-    protected function getUrls()
-    {
-        $urls = [];
-        foreach ($this->getValues('identifier') as $identifier) {
-            if (preg_match('/^https?/', $identifier)) {
-                $urls[] = $identifier;
-            }
-        }
-        foreach ($this->getValues('description') as $description) {
-            if (preg_match('/^https?/', $description)) {
-                $urls[] = $description;
-            }
-        }
-        return $urls;
-    }
-
-    /**
-     * Get languages
-     *
-     * @return array
-     */
-    protected function getLanguages()
-    {
-        $languages = [];
-        foreach (explode(' ', trim((string)$this->doc->language)) as $language) {
-            $language = preg_replace(
-                '/^http:\/\/lexvo\.org\/id\/iso639-.\/(.*)/',
-                '$1',
-                $language
-            );
-            foreach (str_split($language, 3) as $code) {
-                $languages[] = $code;
-            }
-        }
-        return $this->metadataUtils->normalizeLanguageStrings($languages);
     }
 
     /**
@@ -486,22 +405,6 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get xml field values
-     *
-     * @param string $tag Field name
-     *
-     * @return array
-     */
-    protected function getValues($tag)
-    {
-        $values = [];
-        foreach ($this->doc->{$tag} as $value) {
-            $values[] = trim((string)$value);
-        }
-        return $values;
-    }
-
-    /**
      * Get series information
      *
      * @return array
@@ -512,7 +415,149 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get hierarchy fields
+     * Get primary authors
+     *
+     * @return array
+     */
+    protected function getPrimaryAuthors()
+    {
+        $result = [];
+        foreach ($this->getValues('creator') as $author) {
+            $result[]
+                = $this->metadataUtils->stripTrailingPunctuation($author);
+        }
+        return $result;
+    }
+
+    /**
+     * Get secondary authors
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthors()
+    {
+        $result = [];
+        foreach ($this->getValues('contributor') as $contributor) {
+            $result[]
+                = $this->metadataUtils->stripTrailingPunctuation($contributor);
+        }
+        return $result;
+    }
+
+    /**
+     * Get corporate authors
+     *
+     * @return array
+     */
+    protected function getCorporateAuthors()
+    {
+        return [];
+    }
+
+    /**
+     * Get an array of all fields relevant to allfields search
+     *
+     * @return array
+     */
+    protected function getAllFields()
+    {
+        $allFields = [];
+        foreach ($this->doc->children() as $field) {
+            $allFields[] = trim((string)$field);
+        }
+        return $allFields;
+    }
+
+    /**
+     * Return URLs associated with object
+     *
+     * @return array
+     */
+    protected function getUrls()
+    {
+        $urls = [];
+        foreach ($this->getValues('identifier') as $identifier) {
+            if (preg_match('/^https?/', $identifier)) {
+                $urls[] = $identifier;
+            }
+        }
+        foreach ($this->getValues('description') as $description) {
+            if (preg_match('/^https?/', $description)) {
+                $urls[] = $description;
+            }
+        }
+        return $urls;
+    }
+
+    /**
+     * Get DOIs
+     *
+     * @return array
+     */
+    protected function getDOIs(): array
+    {
+        $result = [];
+
+        foreach ($this->getValues('identifier', ['type' => 'doi']) as $identifier) {
+            $found = preg_match(
+                '{(urn:doi:|https?://doi.org/|https?://dx.doi.org/)([^?#]+)}',
+                $identifier,
+                $matches
+            );
+            if ($found) {
+                $result[] = urldecode($matches[2]);
+            } else {
+                $result[] = $identifier;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get languages
+     *
+     * @return array
+     */
+    protected function getLanguages()
+    {
+        $languages = [];
+        foreach (explode(' ', trim((string)$this->doc->language)) as $language) {
+            $language = preg_replace(
+                '/^http:\/\/lexvo\.org\/id\/iso639-.\/(.*)/',
+                '$1',
+                $language
+            );
+            foreach (str_split($language, 3) as $code) {
+                $languages[] = $code;
+            }
+        }
+        return $this->metadataUtils->normalizeLanguageStrings($languages);
+    }
+
+    /**
+     * Get xml field values
+     *
+     * @param string $tag        Field name
+     * @param array  $attributes Attributes filter for the field
+     *
+     * @return array
+     */
+    protected function getValues($tag, array $attributes = [])
+    {
+        $values = [];
+        foreach ($this->doc->{$tag} as $element) {
+            foreach ($attributes as $attr => $value) {
+                if ((string)$element[$attr] !== $value) {
+                    continue 2;
+                }
+            }
+            $values[] = trim((string)$element);
+        }
+        return $values;
+    }
+
+    /**
+     * Get hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *

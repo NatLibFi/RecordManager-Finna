@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Record storage trait
  *
@@ -6,7 +7,7 @@
  * - MetadataUtils as $this->metadataUtils
  * - Logger as $this->logger
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -29,7 +30,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command;
+
+use function count;
 
 /**
  * Record storage trait
@@ -176,12 +180,16 @@ trait StoreRecordTrait
             }
 
             $this->previousStoredId = $id;
-            $id = $settings['idPrefix'] . '.' . $id;
+            if ($settings['idPrefix']) {
+                $id = $settings['idPrefix'] . '.' . $id;
+            }
             $hostIDs = $metadataRecord->getHostRecordIDs();
             $dbRecord = $this->db->getRecord($id);
+            $wasDeleted = false;
             if ($dbRecord) {
                 $dbRecord['updated'] = $this->db->getTimestamp();
                 $this->logger->writelnDebug("Updating record $id");
+                $wasDeleted = $dbRecord['deleted'];
             } else {
                 $dbRecord = [];
                 $dbRecord['source_id'] = $sourceId;
@@ -231,12 +239,12 @@ trait StoreRecordTrait
                             = $this->dedupHandler->updateDedupCandidateKeys(
                                 $dbRecord,
                                 $metadataRecord
-                            );
+                            ) || $wasDeleted;
                     } else {
                         $this->db->updateRecords(
                             [
                                 'source_id' => ['$in' => $hostSourceIds],
-                                'linking_id' => ['$in' => (array)$hostIDs]
+                                'linking_id' => ['$in' => (array)$hostIDs],
                             ],
                             ['update_needed' => true]
                         );
@@ -260,7 +268,7 @@ trait StoreRecordTrait
                     $this->db->updateRecords(
                         [
                             'source_id' => ['$in' => $hostSourceIds],
-                            'linking_id' => ['$in' => (array)$hostIDs]
+                            'linking_id' => ['$in' => (array)$hostIDs],
                         ],
                         ['updated' => $this->db->getTimestamp()]
                     );
@@ -286,7 +294,7 @@ trait StoreRecordTrait
                 [
                     'deleted' => true,
                     'updated' => $this->db->getTimestamp(),
-                    'update_needed' => false
+                    'update_needed' => false,
                 ]
             );
         }
@@ -339,7 +347,7 @@ trait StoreRecordTrait
                 [
                     'source_id' => ['$in' => $hostSourceIds],
                     'linking_id' => ['$in' => (array)$hostIDs],
-                    'deleted' => false
+                    'deleted' => false,
                 ],
                 $deferHostUpdate
                     ? ['update_needed' => true]
@@ -367,7 +375,7 @@ trait StoreRecordTrait
         if (null !== $dateThreshold) {
             $params['date'] = [
                 '$lt' =>
-                    $this->db->getTimestamp($dateThreshold)
+                    $this->db->getTimestamp($dateThreshold),
             ];
         }
         $this->db->iterateRecords(

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Authority handling support trait.
  *
@@ -25,7 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
+
+use function is_array;
 
 /**
  * Authority handling support trait.
@@ -59,7 +63,7 @@ trait AuthoritySupportTrait
      * @param string[] $ids  Array of authority ids
      * @param string   $type Authority type
      *
-     * @return string[]
+     * @return array<int, string>
      */
     protected function addNamespaceToAuthorityIds($ids, $type = '*')
     {

@@ -1,0 +1,13 @@
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+    <leader>00000cam a22000004i 4500</leader>
+    <controlfield tag="001">123</controlfield>
+    <controlfield tag="008">220916d19311943fi |||||||||||||||||fin c</controlfield>
+    <datafield tag="245" ind1="1" ind2="0">
+        <subfield code="a">Sanningar och skogspromenader</subfield>
+    </datafield>
+    <datafield tag="380" ind1=" " ind2=" ">
+        <subfield code="a">eAudiobook</subfield>
+    </datafield>
+</record>
+</collection>

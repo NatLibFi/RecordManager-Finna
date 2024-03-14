@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Lrmi record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2020.
  *
@@ -26,9 +27,12 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function in_array;
 
 /**
  * Lrmi record class
@@ -57,7 +61,7 @@ class Lrmi extends Qdc
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -83,11 +87,7 @@ class Lrmi extends Qdc
     {
         $title = (string)$this->doc->title;
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            // Again, just in case stripping the article affected this
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         }
         return $title;
     }
@@ -95,7 +95,7 @@ class Lrmi extends Qdc
     /**
      * Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -111,6 +111,26 @@ class Lrmi extends Qdc
     {
         $authors = $this->getPrimaryAuthors();
         return $authors[0] ?? '';
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    public function getTopics()
+    {
+        return $this->getTopicData(false);
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicData(true);
     }
 
     /**
@@ -132,14 +152,10 @@ class Lrmi extends Qdc
     protected function getSecondaryAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->person)) {
-                    foreach ($author->person as $person) {
-                        if (isset($person->name)) {
-                            $result[] = trim((string)$person->name);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->person ?? [] as $person) {
+                if (isset($person->name)) {
+                    $result[] = trim((string)$person->name);
                 }
             }
         }
@@ -154,15 +170,11 @@ class Lrmi extends Qdc
     protected function getCorporateAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->organization)) {
-                    foreach ($author->organization as $organization) {
-                        if (isset($organization->legalName)) {
-                            $result[]
-                                = trim((string)$organization->legalName);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->organization ?? [] as $organization) {
+                if (isset($organization->legalName)) {
+                    $result[]
+                        = trim((string)$organization->legalName);
                 }
             }
         }
@@ -170,26 +182,13 @@ class Lrmi extends Qdc
     }
 
     /**
-     * Get topics.
+     * Get topics with value or id.
+     *
+     * @param bool $ids Whether to return identifiers instead of values
      *
      * @return array
      */
-    public function getTopics()
-    {
-        return array_map(
-            function ($topic) {
-                return $topic['value'];
-            },
-            $this->getTopicsExtended()
-        );
-    }
-
-    /**
-     * Get topics with value and id.
-     *
-     * @return array
-     */
-    public function getTopicsExtended()
+    protected function getTopicData(bool $ids)
     {
         $result = [];
         foreach ($this->doc->about as $about) {
@@ -197,18 +196,15 @@ class Lrmi extends Qdc
                 continue;
             }
             $subject = $about->thing;
-            $value = (string)$subject->name;
-            $id = (string)($subject->identifier ?? '');
+            if (!$ids) {
+                $result[] = (string)$subject->name;
+            } else {
+                $id = (string)($subject->identifier ?? '');
 
-            if (!preg_match('/(http|https):\/\/(.*)/', $id, $matches)) {
-                $id = null;
+                if (preg_match('/(http|https):\/\/(.+)/', $id, $matches)) {
+                    $result[] = 'http://' . $matches[2];
+                }
             }
-
-            if ($id && isset($matches[2])) {
-                $id = 'http://' . $matches[2];
-            }
-
-            $result[] = compact('value', 'id');
         }
         return $result;
     }

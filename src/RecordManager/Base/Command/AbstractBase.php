@@ -1,8 +1,9 @@
 <?php
+
 /**
  * RecordManager command base class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command;
 
 use RecordManager\Base\Database\DatabaseInterface;
@@ -37,6 +39,9 @@ use RecordManager\Base\Utils\XslTransformation;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function get_class;
+use function is_string;
 
 /**
  * RecordManager command base class
@@ -239,42 +244,22 @@ abstract class AbstractBase extends \Symfony\Component\Console\Command\Command
                     "Error: format not set for data source $source"
                 );
             }
-            if (empty($settings['idPrefix'])) {
-                $settings['idPrefix'] = $source;
-            }
-            if (!isset($settings['recordXPath'])) {
-                $settings['recordXPath'] = '//record';
-            }
-            if (!isset($settings['oaiIDXPath'])) {
-                $settings['oaiIDXPath'] = '';
-            }
-            if (!isset($settings['dedup'])) {
-                $settings['dedup'] = false;
-            }
-            if (empty($settings['componentParts'])) {
-                $settings['componentParts'] = 'as_is';
-            }
-            if (!isset($settings['preTransformation'])) {
-                $settings['preTransformation'] = '';
-            }
-            if (!isset($settings['indexMergedParts'])) {
-                $settings['indexMergedParts'] = true;
-            }
-            if (!isset($settings['type'])) {
-                $settings['type'] = '';
-            }
-            if (!isset($settings['non_inherited_fields'])) {
-                $settings['non_inherited_fields'] = [];
-            }
-            if (!isset($settings['keepMissingHierarchyMembers'])) {
-                $settings['keepMissingHierarchyMembers'] = false;
-            }
+            $settings['idPrefix'] ??= $source;
+            $settings['recordXPath'] ??= '//record';
+            $settings['oaiIDXPath'] ??= '';
+            $settings['dedup'] ??= false;
+            $settings['componentParts'] ??= 'as_is';
+            $settings['preTransformation'] ??= '';
+            $settings['indexMergedParts'] ??= true;
+            $settings['type'] ??= '';
+            $settings['non_inherited_fields'] ??= [];
+            $settings['keepMissingHierarchyMembers'] ??= false;
 
             $params = [
                 'source_id' => $source,
                 'institution' => $settings['institution'],
                 'format' => $settings['format'],
-                'id_prefix' => $settings['idPrefix']
+                'id_prefix' => $settings['idPrefix'],
             ];
             $settings['normalizationXSLT'] = !empty($settings['normalization'])
                 ? new XslTransformation(
@@ -290,14 +275,12 @@ abstract class AbstractBase extends \Symfony\Component\Console\Command\Command
                     $params
                 ) : null;
 
-            if (!empty($settings['recordSplitterClass'])) {
-                $splitterClass = ltrim($settings['recordSplitterClass'], '\\');
-                $settings['recordSplitter'] = $this->splitterPluginManager
-                    ->get($splitterClass);
-            } elseif (!empty($settings['recordSplitter'])) {
+            if ($splitterClass = $settings['recordSplitterClass'] ?? null) {
+                $splitterClass = ltrim($splitterClass, '\\');
+                $settings['recordSplitter'] = $this->splitterPluginManager->get($splitterClass);
+            } elseif ($splitter = $settings['recordSplitter'] ?? null) {
                 $style = new \DOMDocument();
-                $xslFile = RECMAN_BASE_PATH . '/transformations/'
-                    . $settings['recordSplitter'];
+                $xslFile = RECMAN_BASE_PATH . '/transformations/' . $splitter;
                 if ($style->load($xslFile) === false) {
                     throw new \Exception(
                         "Could not load $xslFile for source $source"
@@ -312,7 +295,8 @@ abstract class AbstractBase extends \Symfony\Component\Console\Command\Command
             // Check for linked data sources and store information to the linked
             // sources too
             foreach ($settings['componentPartSourceId'] ?? [] as $linked) {
-                if (!isset($this->dataSourceConfig[$linked]['__hostRecordSourceId'])
+                if (
+                    !isset($this->dataSourceConfig[$linked]['__hostRecordSourceId'])
                 ) {
                     $this->dataSourceConfig[$linked]['__hostRecordSourceId']
                         = [$linked];

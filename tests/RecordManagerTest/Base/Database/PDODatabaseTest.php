@@ -1,8 +1,9 @@
 <?php
+
 /**
  * PDO Database Test Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2022.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Database;
 
 use RecordManager\Base\Database\PDODatabase;
@@ -72,66 +74,49 @@ class PDODatabaseTest extends \PHPUnit\Framework\TestCase
     public function getQueryConversionData(): array
     {
         return [
-            [
+            'no params' => [
                 [],
                 [],
-                "select * from record",
-                []
+                'select * from record',
+                [],
             ],
-            [
-                [
-                    '_id' => '1212'
-                ],
-                [],
-                "select * from record where _id=?",
-                [
-                    '1212'
-                ]
-            ],
-            [
+            'single param' => [
                 [
                     '_id' => '1212',
-                    'deleted' => false
                 ],
                 [],
-                "select * from record where _id=? AND deleted=?",
+                'select * from record where _id=?',
                 [
                     '1212',
-                    false
-                ]
+                ],
             ],
-            [
+            'two params' => [
+                [
+                    '_id' => '1212',
+                    'deleted' => false,
+                ],
+                [],
+                'select * from record where _id=? AND deleted=?',
+                [
+                    '1212',
+                    false,
+                ],
+            ],
+            'params with $lt' => [
                 [
                     'deleted' => true,
                     'updated' => ['$lt' => 1234],
                     'source_id' => 'foo',
                 ],
                 [],
-                "select * from record where deleted=? AND updated<? AND source_id=?",
+                'select * from record where deleted=? AND updated<? AND source_id=?',
                 [
                     true,
                     1234,
-                    'foo'
-                ]
-            ],
-            [
-                [
-                    'deleted' => true,
-                    'updated' => ['$lt' => 1234],
-                    'source_id' => 'foo',
+                    'foo',
                 ],
-                [
-                    'limit' => 1000
-                ],
-                "select * from record where deleted=? AND updated<? AND source_id=?"
-                . " limit 1000",
-                [
-                    true,
-                    1234,
-                    'foo'
-                ]
             ],
-            [
+            'params with $lt and options with limit' => [
                 [
                     'deleted' => true,
                     'updated' => ['$lt' => 1234],
@@ -139,17 +124,34 @@ class PDODatabaseTest extends \PHPUnit\Framework\TestCase
                 ],
                 [
                     'limit' => 1000,
-                    'skip' => 1
                 ],
-                "select * from record where deleted=? AND updated<? AND source_id=?"
-                . " limit 1,1000",
+                'select * from record where deleted=? AND updated<? AND source_id=?'
+                . ' limit 1000',
                 [
                     true,
                     1234,
-                    'foo'
-                ]
+                    'foo',
+                ],
             ],
-            [
+            'params with $lt and options with limit and skip' => [
+                [
+                    'deleted' => true,
+                    'updated' => ['$lt' => 1234],
+                    'source_id' => 'foo',
+                ],
+                [
+                    'limit' => 1000,
+                    'skip' => 1,
+                ],
+                'select * from record where deleted=? AND updated<? AND source_id=?'
+                . ' limit 1,1000',
+                [
+                    true,
+                    1234,
+                    'foo',
+                ],
+            ],
+            'params with $lt and options with limit, skip and sort' => [
                 [
                     'deleted' => true,
                     'updated' => ['$lt' => 1234],
@@ -160,28 +162,28 @@ class PDODatabaseTest extends \PHPUnit\Framework\TestCase
                     'skip' => 1,
                     'sort' => ['dedup_id' => 1],
                 ],
-                "select * from record where deleted=? AND updated<? AND source_id=?"
-                . " order by dedup_id asc limit 1,1000",
+                'select * from record where deleted=? AND updated<? AND source_id=?'
+                . ' order by dedup_id asc limit 1,1000',
                 [
                     true,
                     1234,
-                    'foo'
-                ]
+                    'foo',
+                ],
             ],
-            [
+            'params with linkind_id' => [
                 [
                     'deleted' => false,
                     'linking_id' => '1212',
                 ],
                 [],
-                "select * from record where deleted=? AND _id IN (SELECT parent_id"
+                'select * from record where deleted=? AND _id IN (SELECT parent_id'
                 . " FROM record_attrs ca WHERE ca.attr='linking_id' AND ca.value=?)",
                 [
                     false,
-                    '1212'
-                ]
+                    '1212',
+                ],
             ],
-            [
+            'params with different array operators' => [
                 [
                     'isbn_keys' => ['$in' => ['isbn', 'isbn2']],
                     'deleted' => false,
@@ -189,18 +191,42 @@ class PDODatabaseTest extends \PHPUnit\Framework\TestCase
                     'source_id' => ['$ne' => 'source'],
                 ],
                 [],
-                "select * from record where _id IN (SELECT parent_id FROM"
+                'select * from record where _id IN (SELECT parent_id FROM'
                 . " record_attrs ca WHERE ca.attr='isbn_keys' AND ca.value in (?,?))"
-                . " AND deleted=? AND (suppressed IS NULL OR suppressed=?) AND"
-                . " source_id<>?",
+                . ' AND deleted=? AND (suppressed IS NULL OR suppressed=?) AND'
+                . ' source_id<>?',
                 [
                     'isbn',
                     'isbn2',
                     false,
                     false,
-                    'source'
-                ]
-            ]
+                    'source',
+                ],
+            ],
+            'params with null in $in' => [
+                [
+                    'isbn_keys' => ['$in' => [null]],
+                ],
+                [],
+                'select * from record where (_id IN (SELECT parent_id FROM'
+                . " record_attrs ca WHERE ca.attr='isbn_keys' AND ca.value IS NULL) OR _id NOT IN"
+                . " (SELECT parent_id FROM record_attrs ca WHERE ca.attr='isbn_keys'))",
+                [],
+            ],
+            'params with null and other values in $in' => [
+                [
+                    'isbn_keys' => ['$in' => [null, '', 'isbn']],
+                ],
+                [],
+                'select * from record where ((_id IN (SELECT parent_id FROM'
+                . " record_attrs ca WHERE ca.attr='isbn_keys' AND ca.value IS NULL) OR _id NOT IN"
+                . " (SELECT parent_id FROM record_attrs ca WHERE ca.attr='isbn_keys')) OR _id IN"
+                . " (SELECT parent_id FROM record_attrs ca WHERE ca.attr='isbn_keys' AND ca.value IN (?,?)))",
+                [
+                    '',
+                    'isbn',
+                ],
+            ],
         ];
     }
 
@@ -222,7 +248,10 @@ class PDODatabaseTest extends \PHPUnit\Framework\TestCase
         string $expectedSql,
         array $expectedParams
     ): void {
-        $checkQuery = function (string $sql, array $params = []) use (
+        $checkQuery = function (
+            string $sql,
+            array $params = []
+        ) use (
             $expectedSql,
             $expectedParams
         ) {

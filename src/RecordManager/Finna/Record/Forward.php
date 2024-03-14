@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Forward record class
  *
@@ -26,9 +27,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function boolval;
+use function in_array;
+use function is_array;
 
 /**
  * Forward record class
@@ -57,7 +63,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         'd02', 'a00', 'a01', 'a02', 'a03', 'a05', 'a06', 'a08', 'a09', 'a10', 'a11',
         'a12', 'a13', 'a31', 'a38', 'a43', 'a50', 'a99',
         // Some of these are from Marc
-        'adp', 'aud', 'chr', 'cmm', 'cmp', 'cre', 'dub', 'inv'
+        'adp', 'aud', 'chr', 'cmm', 'cmp', 'cre', 'dub', 'inv',
     ];
 
     /**
@@ -81,7 +87,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         'ppt', 'ren', 'rpt', 'rth', 'rtm', 'res', 'rsp', 'rst', 'rse', 'rpy', 'rsg',
         'rev', 'rbr', 'sce', 'sad', 'scr', 'scl', 'spy', 'std', 'sng', 'sds', 'spk',
         'stm', 'str', 'stl', 'sht', 'ths', 'trl', 'tyd', 'tyg', 'vdg', 'voc', 'wde',
-        'wdc', 'wam'
+        'wdc', 'wam',
     ];
 
     /**
@@ -90,7 +96,7 @@ class Forward extends \RecordManager\Base\Record\Forward
      * @var array
      */
     protected $corporateAuthorRelators = [
-        'e10', 'dst', 'prn', 'fnd', 'lbr'
+        'e10', 'dst', 'prn', 'fnd', 'lbr',
     ];
 
     /**
@@ -106,7 +112,9 @@ class Forward extends \RecordManager\Base\Record\Forward
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function toSolrArray(Database $db = null)
     {
@@ -126,10 +134,10 @@ class Forward extends \RecordManager\Base\Record\Forward
         $data['datasource_str_mv'] = $this->source;
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             $data['online_str_mv'] = $this->source;
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 $data['free_online_str_mv'] = $this->source;
             }
             foreach ($this->getOnlineUrls() as $url) {
@@ -137,11 +145,11 @@ class Forward extends \RecordManager\Base\Record\Forward
             }
         }
 
-        $data['author_facet'] = array_merge(
-            isset($data['author']) ? (array)$data['author'] : [],
-            isset($data['author2']) ? (array)$data['author2'] : [],
-            isset($data['author_corporate']) ? (array)$data['author_corporate'] : []
-        );
+        $data['author_facet'] = [
+            ...(array)($data['author'] ?? []),
+            ...(array)($data['author2'] ?? []),
+            ...(array)($data['author_corporate'] ?? []),
+        ];
 
         $data['format_ext_str_mv'] = (array)$data['format'];
         if (!empty($data['thumbnail'])) {
@@ -187,12 +195,12 @@ class Forward extends \RecordManager\Base\Record\Forward
                     'UTF-8'
                 );
                 switch ($laji) {
-                case 'lyhyt':
-                    return 'VideoShort';
-                case 'pitkä':
-                    return 'VideoFeature';
-                case 'kooste':
-                    return 'VideoCompilation';
+                    case 'lyhyt':
+                        return 'VideoShort';
+                    case 'pitkä':
+                        return 'VideoFeature';
+                    case 'kooste':
+                        return 'VideoCompilation';
                 }
             }
         }
@@ -210,17 +218,51 @@ class Forward extends \RecordManager\Base\Record\Forward
             return [];
         }
         foreach ($this->getMainElement()->HasAgent as $agent) {
-            if ($agent->AgentIdentifier && $agent->AgentIdentifier->IDTypeName
+            if (
+                $agent->AgentIdentifier
+                && $agent->AgentIdentifier->IDTypeName
                 && $agent->AgentIdentifier->IDValue
                 && (string)$agent->AgentIdentifier->IDTypeName == $parentIdType
             ) {
                 return [
                     (string)$agent->AgentIdentifier->IDTypeName . '_'
-                    . (string)$agent->AgentIdentifier->IDValue
+                    . (string)$agent->AgentIdentifier->IDValue,
                 ];
             }
         }
         return [];
+    }
+
+    /**
+     * Get languages of all videos
+     *
+     * @return array<int, string>
+     */
+    public function getLanguages()
+    {
+        $result = [];
+        $attrName = 'elokuva-elonet-materiaali-video-kieli';
+        $languages = $this->getProductionEventAttribute($attrName);
+        foreach ($languages as $language) {
+            $result = [...$result, ...explode(',', $language)];
+        }
+        return $result;
+    }
+
+    /**
+     * Get languages of all video subtitles
+     *
+     * @return array
+     */
+    public function getSubtitleLanguages()
+    {
+        $result = [];
+        $attrName = 'elokuva-elonet-materiaali-video-alatekstikieli';
+        $languages = $this->getProductionEventAttribute($attrName);
+        foreach ($languages as $language) {
+            $result = [...$result, ...explode(',', $language)];
+        }
+        return $result;
     }
 
     /**
@@ -275,7 +317,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         // Make sure directors are first of the primary authors
         $directors = $others = [
             'ids' => [],
-            'idRoles' => []
+            'idRoles' => [],
         ];
 
         foreach ($unsortedPrimaryAuthors['relators'] as $i => $relator) {
@@ -290,9 +332,9 @@ class Forward extends \RecordManager\Base\Record\Forward
             }
         }
         $unsortedPrimaryAuthors['ids']
-            = array_merge($directors['ids'], $others['ids']);
+            = [...$directors['ids'], ...$others['ids']];
         $unsortedPrimaryAuthors['idRoles']
-            = array_merge($directors['idRoles'], $others['idRoles']);
+            = [...$directors['idRoles'], ...$others['idRoles']];
 
         return $unsortedPrimaryAuthors;
     }
@@ -356,7 +398,7 @@ class Forward extends \RecordManager\Base\Record\Forward
      *
      * @param string $attribute Attribute name
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getProductionEventAttribute($attribute)
     {
@@ -388,10 +430,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         $relator = $this->metadataUtils->normalizeRelator((string)$activity);
         if (in_array($relator, ['a00', 'a08', 'a99', 'd99', 'e04', 'e99'])) {
             $relator = null;
-            foreach (
-                ['finna-activity-text', 'tehtava', 'elokuva-elotekija-tehtava']
-                as $field
-            ) {
+            foreach (['finna-activity-text', 'tehtava', 'elokuva-elotekija-tehtava'] as $field) {
                 if (!empty($activity->attributes()->{$field})) {
                     $label = trim((string)$activity->attributes()->{$field});
                     if (!in_array($label, ['', '"'])) {
@@ -446,7 +485,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         foreach ($this->doc->children() as $record) {
             foreach ($record->ProductionEvent as $event) {
                 $attrs = [
-                    'elokuva-elonet-url', 'elokuva-elonet-materiaali-video-url'
+                    'elokuva-elonet-url', 'elokuva-elonet-materiaali-video-url',
                 ];
                 foreach ($attrs as $attr) {
                     $attributes = $event->ProductionEventType->attributes();
@@ -519,7 +558,7 @@ class Forward extends \RecordManager\Base\Record\Forward
                 $results[] = [
                     'url' => $url,
                     'text' => $description ? $description : $videoType,
-                    'source' => $this->source
+                    'source' => $this->source,
                 ];
             }
         }
@@ -534,7 +573,8 @@ class Forward extends \RecordManager\Base\Record\Forward
     protected function getBuilding()
     {
         foreach ($this->getMainElement()->ProductionEvent as $event) {
-            if (null !== $event->attributes()->{'elonet-tag'}
+            if (
+                null !== $event->attributes()->{'elonet-tag'}
                 && (string)$event->attributes()->{'elonet-tag'} === 'skftunniste'
             ) {
                 return ['skf'];
@@ -546,51 +586,20 @@ class Forward extends \RecordManager\Base\Record\Forward
     /**
      * Get question categories
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getQuestionCategories()
     {
         $result = [];
-        $categories = array_merge(
-            $this->getProductionEventAttribute(
+        $categories = [
+            ...$this->getProductionEventAttribute(
                 'elokuva-elotiedonkeruu-henkilotyyppi'
             ),
-            $this->getProductionEventAttribute('elokuva-elotiedonkeruu-kuvauspaikka')
-        );
+            ...$this
+                ->getProductionEventAttribute('elokuva-elotiedonkeruu-kuvauspaikka'),
+        ];
         foreach ($categories as $category) {
-            $result = array_merge($result, explode(';', $category));
-        }
-        return $result;
-    }
-
-    /**
-     * Get languages of all videos
-     *
-     * @return array
-     */
-    public function getLanguages()
-    {
-        $result = [];
-        $attrName = 'elokuva-elonet-materiaali-video-kieli';
-        $languages = $this->getProductionEventAttribute($attrName);
-        foreach ($languages as $language) {
-            $result = array_merge($result, explode(',', $language));
-        }
-        return $result;
-    }
-
-    /**
-     * Get languages of all video subtitles
-     *
-     * @return array
-     */
-    public function getSubtitleLanguages()
-    {
-        $result = [];
-        $attrName = 'elokuva-elonet-materiaali-video-alatekstikieli';
-        $languages = $this->getProductionEventAttribute($attrName);
-        foreach ($languages as $language) {
-            $result = array_merge($result, explode(',', $language));
+            $result = [...$result, ...explode(';', $category)];
         }
         return $result;
     }

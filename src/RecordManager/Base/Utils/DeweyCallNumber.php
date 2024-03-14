@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Dewey Call Number Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2015-2021.
  *
@@ -25,7 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function floatval;
 
 /**
  * Dewey Call Number Class
@@ -43,6 +47,8 @@ class DeweyCallNumber extends AbstractCallNumber
 {
     /**
      * Raw value
+     *
+     * @var string
      */
     protected $raw;
 
@@ -91,7 +97,8 @@ class DeweyCallNumber extends AbstractCallNumber
         $this->raw = $callnumber = trim($callnumber);
 
         $rest = '';
-        if ($callnumber
+        if (
+            $callnumber
             && preg_match('/^((\d+)(\.\d+)?)(.*)/', $callnumber, $matches)
         ) {
             $this->classification = $matches[1];
@@ -134,7 +141,7 @@ class DeweyCallNumber extends AbstractCallNumber
     {
         if (null !== $this->classification) {
             $val = floatval($this->classification);
-            return sprintf("%03.0F", floor($val / $precision) * $precision);
+            return sprintf('%03.0F', floor($val / $precision) * $precision);
         }
         return '';
     }

@@ -1,10 +1,11 @@
 <?php
+
 /**
  * MARC Record Driver Test Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2020.
+ * Copyright (C) The National Library of Finland 2020-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -39,7 +41,7 @@ use RecordManager\Base\Record\Marc;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class MarcTest extends RecordTest
+class MarcTest extends RecordTestBase
 {
     /**
      * Test MARC Record handling
@@ -48,7 +50,7 @@ class MarcTest extends RecordTest
      */
     public function testMarc1()
     {
-        $record = $this->createRecord(Marc::class, 'marc1.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc1.xml');
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
 
@@ -95,50 +97,52 @@ class MarcTest extends RecordTest
                 'tutkimus',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
+                'urn:doi:doi2',
+                'urn:doif:not-doi',
+                'http://doi.org/doi%3a3',
+                'https://dx.doi.org/doi4',
             ],
             'language' => [
                 'fin',
                 'fin',
             ],
-            'format' => 'Book',
+            'format' => ['Book'],
             'author' => [
                 'Hirsjärvi, Sirkka',
             ],
+            'author_variant' => [
+                's h sh',
+            ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Hirsjärvi, Sirkka',
             'author2' => [
-                'Hirsjärvi, Sirkka',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
             ],
+            'author2_variant' => [
+               'p r pr',
+               'p s ps',
+            ],
             'author2_role' => [
-                '-',
-                '-',
-                '-',
+                '',
+                '',
             ],
-            'author_corporate' => [
-            ],
-            'author_corporate_role' => [
-            ],
-            'author_additional' => [
-            ],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author_additional' => [],
             'title' => 'Tutki ja kirjoita',
             'title_sub' => '',
             'title_short' => 'Tutki ja kirjoita',
             'title_full' => 'Tutki ja kirjoita / Sirkka Hirsjärvi, Pirkko Remes,'
                 . ' Paula Sajavaara',
-            'title_alt' => [
-            ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'tutki ja kirjoita / sirkka hirsjärvi, pirkko remes,'
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [
-            ],
+            'series' => [],
             'publisher' => [
                 'Tammi',
             ],
@@ -146,17 +150,19 @@ class MarcTest extends RecordTest
             'publishDate' => [
                 '2013',
             ],
-            'physical' => [
-            ],
-            'dateSpan' => [
-            ],
+            'physical' => [],
+            'dateSpan' => [],
             'edition' => '17. uud. p.',
-            'contents' => [
-            ],
+            'contents' => [],
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [
+            'issn' => [],
+            'doi_str_mv' => [
+                'doi1',
+                'doi2',
+                'doi:3',
+                'doi4',
             ],
             'callnumber-first' => 'QC861.2',
             'callnumber-raw' => [
@@ -166,7 +172,7 @@ class MarcTest extends RecordTest
             ],
             'callnumber-subject' => 'QC',
             'callnumber-label' => 'QC861',
-            'callnumber-sort' => 'QC 3861.2',
+            'callnumber-sort' => 'QC 3861.2 B236',
             'topic' => [
                 'oppaat',
                 'ft: kirjoittaminen',
@@ -179,12 +185,9 @@ class MarcTest extends RecordTest
                 'tutkimustyö',
                 'tutkimus',
             ],
-            'genre' => [
-            ],
-            'geographic' => [
-            ],
-            'era' => [
-            ],
+            'genre' => [],
+            'geographic' => [],
+            'era' => [],
             'topic_facet' => [
                 'oppaat',
                 'ft: kirjoittaminen',
@@ -197,13 +200,14 @@ class MarcTest extends RecordTest
                 'tutkimustyö',
                 'tutkimus',
             ],
-            'genre_facet' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'era_facet' => [
-            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
             'url' => [
+                'urn:doi:doi2',
+                'urn:doif:not-doi',
+                'http://doi.org/doi%3a3',
+                'https://dx.doi.org/doi4',
             ],
             'illustrated' => 'Not Illustrated',
         ];
@@ -219,6 +223,14 @@ class MarcTest extends RecordTest
                         'type' => 'author',
                         'value' => 'Hirsjärvi, Sirkka.',
                     ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Remes, Pirkko.',
+                    ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Sajavaara, Paula.',
+                    ],
                 ],
                 'authorsAltScript' => [],
                 'titles' => [
@@ -228,7 +240,7 @@ class MarcTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
@@ -243,7 +255,7 @@ class MarcTest extends RecordTest
      */
     public function testMarc2()
     {
-        $record = $this->createRecord(Marc::class, 'marc2.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc2.xml');
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
 
@@ -291,39 +303,31 @@ class MarcTest extends RecordTest
                 'eng',
                 'eng',
             ],
-            'format' => 'Book',
+            'format' => ['Book'],
             'author' => [
                 'Kalat, James W.',
             ],
+            'author_variant' => [
+                'j w k jw jwk',
+            ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Kalat, James W.',
-            'author2' => [
-                'Kalat, James W.',
-            ],
-            'author2_role' => [
-                '-',
-            ],
-            'author_corporate' => [
-            ],
-            'author_corporate_role' => [
-            ],
-            'author_additional' => [
-            ],
+            'author2' => [],
+            'author2_role' => [],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author_additional' => [],
             'title' => 'Biological psychology',
             'title_sub' => '',
             'title_short' => 'Biological psychology',
             'title_full' => 'Biological psychology / James W. Kalat',
-            'title_alt' => [
-            ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'biological psychology / james w. kalat',
-            'series' => [
-            ],
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'biological psychology james w kalat',
+            'series' => [],
             'publisher' => [
                 'Wadsworth',
             ],
@@ -334,46 +338,36 @@ class MarcTest extends RecordTest
             'physical' => [
                 'xxiii, 551 sivua : kuvitettu + CD-ROM -levy',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '7th ed',
-            'contents' => [
-            ],
+            'contents' => [],
             'isbn' => [
                 '9780534514099',
                 '9780534514006',
             ],
-            'issn' => [
-            ],
+            'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
-            'callnumber-raw' => [
-            ],
+            'callnumber-raw' => [],
             'topic' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre' => [
-            ],
-            'geographic' => [
-            ],
-            'era' => [
-            ],
+            'genre' => [],
+            'geographic' => [],
+            'era' => [],
             'topic_facet' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre_facet' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Not Illustrated',
         ];
 
@@ -397,7 +391,7 @@ class MarcTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
@@ -413,11 +407,11 @@ class MarcTest extends RecordTest
         $dsConfig = [
             '__unit_test_no_source__' => [
                 'driverParams' => [
-                    'geoCenterField=center_coords'
-                ]
-            ]
+                    'geoCenterField=center_coords',
+                ],
+            ],
         ];
-        $record = $this->createRecord(Marc::class, 'marc_geo.xml', $dsConfig);
+        $record = $this->createMarcRecord(Marc::class, 'marc_geo.xml', $dsConfig);
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
 
@@ -480,38 +474,30 @@ class MarcTest extends RecordTest
                 'fin',
                 'swe',
             ],
-            'format' => 'Map',
-            'author' => [
-            ],
-            'author_role' => [
-            ],
-            'author2' => [
-            ],
-            'author2_role' => [
-            ],
+            'format' => ['Map'],
+            'author' => [],
+            'author_role' => [],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [
                 'Maanmittaushallitus',
             ],
             'author_corporate_role' => [
-                '-',
+                '',
             ],
-            'author_additional' => [
-            ],
+            'author_additional' => [],
             'title' => 'Suomen tiekartta = Vägkarta över Finland. 1.',
             'title_sub' => 'Vägkarta över Finland. 1.',
             'title_short' => 'Suomen tiekartta',
             'title_full' => 'Suomen tiekartta = Vägkarta över Finland. 1.',
             'title_alt' => [
                 'Vägkarta över Finland',
-                'Suomen tiekartta 1'
+                'Suomen tiekartta 1',
             ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'suomen tiekartta = vägkarta över finland. 1.',
-            'series' => [
-            ],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'suomen tiekartta vägkarta över finland 1',
+            'series' => [],
             'publisher' => [
                 '[Maanmittaushallitus]',
             ],
@@ -522,15 +508,11 @@ class MarcTest extends RecordTest
             'physical' => [
                 '1 kartta : värillinen ; taitettuna 26 x 13 cm',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '',
-            'contents' => [
-            ],
-            'isbn' => [
-            ],
-            'issn' => [
-            ],
+            'contents' => [],
+            'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [
                 '42.02',
@@ -540,31 +522,26 @@ class MarcTest extends RecordTest
                 'tiekartat',
                 'kartat Suomi',
             ],
-            'genre' => [
-            ],
+            'genre' => [],
             'geographic' => [
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
             ],
-            'era' => [
-            ],
+            'era' => [],
             'topic_facet' => [
                 'tiekartat',
                 'kartat',
             ],
-            'genre_facet' => [
-            ],
+            'genre_facet' => [],
             'geographic_facet' => [
                 'Suomi',
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
             ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Not Illustrated',
         ];
 
@@ -578,14 +555,13 @@ class MarcTest extends RecordTest
      */
     public function testMarcDewey()
     {
-        $record = $this->createRecord(Marc::class, 'marc_dewey.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc_dewey.xml');
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
 
         $expected = [
             'record_format' => 'marc',
-            'building' => [
-            ],
+            'building' => [],
             'lccn' => '',
             'ctrlnum' => [
                 'FCC016234029',
@@ -642,23 +618,22 @@ class MarcTest extends RecordTest
                 'fre',
                 'fre',
             ],
-            'format' => 'Book',
-            'author' => [
-            ],
-            'author_role' => [
-            ],
+            'format' => ['Book'],
+            'author' => [],
+            'author_role' => [],
+            'author_sort' => 'Braudel, Fernand',
             'author2' => [
                 'Braudel, Fernand',
+            ],
+            'author2_variant' => [
+                'f b fb',
             ],
             'author2_role' => [
                 'kirjoittaja',
             ],
-            'author_corporate' => [
-            ],
-            'author_corporate_role' => [
-            ],
-            'author_additional' => [
-            ],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author_additional' => [],
             'title' => 'Civilisation matérielle, économie et capitalisme, XVe-XVIIIe'
                 . ' siècle : le possible et l\'impossible. Tome 1, Les structures du'
                 . ' quotidien : le possible et l\'impossible',
@@ -671,18 +646,15 @@ class MarcTest extends RecordTest
                 . ' structures du quotidien : le possible et l\'impossible / Fernand'
                 . ' Braudel',
             'title_alt' => [
-                'Les structures du quotidien : le possible et l\'impossible'
+                'Les structures du quotidien : le possible et l\'impossible',
             ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'civilisation matérielle, économie et capitalisme,'
-                . ' xve-xviiie siècle : le possible et l\'impossible. tome 1, les'
-                . ' structures du quotidien : le possible et l\'impossible / fernand'
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'civilisation matérielle économie et capitalisme'
+                . ' xve xviiie siècle le possible et l impossible tome 1 les'
+                . ' structures du quotidien le possible et l impossible fernand'
                 . ' braudel',
-            'series' => [
-            ],
+            'series' => [],
             'publisher' => [
                 'Armand Colin',
             ],
@@ -693,16 +665,14 @@ class MarcTest extends RecordTest
             'physical' => [
                 '543 sivua : kuvitettu ; 24 cm',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '',
-            'contents' => [
-            ],
+            'contents' => [],
             'isbn' => [
                 '9782200371005',
             ],
-            'issn' => [
-            ],
+            'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [
                 '940.',
@@ -726,12 +696,9 @@ class MarcTest extends RecordTest
                 'Social history',
                 'Civilization, Modern History',
             ],
-            'genre' => [
-            ],
-            'geographic' => [
-            ],
-            'era' => [
-            ],
+            'genre' => [],
+            'geographic' => [],
+            'era' => [],
             'topic_facet' => [
                 'Moeurs et coutumes',
                 'Sociologie du quotidien',
@@ -754,16 +721,13 @@ class MarcTest extends RecordTest
                 'Histoire',
                 'History',
             ],
-            'genre_facet' => [
-            ],
-            'geographic_facet' => [
-            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
             'era_facet' => [
                 '1500-1800',
                 '1500-1800',
             ],
-            'url' => [
-            ],
+            'url' => [],
             'illustrated' => 'Illustrated',
             'dewey-hundreds' => '300',
             'dewey-tens' => '330',
@@ -773,7 +737,7 @@ class MarcTest extends RecordTest
             'dewey-raw' => '330.903',
             'oclc_num' => [
                 '123456',
-                '234567'
+                '234567',
             ],
         ];
 
@@ -792,66 +756,68 @@ class MarcTest extends RecordTest
             [
                 [
                     'source_id' => '__unit_test_no_source__',
-                    'linking_id' => '(FI-NL)961827'
+                    'linking_id' => '(FI-NL)961827',
                 ],
                 [
-                    'projection' => ['_id' => 1]
+                    'projection' => ['_id' => 1],
                 ],
                 [
-                    '_id' => '__unit_test_no_source__.4132317'
-                ]
+                    '_id' => '__unit_test_no_source__.4132317',
+                ],
             ],
             [
                 [
                     'source_id' => '__unit_test_no_source__',
-                    'linking_id' => '961827'
+                    'linking_id' => '961827',
                 ],
                 [
-                    'projection' => ['_id' => 1]
+                    'projection' => ['_id' => 1],
                 ],
                 [
-                    '_id' => '__unit_test_no_source__.4112121'
-                ]
+                    '_id' => '__unit_test_no_source__.4112121',
+                ],
             ],
             [
                 [
                     'source_id' => '__unit_test_no_source__',
-                    'linking_id' => '(FI-NL)xyzzy'
+                    'linking_id' => '(FI-NL)xyzzy',
                 ],
                 [
-                    'projection' => ['_id' => 1]
+                    'projection' => ['_id' => 1],
                 ],
-                null
-            ]
+                null,
+            ],
         ];
         $db->expects($this->exactly(5))
             ->method('findRecord')
             ->will($this->returnValueMap($map));
 
-        $record = $this->createRecord(Marc::class, 'marc_links.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc_links.xml');
         $record->toSolrArray($db);
-        $marc776 = $record->getFields('776');
-        $this->assertEquals(2, count($marc776));
-        $w = $record->getSubfield($marc776[0], 'w');
+        $marc = new \VuFind\Marc\MarcReader($record->serialize());
+        $marc776 = $marc->getFields('776');
+        $this->assertCount(2, $marc776);
+        $w = $marc->getSubfield($marc776[0], 'w');
         $this->assertEquals('__unit_test_no_source__.4112121', $w);
-        $w = $record->getSubfield($marc776[1], 'w');
+        $w = $marc->getSubfield($marc776[1], 'w');
         $this->assertEquals('__unit_test_no_source__.xyzzy', $w);
 
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc_links.xml',
             [
                 '__unit_test_no_source__' => [
-                    'driverParams' => ['003InLinkingID=true']
-                ]
+                    'driverParams' => ['003InLinkingID=true'],
+                ],
             ]
         );
         $record->toSolrArray($db);
-        $marc776 = $record->getFields('776');
-        $this->assertEquals(2, count($marc776));
-        $w = $record->getSubfield($marc776[0], 'w');
+        $marc = new \VuFind\Marc\MarcReader($record->serialize());
+        $marc776 = $marc->getFields('776');
+        $this->assertCount(2, $marc776);
+        $w = $marc->getSubfield($marc776[0], 'w');
         $this->assertEquals('__unit_test_no_source__.4132317', $w);
-        $w = $record->getSubfield($marc776[1], 'w');
+        $w = $marc->getSubfield($marc776[1], 'w');
         $this->assertEquals('__unit_test_no_source__.xyzzy', $w);
     }
 
@@ -862,7 +828,7 @@ class MarcTest extends RecordTest
      */
     public function testGetWorkIdentificationData()
     {
-        $record = $this->createRecord(Marc::class, 'marc_alt_script.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc_alt_script.xml');
         $keys = $record->getWorkIdentificationData();
         $expected = [
             [
@@ -894,11 +860,11 @@ class MarcTest extends RecordTest
                         'value' => '漢字源 : 上級漢和辞典  /',
                     ],
                 ],
-            ]
+            ],
         ];
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
 
-        $record = $this->createRecord(Marc::class, 'marc_analytical.xml');
+        $record = $this->createMarcRecord(Marc::class, 'marc_analytical.xml');
         $keys = $record->getWorkIdentificationData();
         $expected = [
             [
@@ -906,6 +872,10 @@ class MarcTest extends RecordTest
                     [
                         'type' => 'author',
                         'value' => 'Shakespeare, William.',
+                    ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Jylhä, Yrjö,',
                     ],
                 ],
                 'authorsAltScript' => [],
@@ -954,7 +924,7 @@ class MarcTest extends RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
     }

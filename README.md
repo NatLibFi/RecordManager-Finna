@@ -8,7 +8,7 @@ For a stable version, see the stable branch.
 
 ## General Installation
 
-- Minimum supported PHP version is 7.4.1.
+- Minimum supported PHP version is 8.0.
 - Composer is required for dependencies. Run `composer install` (or `php /path/to/composer.phar install`) in the directory where RecordManager is installed.
 - The following PHP extensions are required: xml, xslt, mbstring, intl
 
@@ -16,33 +16,18 @@ For a stable version, see the stable branch.
 
 RecordManager can be used with MySQL, MariaDB or MongoDB.
 
-With MongoDB, the minimum supported version is 3.6. The mongodb PECL module, version 1.12.0 or later, is required (see below for examples on installation).
+With MongoDB, the minimum supported version is 3.6. The mongodb PECL module, version 1.15.0 or later, is required (see below for examples on installation).
 
 MongoDB is recommended for a large number of records (typically tens of millions), though it may require more system resources than MySQL or MariaDB.
 
 ## Upgrading
 
+**See CHANGELOG.md for information on changes and anything affecting backward-compatibility.**
+
 Generally upgrading should be straightforward by replacing the old version with the new one and running
 `composer install` (or `php /path/to/composer.phar install`).
 With MongoDB you need to manually check that all indexes are present (see dbscripts/mongo.js).
 With MySQL/MariaDB make sure all tables are present (see dbscripts/mysql.sql).
-
-Note that since 8 Jul 2021 there is a new method for tracking updates of deduplicated records. Since RecordManager no longer uses the old method, there may be old tracking collections left dangling. With Mongo shell with the correct database active, you can use the following script to remove them:
-
-    var count = 0;
-    db.getCollectionNames().forEach(function(c) {
-        if (c.match("^tmp_mr_record") || c.match("^mr_record")) {
-            db.getCollection(c).drop();
-            count++;
-        }
-    });
-    print(count + " collections dropped");
-
-With MySQL/MariaDB you can identify the tables with the following SQL query:
-
-    show tables like '%mr_record_%';
-
-You can then use the `drop table` command to remove them.
 
 ## Installation Notes on CentOS 7
 
@@ -61,11 +46,11 @@ These are quick instructions on how to set up RecordManager. Please refer to the
 
     E.g. remi repos include a package for mongodb:
 
-      yum install php74-php-pecl-mongodb
+      yum install php81-php-pecl-mongodb
 
     Webtatic too:
 
-      yum install php74w-pecl-mongodb
+      yum install php81w-pecl-mongodb
 
     If there's no package available, use pecl to install mongodb:
 

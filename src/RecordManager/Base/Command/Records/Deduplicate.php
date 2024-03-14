@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Deduplication
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -33,6 +35,9 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function function_exists;
+use function in_array;
 
 /**
  * Deduplication
@@ -53,6 +58,21 @@ class Deduplicate extends AbstractBase
     protected $terminate = false;
 
     /**
+     * Catch the SIGINT signal and signal the main thread to terminate
+     *
+     * Note: this needs to be public so that the int handler can call it.
+     *
+     * @param int $signal Signal ID
+     *
+     * @return void
+     */
+    public function sigIntHandler($signal)
+    {
+        $this->terminate = true;
+        $this->logger->writelnConsole('Termination requested');
+    }
+
+    /**
      * Configure the command.
      *
      * @return void
@@ -68,7 +88,7 @@ class Deduplicate extends AbstractBase
                 'all',
                 null,
                 InputOption::VALUE_NONE,
-                'Process all records regardless of their status (otherwise only '
+                'Process all records regardless of their status (otherwise only'
                 . ' modified records are processed)'
             )->addOption(
                 'mark',
@@ -130,7 +150,8 @@ class Deduplicate extends AbstractBase
 
         if ($allRecords || $markOnly) {
             foreach ($this->dataSourceConfig as $source => $settings) {
-                if (empty($source) || empty($settings)
+                if (
+                    empty($source) || empty($settings)
                     || ($includedSources && !in_array($source, $includedSources))
                 ) {
                     continue;
@@ -194,7 +215,8 @@ class Deduplicate extends AbstractBase
 
         foreach ($this->dataSourceConfig as $source => $settings) {
             try {
-                if (empty($source) || empty($settings)
+                if (
+                    empty($source) || empty($settings)
                     || ($includedSources && !in_array($source, $includedSources))
                 ) {
                     continue;
@@ -292,20 +314,5 @@ class Deduplicate extends AbstractBase
         }
         $this->logger->logInfo('deduplicate', 'Deduplication completed');
         return Command::SUCCESS;
-    }
-
-    /**
-     * Catch the SIGINT signal and signal the main thread to terminate
-     *
-     * Note: this needs to be public so that the int handler can call it.
-     *
-     * @param int $signal Signal ID
-     *
-     * @return void
-     */
-    public function sigIntHandler($signal)
-    {
-        $this->terminate = true;
-        $this->logger->writelnConsole('Termination requested');
     }
 }

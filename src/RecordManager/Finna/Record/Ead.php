@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Ead record class
  *
@@ -25,9 +26,16 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
+use function boolval;
+use function in_array;
+use function strlen;
 
 /**
  * Ead record class
@@ -44,6 +52,7 @@ class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MediaTypeTrait;
 
     /**
      * Field for geographic data
@@ -60,12 +69,35 @@ class Ead extends \RecordManager\Base\Record\Ead
     protected $geoCenterField = 'center_coords';
 
     /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMediaTypeTrait($config);
+    }
+
+    /**
      * Return fields to be indexed in Solr
      *
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -94,11 +126,9 @@ class Ead extends \RecordManager\Base\Record\Ead
             }
             if ($yearRange) {
                 $len = strlen($yearRange);
-                foreach (
-                    ['title_full', 'title_sort', 'title', 'title_short']
-                    as $field
-                ) {
-                    if (substr($data[$field], -$len) != $yearRange
+                foreach (['title_full', 'title_sort', 'title', 'title_short'] as $field) {
+                    if (
+                        substr($data[$field], -$len) != $yearRange
                         && substr($data[$field], -$len - 2) != "($yearRange)"
                     ) {
                         $data[$field] .= " ($yearRange)";
@@ -117,20 +147,19 @@ class Ead extends \RecordManager\Base\Record\Ead
 
         // Digitized?
         if ($doc->did->daogrp) {
-            if (in_array($data['format'], ['collection', 'series', 'fonds', 'item'])
-            ) {
+            if (in_array($data['format'], ['collection', 'series', 'fonds', 'item'])) {
                 $data['format'] = 'digitized_' . $data['format'];
             }
         }
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             // This is sort of special. Make sure to use source instead
             // of datasource.
             $data['online_str_mv'] = $data['source_str_mv'];
 
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
                 $data['free_online_str_mv'] = $data['source_str_mv'];
@@ -161,17 +190,27 @@ class Ead extends \RecordManager\Base\Record\Ead
             $data['usage_rights_ext_str_mv'] = $rights;
         }
 
-        $data['author_facet'] = array_merge(
-            isset($data['author']) ? (array)$data['author'] : [],
-            isset($data['author2']) ? (array)$data['author2'] : [],
-            isset($data['author_corporate']) ? (array)$data['author_corporate'] : []
-        );
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a = (array)($data['author'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $a2 = (array)($data['author2'] ?? []);
+        // phpcs:ignore
+        /** @psalm-var list<string> */
+        $ac = (array)($data['author_corporate'] ?? []);
+        $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = (array)$data['format'];
         if ($this->hasImages()) {
             $data['format_ext_str_mv'][] = 'Image';
         }
-
+        $onlineUrls = $this->getOnlineURLs();
+        $data['media_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mediaType')
+            )
+        );
         return $data;
     }
 
@@ -188,7 +227,8 @@ class Ead extends \RecordManager\Base\Record\Ead
             if (strstr($restrict, 'No known copyright restrictions')) {
                 return ['No known copyright restrictions'];
             }
-            if (strncasecmp($restrict, 'CC', 2) === 0
+            if (
+                strncasecmp($restrict, 'CC', 2) === 0
                 || strncasecmp($restrict, 'Public', 6) === 0
                 || strncasecmp($restrict, 'Julkinen', 8) === 0
             ) {
@@ -357,22 +397,49 @@ class Ead extends \RecordManager\Base\Record\Ead
     }
 
     /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    protected function getOnlineURLs(): array
+    {
+        $results = [];
+        foreach ($this->doc->did->daogrp ?? [] as $daogrp) {
+            foreach ($daogrp->daoloc as $daoloc) {
+                $url = trim($daoloc->attributes()->href);
+                if (empty($url)) {
+                    continue;
+                }
+                $result = [
+                    'url' => $url,
+                    'desc' => '',
+                    'source' => $this->source,
+                ];
+                $mediaType = $this->getLinkMediaType($url);
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
+    }
+
+    /**
      * Check if the record has image links (full images)
      *
      * @return bool
      */
     protected function hasImages()
     {
-        if (isset($this->doc->did->daogrp)) {
-            foreach ($this->doc->did->daogrp as $daogrp) {
-                if (!isset($daogrp->daoloc)) {
-                    continue;
-                }
-                foreach ($daogrp->daoloc as $daoloc) {
-                    $role = $daoloc->attributes()->{'role'};
-                    if (in_array($role, ['image_full', 'image_reference'])) {
-                        return true;
-                    }
+        foreach ($this->doc->did->daogrp ?? [] as $daogrp) {
+            if (!isset($daogrp->daoloc)) {
+                continue;
+            }
+            foreach ($daogrp->daoloc as $daoloc) {
+                $role = $daoloc->attributes()->{'role'};
+                if (in_array($role, ['image_full', 'image_reference'])) {
+                    return true;
                 }
             }
         }
@@ -384,7 +451,7 @@ class Ead extends \RecordManager\Base\Record\Ead
      *
      * @return array
      */
-    public function getTopicIDs()
+    protected function getTopicIDs(): array
     {
         $result = parent::getTopicIDs();
         return $this->addNamespaceToAuthorityIds($result, 'topic');

@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Finna MARC Record Driver Test Class
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2020.
+ * Copyright (C) The National Library of Finland 2020-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -22,9 +23,11 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Marc;
@@ -35,10 +38,11 @@ use RecordManager\Finna\Record\Marc;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
+class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test MARC Record handling
@@ -47,19 +51,19 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarc1()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc1.xml',
             [
                 '__unit_test_no_source__' => [
                     'authority' => [
-                        '*' => 'testauth'
+                        '*' => 'testauth',
                     ],
-                ]
+                ],
             ],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -82,6 +86,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '9789513148362',
                 '2345',
                 'FOO',
+                'doi1',
+                'doi',
                 'Hirsjärvi, Sirkka',
                 'Tutki ja kirjoita',
                 'Sirkka Hirsjärvi, Pirkko Remes, Paula Sajavaara',
@@ -113,23 +119,32 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Hirsjärvi, Sirkka',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Hirsjärvi, Sirkka',
+            'author_variant' => [
+                's h sh',
+            ],
             'author2' => [
-                'Hirsjärvi, Sirkka',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
             ],
             'author2_role' => [
-                '-',
-                '-',
-                '-',
+                '',
+                '',
             ],
             'author_corporate' => [],
             'author_corporate_role' => [],
-            'author2_id_str_mv' => [],
+            'author2_id_str_mv' => [
+                'testauth.(TEST)1',
+                'testauth.(TEST)2',
+                'testauth.(TEST)3',
+            ],
             'author2_id_role_str_mv' => [],
+            'author2_variant' => [
+                'p r pr',
+                'p s ps',
+            ],
             'author_additional' => [],
             'title' => 'Tutki ja kirjoita',
             'title_sub' => '',
@@ -139,7 +154,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'tutki ja kirjoita / sirkka hirsjärvi, pirkko remes,'
+            'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
             'series' => [],
             'publisher' => [
@@ -157,6 +172,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '9789513148362',
             ],
             'issn' => [],
+            'doi_str_mv' => [
+                'doi1',
+                'doi2',
+                'doi:3',
+                'doi4',
+            ],
             'callnumber-first' => '38.04',
             'callnumber-raw' => [
                 '38.04',
@@ -195,7 +216,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
-            'url' => [],
+            'url' => [
+                'urn:doi:doi2',
+                'urn:doif:not-doi',
+                'http://doi.org/doi%3a3',
+                'https://dx.doi.org/doi4',
+            ],
             'illustrated' => 'Not Illustrated',
             'main_date_str' => '2013',
             'main_date' => '2013-01-01T00:00:00Z',
@@ -228,7 +254,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'callnumber-subject' => 'QC',
             'callnumber-label' => 'QC861',
-            'callnumber-sort' => '38.04',
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
@@ -242,19 +267,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'author_facet' => [
                 'Hirsjärvi, Sirkka',
-                'Hirsjärvi, Sirkka',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
             ],
             'format_ext_str_mv' => 'Book',
-            'author2_id_str_mv' => [
-                'testauth.(TEST)1',
-                'testauth.(TEST)1',
-                'testauth.(TEST)2',
-                'testauth.(TEST)3',
-            ],
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
+            'media_type_str_mv' => [],
+            'major_genre_str_mv' => 'nonfiction',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -268,6 +288,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                         'type' => 'author',
                         'value' => 'Hirsjärvi, Sirkka.',
                     ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Remes, Pirkko.',
+                    ],
+                    [
+                        'type' => 'author',
+                        'value' => 'Sajavaara, Paula.',
+                    ],
                 ],
                 'authorsAltScript' => [],
                 'titles' => [
@@ -277,7 +305,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
@@ -295,13 +323,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarc2()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc2.xml',
             [],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -348,36 +376,28 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Kalat, James W.',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Kalat, James W.',
-            'author2' => [
-                'Kalat, James W.',
+            'author_variant' => [
+                'j w k jw jwk',
             ],
-            'author2_role' => [
-                '-',
-            ],
-            'author_corporate' => [
-            ],
-            'author_corporate_role' => [
-            ],
+            'author2' => [],
+            'author2_role' => [],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
             'author2_id_str_mv' => [],
             'author2_id_role_str_mv' => [],
-            'author_additional' => [
-            ],
+            'author_additional' => [],
             'title' => 'Biological psychology',
             'title_sub' => '',
             'title_short' => 'Biological psychology',
             'title_full' => 'Biological psychology / James W. Kalat',
-            'title_alt' => [
-            ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'biological psychology / james w. kalat',
-            'series' => [
-            ],
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'biological psychology james w kalat',
+            'series' => [],
             'publisher' => [
                 'Wadsworth',
             ],
@@ -388,47 +408,37 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'physical' => [
                 'xxiii, 551 sivua : kuvitettu + CD-ROM -levy',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '7th ed',
-            'contents' => [
-            ],
+            'contents' => [],
             'isbn' => [
                 '9780534514099',
                 '9780534514006',
             ],
-            'issn' => [
-            ],
+            'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
-            'callnumber-raw' => [
-            ],
+            'callnumber-raw' => [],
             'topic' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre' => [
-            ],
-            'geographic' => [
-            ],
+            'genre' => [],
+            'geographic' => [],
             'geographic_id_str_mv' => [],
-            'era' => [
-            ],
+            'era' => [],
             'topic_facet' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
                 'biopsykologi',
             ],
-            'genre_facet' => [
-            ],
-            'geographic_facet' => [
-            ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Illustrated',
             'main_date_str' => '2001',
             'main_date' => '2001-01-01T00:00:00Z',
@@ -439,8 +449,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'publication_place_txt_mv' => [
                 'Belmont, CA',
             ],
-            'subtitle_lng_str_mv' => [
-            ],
+            'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [
                 'eng',
             ],
@@ -448,19 +457,15 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
             ],
-            'other_issn_str_mv' => [
-            ],
-            'other_issn_isn_mv' => [
-            ],
-            'linking_issn_str_mv' => [
-            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [
                 'L 123 L 616.8 __unit_test_no_source__',
                 'Ll 234 Ll Course __unit_test_no_source__',
             ],
             'callnumber-sort' => '',
             'author_facet' => [
-                'Kalat, James W.',
                 'Kalat, James W.',
             ],
             'format_ext_str_mv' => 'Book',
@@ -471,6 +476,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -485,13 +491,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcGeo()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc_geo.xml',
             [],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -533,26 +539,19 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'swe',
             ],
             'format' => 'Map',
-            'author' => [
-            ],
-            'author_role' => [
-            ],
-            'author2' => [
-            ],
-            'author2_role' => [
-            ],
+            'author' => [],
+            'author_role' => [],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [
                 'Maanmittaushallitus',
             ],
             'author_corporate_role' => [
-                '-',
+                '',
             ],
-            'author2_id_str_mv' => [
-            ],
-            'author2_id_role_str_mv' => [
-            ],
-            'author_additional' => [
-            ],
+            'author2_id_str_mv' => [],
+            'author2_id_role_str_mv' => [],
+            'author_additional' => [],
             'title' => 'Suomen tiekartta = Vägkarta över Finland. 1.',
             'title_sub' => 'Vägkarta över Finland. 1.',
             'title_short' => 'Suomen tiekartta',
@@ -561,13 +560,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Vägkarta över Finland',
                 'Suomen tiekartta 1',
             ],
-            'title_old' => [
-            ],
-            'title_new' => [
-            ],
-            'title_sort' => 'suomen tiekartta = vägkarta över finland. 1.',
-            'series' => [
-            ],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => 'suomen tiekartta vägkarta över finland 1',
+            'series' => [],
             'publisher' => [
                 '[Maanmittaushallitus]',
             ],
@@ -578,15 +574,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'physical' => [
                 '1 kartta : värillinen ; taitettuna 26 x 13 cm',
             ],
-            'dateSpan' => [
-            ],
+            'dateSpan' => [],
             'edition' => '',
-            'contents' => [
-            ],
-            'isbn' => [
-            ],
-            'issn' => [
-            ],
+            'contents' => [],
+            'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '42.02',
             'callnumber-raw' => [
                 '42.02',
@@ -596,8 +588,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'tiekartat',
                 'kartat Suomi',
             ],
-            'genre' => [
-            ],
+            'genre' => [],
             'geographic' => [
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
@@ -608,24 +599,20 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p94460',
                 'http://www.yso.fi/onto/yso/p94081',
             ],
-            'era' => [
-            ],
+            'era' => [],
             'topic_facet' => [
                 'tiekartat',
                 'kartat',
             ],
-            'genre_facet' => [
-            ],
+            'genre_facet' => [],
             'geographic_facet' => [
                 'Suomi',
                 'Turun ja Porin lääni',
                 'Uudenmaan lääni',
                 'Ahvenanmaa',
             ],
-            'era_facet' => [
-            ],
-            'url' => [
-            ],
+            'era_facet' => [],
+            'url' => [],
             'illustrated' => 'Not Illustrated',
             'main_date_str' => '1946',
             'main_date' => '1946-01-01T00:00:00Z',
@@ -636,8 +623,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'publication_place_txt_mv' => [
                 'Helsinki',
             ],
-            'subtitle_lng_str_mv' => [
-            ],
+            'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [
                 'fin',
                 'swe',
@@ -660,12 +646,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
             ],
-            'other_issn_str_mv' => [
-            ],
-            'other_issn_isn_mv' => [
-            ],
-            'linking_issn_str_mv' => [
-            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
             'holdings_txtP_mv' => [
                 '1 001 __unit_test_no_source__',
             ],
@@ -675,6 +658,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -687,13 +671,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcThesis1()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-thesis1.xml',
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -717,7 +701,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'AMK-opinnäytetyö',
                 'Second Sample Program',
                 'testaus',
-                'AMK-opinnäytetyö'
+                'AMK-opinnäytetyö',
             ],
             'language' => [
                 'fin',
@@ -727,15 +711,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Author, Test',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Author, Test',
-            'author2' => [
-                'Author, Test',
+            'author_variant' => [
+                't a ta',
             ],
-            'author2_role' => [
-                '-',
-            ],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -748,7 +731,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'thesis title / test author',
+            'title_sort' => 'thesis title test author',
             'series' => [],
             'publisher' => [
                 'Kansalliskirjasto',
@@ -761,8 +744,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
                 '614.8',
@@ -795,11 +778,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [],
             'classification_txt_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'major_genre_str_mv' => 'nonfiction',
             'classification_str_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
@@ -811,13 +794,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'holdings_txtP_mv' => [],
             'author_facet' => [
                 'Author, Test',
-                'Author, Test',
             ],
             'format_ext_str_mv' => 'BachelorsThesisPolytechnic',
             'topic_id_str_mv' => [
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -830,13 +813,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcThesis2()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-thesis2.xml',
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -868,15 +851,14 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Author, Test',
             ],
             'author_role' => [
-                '-',
+                '',
             ],
             'author_sort' => 'Author, Test',
-            'author2' => [
-                'Author, Test',
+            'author_variant' => [
+                't a ta',
             ],
-            'author2_role' => [
-                '-',
-            ],
+            'author2' => [],
+            'author2_role' => [],
             'author_corporate' => [],
             'author_corporate_role' => [],
             'author2_id_str_mv' => [],
@@ -889,7 +871,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_alt' => [],
             'title_old' => [],
             'title_new' => [],
-            'title_sort' => 'thesis title / test author',
+            'title_sort' => 'thesis title test author',
             'series' => [],
             'publisher' => [
                 'Kansalliskirjasto',
@@ -902,8 +884,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
                 '614.8',
@@ -936,11 +918,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'subtitle_lng_str_mv' => [],
             'original_lng_str_mv' => [],
             'classification_txt_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'major_genre_str_mv' => 'nonfiction',
             'classification_str_mv' => [
-                'udk 614.8',
+                'udkx 614.8',
             ],
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
@@ -952,13 +934,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'holdings_txtP_mv' => [],
             'author_facet' => [
                 'Author, Test',
-                'Author, Test',
             ],
             'format_ext_str_mv' => 'BachelorsThesisPolytechnic',
             'topic_id_str_mv' => [
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -971,13 +953,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      */
     public function testMarcDateRange()
     {
-        $record = $this->createRecord(
+        $record = $this->createMarcRecord(
             Marc::class,
             'marc-daterange.xml',
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -1029,8 +1011,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
-            'isbn' => [],
             'issn' => [],
+            'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
             'callnumber-sort' => '',
@@ -1068,8 +1050,141 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
+    }
+
+    /**
+     * Test MARC UDK and extra classifications
+     *
+     * @return void
+     */
+    public function testMarcUDKAndExtraClassifications()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-udk.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'classifications = "245a=title"',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'udkf fennica080',
+                'udkf finuc-s080',
+                'udk2 new080-1',
+                'udk2 new080-2',
+                'udkx unknown080-1',
+                'udkx unknown080-2',
+                'title Lentolehti',
+            ],
+            $fields['classification_txt_mv']
+        );
+    }
+
+    /**
+     * Data provider for testMarcAudioBooks
+     *
+     * @return array
+     */
+    public function marcAudioBooksProvider(): array
+    {
+        return [
+            [
+                'AudioBookDaisy',
+                'marc-daisy1.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy2.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy3.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy4.xml',
+            ],
+            [
+                'AudioBookDaisy',
+                'marc-daisy5.xml',
+            ],
+            [
+                'AudioBookOverDrive',
+                'marc-overdrive1.xml',
+            ],
+        ];
+    }
+
+    /**
+     * Test MARC audio book formats
+     *
+     * @dataProvider marcAudioBooksProvider
+     *
+     * @return void
+     */
+    public function testMarcAudioBooks()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-udk.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'udkf fennica080',
+                'udkf finuc-s080',
+                'udk2 new080-1',
+                'udk2 new080-2',
+                'udkx unknown080-1',
+                'udkx unknown080-2',
+            ],
+            $fields['classification_txt_mv']
+        );
+    }
+
+    /**
+     * Test MARC media types
+     *
+     * @return void
+     */
+    public function testMarcMediaTypes(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc_media_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'audio/x-wav',
+                'application/pdf',
+            ],
+            $fields['media_type_str_mv']
+        );
     }
 }

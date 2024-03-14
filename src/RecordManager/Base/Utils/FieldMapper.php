@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Field value mapper
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2012-2017.
+ * Copyright (C) The National Library of Finland 2012-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,7 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function is_array;
+use function is_string;
 
 /**
  * Field value mapper
@@ -122,7 +127,7 @@ class FieldMapper
                     }
                     $this->settings[$source]['mappingFiles'][$field][] = [
                         'type' => $type,
-                        'map' => &self::$mapCache[$filename]
+                        'map' => &self::$mapCache[$filename],
                     ];
                 }
             }
@@ -133,11 +138,11 @@ class FieldMapper
      * Map source format to Solr format
      *
      * @param string $source Source ID
-     * @param string $format Format
+     * @param array  $format Format(s)
      *
-     * @return string Mapped format string
+     * @return array Mapped format(s)
      */
-    public function mapFormat($source, $format)
+    public function mapFormat(string $source, array $format): array
     {
         $settings = $this->settings[$source];
 
@@ -146,11 +151,11 @@ class FieldMapper
             $map = $mappingFile[0]['map'];
             if (!empty($format)) {
                 $format = $this->mapValue($format, $mappingFile);
-                return is_array($format) ? $format[0] : $format;
+                return (array)$format;
             } elseif (isset($map['##empty'])) {
-                return $map['##empty'];
+                return (array)$map['##empty'];
             } elseif (isset($map['##emptyarray'])) {
-                return $map['##emptyarray'];
+                return (array)$map['##emptyarray'];
             }
         }
         return $format;
@@ -159,22 +164,22 @@ class FieldMapper
     /**
      * Map all fields in an array
      *
-     * @param string $source Source ID
-     * @param array  $data   Fields to process
+     * @param string                                   $source Source ID
+     * @param array<string, string|array<int, string>> $data   Fields to process
      *
      * @return array
      */
-    public function mapValues($source, $data)
+    public function mapValues($source, &$data)
     {
         $settings = $this->settings[$source];
         foreach ($settings['mappingFiles'] as $field => $mappingFile) {
-            if (isset($data[$field]) && !empty($data[$field])) {
+            if (!empty($data[$field])) {
                 if (is_array($data[$field])) {
                     $newValues = [];
                     foreach ($data[$field] as $value) {
                         $replacement = $this->mapValue($value, $mappingFile);
                         if (is_array($replacement)) {
-                            $newValues = array_merge($newValues, $replacement);
+                            $newValues = [...$newValues, ...$replacement];
                         } else {
                             $newValues[] = $replacement;
                         }
@@ -214,7 +219,7 @@ class FieldMapper
      * @param array $mappingFile Mapping file
      * @param int   $index       Mapping index for sub-entry mappings
      *
-     * @return mixed
+     * @return string|array<int, string>
      */
     protected function mapValue($value, $mappingFile, $index = 0)
     {
@@ -228,7 +233,7 @@ class FieldMapper
                     break;
                 }
                 if (is_array($v)) {
-                    $newValue = array_merge($newValue, $v);
+                    $newValue = [...$newValue, ...$v];
                 } else {
                     $newValue[] = $v;
                 }
@@ -322,16 +327,23 @@ class FieldMapper
             }
             if (!isset($parts[1])) {
                 fclose($handle);
-                throw new \Exception(
-                    "Unable to parse mapping file '$filename' line "
-                    . "(no ' = ' found): ($lineno) $line"
-                );
+                throw new \Exception("Unable to parse mapping file $filename: no ' = ' found on line $lineno: $line");
             }
             $key = trim($parts[0]);
             $value = trim($parts[1]);
             if (substr($key, -2) == '[]') {
-                $mappings[substr($key, 0, -2)][] = $value;
+                $key = substr($key, 0, -2);
+                // @phpstan-ignore-next-line
+                if (is_string($mappings[$key] ?? null)) {
+                    throw new \Exception("$key already defined as a single value in $filename line $lineno: $line");
+                }
+                $mappings[$key][] = $value;
             } else {
+                if (is_array($mappings[$key] ?? null)) {
+                    throw new \Exception(
+                        "$key already defined as an array of values in $filename line $lineno: $line"
+                    );
+                }
                 $mappings[$key] = $value;
             }
         }

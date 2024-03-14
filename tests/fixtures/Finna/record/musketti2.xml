@@ -16,6 +16,13 @@
                     <classification>
                         <term label="aineistotyyppi" lang="fi">valokuva</term>
                     </classification>
+                    <classification type="language">
+                        <term>fi</term>
+                        <term>sv</term>
+                    </classification>
+                    <classification type="language">
+                        <term>en</term>
+                    </classification>
                 </classificationWrap>
             </objectClassificationWrap>
             <objectIdentificationWrap>
@@ -59,6 +66,20 @@
                             </legalBodyName>
                         </repositoryName>
                         <workID>4878:1</workID>
+                    </repositorySet>
+                    <repositorySet>
+                        <repositoryLocation>
+                            <namePlaceSet>
+                                <appellationValue>Repository Location 1</appellationValue>
+                            </namePlaceSet>
+                            <namePlaceSet>
+                                <appellationValue>Repository Location 2</appellationValue>
+                            </namePlaceSet>
+                            <placeID type="prt" source="YSO">Prt</placeID>
+                            <placeID type="kiinteist&#xF6;tunnus" source="Kiinteist&#xF6;rekisteri">Kiinteistötunnus</placeID>
+                            <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p94413</placeID>
+                            <placeID type="URI" source="YSO"><!-- Empty value should not appear --></placeID>
+                        </repositoryLocation>
                     </repositorySet>
                 </repositoryWrap>
                 <objectMeasurementsWrap>
@@ -233,7 +254,7 @@
             <resourceWrap>
                 <resourceSet>
                     <resourceRepresentation>
-                        <linkResource>http://muisti.nba.fi/m/4878_1/00013199.jpg</linkResource>
+                        <linkResource formatResource="image/jpeg">http://muisti.nba.fi/m/4878_1/00013199.jpg</linkResource>
                     </resourceRepresentation>
                     <rightsResource>
                         <rightsType>

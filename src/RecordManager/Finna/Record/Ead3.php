@@ -1,4 +1,5 @@
 <?php
+
 /**
  * EAD 3 Record Class
  *
@@ -27,9 +28,16 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
+use function boolval;
+use function count;
+use function in_array;
 
 /**
  * EAD 3 Record Class
@@ -48,6 +56,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
+    use MediaTypeTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -59,6 +68,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     public const NAME_TYPE_ALTERNATIVE = 'vaihtehtoinen nimi';
     public const NAME_TYPE_PRIMARY = 'ensisijainen nimi';
     public const NAME_TYPE_OUTDATED = 'vanhentunut nimi';
+
+    public const SUBJECT_ACTOR_ROLES = ['aihe', 'förekommer', 'handlar om', 'refereras till'];
+    public const SECONDARY_AUTHOR_ROLES = [
+        'brevmottagare', 'donator', 'inlämnare', 'insamlare','keruun järjestäjä', 'kerääjä',
+        'luovuttaja', 'vastaanottaja',
+    ];
 
     /**
      * Archive fonds format
@@ -82,12 +97,35 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected $undefinedType = 'Määrittämätön';
 
     /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMediaTypeTrait($config);
+    }
+
+    /**
      * Return fields to be indexed in Solr
      *
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -96,47 +134,15 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $first = true;
         foreach ($this->getDateRanges() as $unitDateRange) {
-            $startDateUnknown = $unitDateRange['startDateUnknown'];
-            $unitDateRange = $unitDateRange['date'];
-
+            $range = $unitDateRange['date'];
             $data['search_daterange_mv'][] = $data['unit_daterange']
-                = $this->dateRangeToStr($unitDateRange);
+                = $this->dateRangeToStr($range);
 
             if ($first) {
                 $data['main_date_str'] = $data['era_facet']
-                    = $this->metadataUtils->extractYear($unitDateRange[0]);
-                $data['main_date'] = $this->validateDate($unitDateRange[0]);
-
-                if (!$startDateUnknown) {
-                    // When startDate is known, Append year range to title
-                    // (only years, not the full dates)
-                    $startYear
-                        = $this->metadataUtils->extractYear($unitDateRange[0]);
-                    $endYear = $this->metadataUtils->extractYear($unitDateRange[1]);
-                    $yearRange = '';
-                    if ($startYear != '-9999') {
-                        $yearRange = $startYear;
-                    }
-                    if ($endYear != $startYear) {
-                        $yearRange .= '-';
-                        if ($endYear != '9999') {
-                            $yearRange .= $endYear;
-                        }
-                    }
-                    if ($yearRange) {
-                        $len = strlen($yearRange);
-                        foreach (
-                            ['title_full', 'title_sort', 'title', 'title_short']
-                            as $field
-                        ) {
-                            if (substr($data[$field], -$len) != $yearRange
-                                && substr($data[$field], -$len - 2) != "($yearRange)"
-                            ) {
-                                $data[$field] .= " ($yearRange)";
-                            }
-                        }
-                    }
-                }
+                    = $this->metadataUtils->extractYear($range[0]);
+                $data['main_date'] = $this->validateDate($range[0]);
+                $data = $this->enrichTitlesWithYearRanges($data, $unitDateRange);
                 $first = false;
             }
         }
@@ -150,13 +156,13 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['datasource_str_mv'] = $this->source;
 
         if ($this->isOnline()) {
-            $data['online_boolean'] = true;
+            $data['online_boolean'] = '1';
             // This is sort of special. Make sure to use source instead
             // of datasource.
             $data['online_str_mv'] = $data['source_str_mv'];
 
             if ($this->isFreeOnline()) {
-                $data['free_online_boolean'] = true;
+                $data['free_online_boolean'] = '1';
                 // This is sort of special. Make sure to use source instead
                 // of datasource.
                 $data['free_online_str_mv'] = $data['source_str_mv'];
@@ -194,123 +200,283 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         } elseif (isset($doc->did->accessrestrict->p)) {
             $data['rights'] = (string)$doc->did->accessrestrict->p;
         }
-
+        $onlineUrls = $this->getOnlineURLs();
+        $data['media_type_str_mv'] = array_values(
+            array_unique(
+                array_column($onlineUrls, 'mediaType')
+            )
+        );
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
             $data['usage_rights_ext_str_mv'] = $rights;
         }
 
-        $corporateAuthorIds = $this->getCorporateAuthorIds();
-        if (isset($doc->controlaccess->name)) {
-            $data['author'] = [];
-            $data['author_role'] = [];
-            $data['author_variant'] = [];
-            $data['author_facet'] = [];
-            $author2Ids = $author2IdRoles = [];
-            foreach ($doc->controlaccess->name as $name) {
-                foreach ($name->part as $part) {
-                    $id = $role = null;
-                    $attr = $name->attributes();
-                    if (isset($attr->relator)) {
-                        $role = (string)$name->attributes()->relator;
-                    }
-                    if (isset($attr->identifier)) {
-                        $id = (string)$name->attributes()->identifier;
-                    }
-
-                    $localtype = mb_strtolower(
-                        $part->attributes()->localtype ?? '',
-                        'UTF-8'
-                    );
-                    switch ($localtype) {
-                    case self::NAME_TYPE_PRIMARY:
-                        $data['author'][] = (string)$part;
-                        if (! isset($part->attributes()->lang)
-                            || (string)$part->attributes()->lang === 'fin'
-                        ) {
-                            $data['author_facet'][] = (string)$part;
-                        }
-                        if ($id) {
-                            $author2Ids[] = $id;
-                            if ($role) {
-                                $author2IdRoles[]
-                                    = $this->formatAuthorIdWithRole($id, $role);
-                            }
-                        }
-                        break;
-                    case self::NAME_TYPE_VARIANT:
-                    case self::NAME_TYPE_ALTERNATIVE:
-                    case self::NAME_TYPE_OUTDATED:
-                        $data['author_variant'][] = (string)$part;
-                        if ($id) {
-                            $author2Ids[] = $id;
-                            if ($role) {
-                                $author2IdRoles[]
-                                    = $this->formatAuthorIdWithRole($id, $role);
-                            }
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            $data['author2_id_str_mv']
+        $data['author_variant'] = $this->getAuthorVariants();
+        $data['author2'] = $this->getSecondaryAuthors();
+        // phpcs:ignore
+        /** @psalm-var array<string, list<string>> $data */
+        $data['author_facet'] = [
+            ...$data['author'],
+            ...$data['author2'],
+            ...$data['author_corporate'],
+        ];
+        $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
-                    array_unique(array_merge($corporateAuthorIds, $author2Ids)),
+                    array_unique(
+                        [
+                            ...$this->getCorporateAuthorIds(),
+                            ...$this->getAuthorIds(),
+                            ...$this->getSecondaryAuthorIds(),
+                        ]
+                    ),
                     'author'
                 );
-            $data['author2_id_role_str_mv']
-                = $this->addNamespaceToAuthorityIds($author2IdRoles, 'author');
-        }
+        $data['author2_id_role_str_mv']
+            = $this->addNamespaceToAuthorityIds(
+                $this->getAllAuthorIdsAndRoles(),
+                'author'
+            );
 
-        if (isset($doc->controlaccess->persname)) {
-            foreach ($doc->controlaccess->persname as $name) {
-                if (isset($name->part)) {
-                    $name = (string)$name->part;
-                    $data['author'][] = $name;
-                    $data['author_facet'][] = $name;
-                }
-            }
-        }
-
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->persname ?? [] as $name) {
-                $data['author'][] = $data['author_facet'][] = (string)$name;
-            }
-        }
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->name ?? [] as $name) {
-                foreach ($name->part ?? [] as $part) {
-                    if ($this->isTimeIntervalNode($part)) {
-                        continue;
-                    }
-                    $value = (string)$part;
-                    $data['author'][] = $data['author_facet'][] = $value;
-                    if (in_array(
-                        (string)$part->attributes()->localtype,
-                        [self::NAME_TYPE_VARIANT, self::NAME_TYPE_ALTERNATIVE]
-                    )
-                    ) {
-                        $data['author_variant'][] = $value;
-                    }
-                }
-            }
-        }
-
-        if (isset($doc->index->index->indexentry)) {
-            foreach ($doc->index->index->indexentry as $indexentry) {
-                if (isset($indexentry->name->part)) {
-                    $data['contents'][] = (string)$indexentry->name->part;
-                }
+        foreach ($doc->index->index->indexentry ?? [] as $indexentry) {
+            if (isset($indexentry->name->part)) {
+                $data['contents'][] = (string)$indexentry->name->part;
             }
         }
         $data['format_ext_str_mv'] = $data['format'];
 
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
+        $data['location_geo'] = $this->getGeographicCoordinates();
+        $data['center_coords']
+            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
 
+        return $data;
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        $results = $this->getTopicTermsFromNodeWithRelators(
+            'subject',
+            self::SUBJECT_RELATORS,
+            true
+        );
+        return array_filter(array_unique([...$results, ...$this->getSubjectActorIds()]));
+    }
+
+    /**
+     * Get all geographic topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawGeographicTopicIds(): array
+    {
+        return $this->getTopicTermsFromNodeWithRelators(
+            'geogname',
+            self::GEOGRAPHIC_SUBJECT_RELATORS,
+            true
+        );
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string
+     */
+    public function getFormat()
+    {
+        $level1 = $level2 = null;
+
+        $docLevel = (string)$this->doc->attributes()->level;
+        $level1 = $docLevel === 'fonds' ? 'Document' : null;
+
+        if (!isset($this->doc->controlaccess->genreform)) {
+            return $docLevel;
+        }
+
+        $defaultFormat = null;
+        foreach ($this->doc->controlaccess->genreform as $genreform) {
+            $nonLangFormat = null;
+            $format = null;
+            foreach ($genreform->part as $part) {
+                if (null === $nonLangFormat) {
+                    $nonLangFormat = (string)$part;
+                }
+                $attributes = $part->attributes();
+                if ((string)($attributes->lang ?? '') === 'fin') {
+                    $format = (string)$part;
+                    break;
+                }
+            }
+            if (null === $format) {
+                $format = $nonLangFormat;
+            }
+            if (null === $defaultFormat) {
+                $defaultFormat = $format;
+            }
+
+            if (!$format) {
+                continue;
+            }
+
+            $attr = $genreform->attributes();
+            if (isset($attr->encodinganalog)) {
+                $type = (string)$attr->encodinganalog;
+                if ($type === 'ahaa:AI08') {
+                    if ($level1 === null) {
+                        $level1 = $format;
+                    } else {
+                        $level2 = $format;
+                    }
+                } elseif ($type === 'ahaa:AI57') {
+                    $level2 = $format;
+                }
+            }
+        }
+
+        if (null === $level1) {
+            $level1 = $defaultFormat ?? '';
+        }
+
+        return $level2 ? "$level1/$level2" : $level1;
+    }
+
+    /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author2' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get corporate author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getCorporateAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if (($type === 'author' || $type === 'variant') && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Enrich titles with year ranges.
+     *
+     * @param array $data          Record as a solr array
+     * @param array $unitDateRange Date range to append as years
+     *
+     * @return array
+     */
+    protected function enrichTitlesWithYearRanges(
+        array $data,
+        array $unitDateRange
+    ): array {
+        /**
+         * Type of enrichment for driver.
+         * always = Always add year range to end of a title
+         * never = Do not add year range to end of a title
+         * no_year_exists = If any year is found from the title then do not add
+         * no_match_exists = If any of the given years in unitDateRange are
+         * found from the title, then do not add
+         * no_matches_exist = If all of the given years in unitDateRange are
+         * found from the title, then do not add
+         */
+        $type = $this->getDriverParam(
+            'enrichTitleWithYearRange',
+            'no_match_exists'
+        );
+        if ('never' === $type) {
+            return $data;
+        }
+        if (!$unitDateRange['startDateUnknown']) {
+            $range = $unitDateRange['date'];
+            $startYear
+                = $this->metadataUtils->extractYear($range[0]);
+            $endYear = $this->metadataUtils->extractYear($range[1]);
+            $yearRange[] = $startYear !== '-9999' ? $startYear : '';
+            $yearRange[] = $endYear !== '9999' ? $endYear : '';
+            $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
+            $yearRangeStr = trim(implode($ndash, array_unique($yearRange)));
+            if (!$yearRangeStr) {
+                return $data;
+            }
+            // Append with LTR mark first to ensure correct text direction
+            $yearRangeStr = "\u{200E} ($yearRangeStr)";
+            foreach (
+                ['title_full', 'title_sort', 'title', 'title_short'] as $field
+            ) {
+                $yearsFound = $this->getYearsFromString($data[$field]);
+                switch ($type) {
+                    case 'always':
+                        $data[$field] .= $yearRangeStr;
+                        break;
+                    case 'no_year_exists':
+                        if (!$yearsFound) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
+                    case 'no_match_exists':
+                        if (!array_intersect($yearRange, $yearsFound)) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
+                    case 'no_matches_exist':
+                        $yearRange = array_filter(array_unique($yearRange));
+                        if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
+                            $data[$field] .= $yearRangeStr;
+                        }
+                        break;
+                }
+            }
+        }
         return $data;
     }
 
@@ -323,19 +489,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $unitIdLabel = $this->getDriverParam('unitIdLabel', null);
         $firstId = '';
-        if (isset($this->doc->did->unitid)) {
-            foreach ($this->doc->did->unitid as $i) {
-                $attr = $i->attributes();
-                if (!isset($attr->identifier)) {
-                    continue;
-                }
-                $id = (string)$attr->identifier;
-                if (!$firstId) {
-                    $firstId = $id;
-                }
-                if (!$unitIdLabel || (string)$attr->label === $unitIdLabel) {
-                    return $id;
-                }
+        foreach ($this->doc->did->unitid ?? [] as $i) {
+            $attr = $i->attributes();
+            if (!isset($attr->identifier)) {
+                continue;
+            }
+            $id = (string)$attr->identifier;
+            if (!$firstId) {
+                $firstId = $id;
+            }
+            if (!$unitIdLabel || (string)$attr->label === $unitIdLabel) {
+                return $id;
             }
         }
         return $firstId;
@@ -344,121 +508,229 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Get authors
      *
-     * @return array
+     * @return array<int, string>
      */
-    protected function getAuthors()
+    protected function getAuthors(): array
     {
-        $result = [];
-        if (!isset($this->doc->relations->relation)) {
-            return $result;
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = (string)$name;
+                    }
+                }
+            }
         }
-
-        foreach ($this->doc->relations->relation as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author') {
+                if ($name = $agent['name'] ?? '') {
+                    $results[] = (string)$name;
+                }
             }
-            $role = (string)$relation->attributes()->arcrole;
-            switch ($role) {
-            case '':
-            case 'http://www.rdaregistry.info/Elements/u/P60672':
-            case 'http://www.rdaregistry.info/Elements/u/P60434':
-                $role = 'aut';
-                break;
-            case 'http://www.rdaregistry.info/Elements/u/P60429':
-                $role = 'pht';
-                break;
-            default:
-                $role = '';
-            }
-            if ('' === $role) {
-                continue;
-            }
-            $result[] = trim((string)$relation->relationentry);
         }
-        return $result;
+        return $results;
     }
 
     /**
-     * Get author identifiers
+     * Get author variant names
      *
-     * @return array
+     * @return array<string>
      */
-    protected function getAuthorIds()
+    protected function getAuthorVariants(): array
     {
-        $result = [];
-        if (!isset($this->doc->relations->relation)) {
-            return $result;
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'variant') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = $name;
+                    }
+                }
+            }
         }
+        return $results;
+    }
 
-        foreach ($this->doc->relations->relation as $relation) {
-            $type = (string)$relation->attributes()->relationtype;
-            if ('cpfrelation' !== $type) {
-                continue;
+    /**
+     * Get secondary authors
+     *
+     * @return array<int, string>
+     */
+    protected function getSecondaryAuthors(): array
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'author2') {
+                if ($name = $agent['name'] ?? '') {
+                    $results[] = $name;
+                }
             }
-            $role = (string)$relation->attributes()->arcrole;
-            switch ($role) {
-            case '':
-            case 'http://www.rdaregistry.info/Elements/u/P60672':
-            case 'http://www.rdaregistry.info/Elements/u/P60434':
-                $role = 'aut';
-                break;
-            case 'http://www.rdaregistry.info/Elements/u/P60429':
-                $role = 'pht';
-                break;
-            default:
-                $role = '';
-            }
-            if ('' === $role) {
-                continue;
-            }
-            $result[] = (string)$relation->attributes()->href;
         }
-        return $result;
+        return $results;
     }
 
     /**
      * Get corporate authors
      *
-     * @return array
+     * @return array<int, string>
      */
-    protected function getCorporateAuthors() : array
+    protected function getCorporateAuthors(): array
     {
-        $result = [];
-        foreach ($this->doc->controlaccess->corpname ?? [] as $name) {
-            foreach ($name->part ?? [] as $part) {
-                if ($this->isTimeIntervalNode($part)) {
-                    continue;
+        $results = [];
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author') {
+                    if ($name = $author['name'] ?? '') {
+                        $results[] = $name;
+                    }
                 }
-                $result[] = trim((string)$part);
             }
         }
-        foreach ($this->doc->did->origination ?? [] as $origination) {
-            foreach ($origination->name ?? [] as $name) {
-                foreach ($name->part ?? [] as $part) {
-                    if ($this->isTimeIntervalNode($part)) {
-                        continue;
+        return $results;
+    }
+
+    /**
+     * Get all author ids and roles
+     *
+     * @return array<string>
+     */
+    protected function getAllAuthorIdsAndRoles(): array
+    {
+        $results = [];
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($idWithRole = $author['idWithRole'] ?? '') {
+                        $results[] = $idWithRole;
                     }
-                    $result[] = trim((string)$part);
                 }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'author' || $type === 'variant') {
+                    if ($idWithRole = $author['idWithRole'] ?? '') {
+                        $results[] = $idWithRole;
+                    }
+                }
+            }
+        }
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject') {
+                continue;
+            }
+            if ($role = $agent['idWithRole'] ?? '') {
+                $results[] = $role;
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Helper function for getting author details from element
+     *
+     * @param \SimpleXMLElement $name Name element
+     *
+     * @return array            array of authors with keys:
+     *   'name'       author name
+     *   'type'       author type (author, variant or subject)
+     *   'id'         author id
+     *   'idWithRole' id###role
+     */
+    protected function getAuthorDetails(
+        \SimpleXMLElement $name
+    ) {
+        $result = [];
+        foreach ($name->part as $part) {
+            if ($this->isTimeIntervalNode($part)) {
+                continue;
+            }
+            $author = [];
+            $relator = trim((string)($name->attributes()->relator ?? ''));
+            $identifier = trim((string)($name->attributes()->identifier ?? ''));
+            $localtype = mb_strtolower(
+                $part->attributes()->localtype ?? '',
+                'UTF-8'
+            );
+            if ($authorName = trim((string)$part)) {
+                $author['name'] = $authorName;
+                switch ($localtype) {
+                    case self::NAME_TYPE_PRIMARY:
+                    case '':
+                        $author['type'] = 'author';
+                        break;
+                    case self::NAME_TYPE_VARIANT:
+                    case self::NAME_TYPE_ALTERNATIVE:
+                    case self::NAME_TYPE_OUTDATED:
+                        $author['type'] = 'variant';
+                        break;
+                }
+            }
+            if (in_array(mb_strtolower($relator, 'UTF-8'), $this::SUBJECT_ACTOR_ROLES)) {
+                $author['type'] = 'subject';
+            }
+            if ($identifier) {
+                $author['id'] = $identifier;
+                if ($relator) {
+                    $author['idWithRole'] = $this->formatAuthorIdWithRole($identifier, $relator);
+                }
+            }
+            if ($author) {
+                $result[] = $author;
             }
         }
         return $result;
     }
 
     /**
-     * Get corporate author identifiers
+     * Get agents from relations
      *
-     * @return array
+     * @return array array of agents with keys:
+     *   'name'       agent name
+     *   'type'       agent type (author, author2 or subject)
+     *   'id'         agent id
+     *   'idWithRole' id###role
      */
-    protected function getCorporateAuthorIds()
+    protected function getAgentsFromRelations(): array
     {
         $result = [];
-        if (isset($this->doc->did->origination->name)) {
-            foreach ($this->doc->did->origination->name as $name) {
-                if (isset($name->attributes()->identifier)) {
-                    $result[] = (string)$name->attributes()->identifier;
+        foreach ($this->doc->relations->relation ?? [] as $relation) {
+            $type = trim((string)($relation->attributes()->relationtype ?? ''));
+            if ('cpfrelation' !== $type) {
+                continue;
+            }
+            $agent = [];
+            $role = trim((string)($relation->attributes()->arcrole ?? ''));
+            $roleLC = mb_strtolower($role, 'UTF-8');
+            if ($name = trim((string)($relation->relationentry ?? ''))) {
+                $agent['name'] = $name;
+            }
+            if ($href = trim((string)($relation->attributes()->href ?? ''))) {
+                $agent['id'] = $href;
+                if ($role) {
+                    $agent['idWithRole'] = $this->formatAuthorIdWithRole($href, $role);
                 }
+            }
+            if ($name || $href) {
+                if (in_array($roleLC, $this::SUBJECT_ACTOR_ROLES)) {
+                    $agent['type'] = 'subject';
+                } elseif (in_array($roleLC, $this::SECONDARY_AUTHOR_ROLES)) {
+                    $agent['type'] = 'author2';
+                } else {
+                    $agent['type'] = 'author';
+                }
+            }
+            if ($agent) {
+                $result[] = $agent;
             }
         }
         return $result;
@@ -474,7 +746,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $getRestriction = function ($restrict) {
             if ($href = $restrict['href']) {
-                if (preg_match('/^https?:\/\/creativecommons\.org\//', $href)
+                if (
+                    preg_match('/^https?:\/\/creativecommons\.org\//', $href)
                     || preg_match('/^https?:\/\/rightsstatements\.org\//', $href)
                 ) {
                     return [(string)$href];
@@ -484,7 +757,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (strstr($restrict, 'No known copyright restrictions')) {
                 return ['No known copyright restrictions'];
             }
-            if (strncasecmp($restrict, 'CC', 2) === 0
+            if (
+                strncasecmp($restrict, 'CC', 2) === 0
                 || strncasecmp($restrict, 'Public', 6) === 0
                 || strncasecmp($restrict, 'Julkinen', 8) === 0
             ) {
@@ -543,6 +817,39 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Get URLs
+     *
+     * @return array
+     */
+    protected function getOnlineURLs(): array
+    {
+        $results = [];
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            foreach ($set->dao as $dao) {
+                $attrs = $dao->attributes();
+                $url = trim((string)$attrs->href);
+                if (empty($url)) {
+                    continue;
+                }
+                $result = [
+                    'url' => $url,
+                    'desc' => trim($attrs->linktitle),
+                    'source' => $this->source,
+                ];
+                $mediaType = $this->getLinkMediaType(
+                    $url,
+                    trim((string)$attrs->linkrole),
+                );
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
+    }
+
+    /**
      * Check if the record is freely available online
      *
      * @return bool
@@ -569,18 +876,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $noSubtitleFormats = [
             $this->fondsType,
-            $this->collectionType
+            $this->collectionType,
         ];
         if (in_array($this->getFormat(), $noSubtitleFormats)) {
             return '';
         }
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
-            if (isset($this->doc->did->unitid)) {
-                foreach ($this->doc->did->unitid as $id) {
-                    $attr = $id->attributes();
-                    if ((string)$attr->label === $signumLabel) {
-                        return (string)$id;
-                    }
+            foreach ($this->doc->did->unitid ?? [] as $id) {
+                $attr = $id->attributes();
+                if ((string)$attr->label === $signumLabel) {
+                    return (string)$id;
                 }
             }
         }
@@ -596,8 +901,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $result = [];
         foreach ($this->doc->did->unitdatestructured ?? [] as $date) {
-            if (isset($date->daterange)) {
-                $range = $this->doc->did->unitdatestructured->daterange;
+            if ($range = $date->daterange) {
                 if (isset($range->fromdate) && isset($range->todate)) {
                     // Some data sources have multiple ranges in one daterange
                     // (non-standard presentation), try to handle the case sensibly:
@@ -618,14 +922,16 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $primary = [];
             foreach ($this->doc->did->unitdate ?? [] as $unitdate) {
                 $attributes = $unitdate->attributes();
-                if ($attributes->label
+                if (
+                    $attributes->label
                     && (string)$attributes->label === 'Ajallinen kattavuus'
                     && $unitdate->attributes()->normal
                 ) {
                     $date = $this->parseDateRange(
                         (string)$unitdate->attributes()->normal
                     );
-                    if ($date
+                    if (
+                        $date
                         && !$date['startDateUnknown'] && !$date['endDateUnknown']
                     ) {
                         $primary[] = $date;
@@ -634,19 +940,30 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
                 $normal = (string)$unitdate->attributes()->normal;
                 if (!empty($normal)) {
-                    $result[] = $this->parseDateRange($normal);
+                    $parsedDate = $this->parseDateRange($normal);
+                    if ($parsedDate) {
+                        $result[] = $parsedDate;
+                    } else {
+                        $normal = strtolower($normal);
+                        if (
+                            !str_contains($normal, 'xxxx') && !str_contains($normal, 'uuuu')
+                            && (str_contains($normal, '-xx-xx') || str_contains($normal, '-uu-uu'))
+                        ) {
+                            $result[] = $this->parseDateRange("$normal/$normal");
+                        }
+                    }
                 } else {
                     foreach (explode(', ', (string)$unitdate) as $single) {
-                        $date = str_replace('-', '/', $single);
-                        if (false === strpos($date, '/')) {
-                            $date = "${date}/${date}";
+                        $date = str_replace(['-', '–'], '/', $single);
+                        if (!str_contains($date, '/')) {
+                            $date = "$date/$date";
                         }
                         $result[] = $this->parseDateRange($date);
                     }
                 }
             }
             if ($primary) {
-                $result = array_merge($primary, $result);
+                $result = [...$primary, ...$result];
             }
         }
         return array_filter($result);
@@ -661,7 +978,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function parseDateRange($input)
     {
-        if (!$input || $input == '-' || false === strpos($input, '/')) {
+        if (!$input || $input == '-' || !str_contains($input, '/')) {
             return null;
         }
 
@@ -679,18 +996,19 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $year = str_repeat($defaultYear, 4);
             $month = $defaultMonth;
             $day = $defaultDay;
+            $unknownForms = ['uu', 'xx', 'uuuu', 'xxxx'];
             if (!in_array($date, ['open', 'unknown'])) {
                 $parts = explode('-', trim($date));
-                if ('uuuu' === $parts[0]) {
+                if (in_array(strtolower($parts[0]), $unknownForms)) {
                     $unknown = true;
                 }
-                $year = str_replace('u', $defaultYear, $parts[0]);
+                $year = str_ireplace(['u', 'x'], $defaultYear, $parts[0]);
 
-                if (isset($parts[1]) && $parts[1] !== 'uu') {
+                if (isset($parts[1]) && !in_array(strtolower($parts[1]), $unknownForms)) {
                     $month = $parts[1];
                 }
 
-                if (isset($parts[2]) && $parts[2] !== 'uu') {
+                if (isset($parts[2]) && !in_array(strtolower($parts[2]), $unknownForms)) {
                     $day = $parts[2];
                 }
             } else {
@@ -702,7 +1020,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $day = date('t', strtotime("{$year}-{$month}"));
             }
 
-            if (!preg_match('/^-?\d{1,4}$/', $year)
+            if (
+                !preg_match('/^-?\d{1,4}$/', $year)
                 || !preg_match('/^\d{1,2}$/', $month)
                 || !preg_match('/^\d{1,2}$/', $day)
             ) {
@@ -796,7 +1115,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *                            is defined.
      * @param bool   $identifiers Return identifiers instead of labels?
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getTopicTermsFromNodeWithRelators(
         $nodeName,
@@ -804,22 +1123,24 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $identifiers = false
     ) {
         $result = [];
-        if (!isset($this->doc->controlaccess->{$nodeName})) {
-            return $result;
-        }
-
-        foreach ($this->doc->controlaccess->{$nodeName} as $node) {
-            $relator = mb_strtolower(
-                trim((string)($node['relator'] ?? '')),
-                'UTF-8'
-            );
-            if (!$relator || in_array($relator, $relators)) {
-                if ($identifiers) {
-                    if ($id = $node['identifier']) {
-                        $result[] = (string)$id;
+        foreach ($this->doc->controlaccess as $controlaccess) {
+            foreach ($controlaccess->{$nodeName} ?? [] as $node) {
+                $relator = mb_strtolower(
+                    trim((string)($node['relator'] ?? '')),
+                    'UTF-8'
+                );
+                if (!$relator || in_array($relator, $relators)) {
+                    if ($identifiers) {
+                        if ($id = $node['identifier']) {
+                            $result[] = (string)$id;
+                        }
+                    } else {
+                        foreach ($node->part as $part) {
+                            if ($value = trim((string)$part)) {
+                                $result[] = $value;
+                            }
+                        }
                     }
-                } elseif ($value = trim((string)$node->part)) {
-                    $result[] = $value;
                 }
             }
         }
@@ -833,10 +1154,77 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getTopics()
     {
-        return $this->getTopicTermsFromNodeWithRelators(
+        $results = $this->getTopicTermsFromNodeWithRelators(
             'subject',
             self::SUBJECT_RELATORS
         );
+        return [...$results, ...$this->getSubjectActors()];
+    }
+
+    /**
+     * Get subject actors
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActors()
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject' && ($name = $agent['name'] ?? '')) {
+                $results[] = $name;
+            }
+        }
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
+                }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($name = $author['name'] ?? '')) {
+                    $results[] = $name;
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Get subject actor ids
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActorIds()
+    {
+        $results = [];
+        foreach ($this->getAgentsFromRelations() as $agent) {
+            $type = $agent['type'] ?? '';
+            if ($type === 'subject' && ($id = $agent['id'] ?? '')) {
+                $results[] = $id;
+            }
+        }
+        foreach ($this->getAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        foreach ($this->getCorporateAuthorElements() as $node) {
+            foreach ($this->getAuthorDetails($node) as $author) {
+                $type = $author['type'] ?? '';
+                if ($type === 'subject' && ($id = $author['id'] ?? '')) {
+                    $results[] = $id;
+                }
+            }
+        }
+        return array_filter(array_unique($results));
     }
 
     /**
@@ -844,13 +1232,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array
      */
-    public function getTopicIDs()
+    protected function getTopicIDs(): array
     {
-        $result = $this->getTopicTermsFromNodeWithRelators(
-            'subject',
-            self::SUBJECT_RELATORS,
-            true
-        );
+        $result = $this->getRawTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
@@ -874,75 +1258,45 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getGeographicTopicIDs()
     {
-        $result = $this->getTopicTermsFromNodeWithRelators(
-            'geogname',
-            self::GEOGRAPHIC_SUBJECT_RELATORS,
-            true
-        );
+        $result = $this->getRawGeographicTopicIds();
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
     /**
-     * Return format from predefined values
+     * Get geographic coordinates
      *
-     * @return string
+     * @return array<int, string> WKT
      */
-    public function getFormat()
+    protected function getGeographicCoordinates()
     {
-        $level1 = $level2 = null;
-
-        $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
-        if (!isset($this->doc->controlaccess->genreform)) {
-            return $docLevel;
-        }
-
-        $defaultFormat = null;
-        foreach ($this->doc->controlaccess->genreform as $genreform) {
-            $nonLangFormat = null;
-            $format = null;
-            foreach ($genreform->part as $part) {
-                if (null === $nonLangFormat) {
-                    $nonLangFormat = (string)$part;
+        $result = [];
+        foreach ($this->doc->controlaccess as $controlaccess) {
+            foreach ($controlaccess->geogname as $geogname) {
+                // Don't use these if we have an YSO URI to use with enrichment:
+                $id = (string)($geogname->attributes()->identifier ?? '');
+                $uri = (string)($geogname->attributes()->uri ?? '');
+                if (
+                    str_starts_with($id, 'http://www.yso.fi/onto/yso/')
+                    || str_starts_with($uri, 'http://www.yso.fi/onto/yso/')
+                ) {
+                    continue;
                 }
-                $attributes = $part->attributes();
-                if ((string)($attributes->lang ?? '') === 'fin') {
-                    $format = (string)$part;
-                    break;
-                }
-            }
-            if (null === $format) {
-                $format = $nonLangFormat;
-            }
-            if (null === $defaultFormat) {
-                $defaultFormat = $format;
-            }
-
-            if (!$format) {
-                continue;
-            }
-
-            $attr = $genreform->attributes();
-            if (isset($attr->encodinganalog)) {
-                $type = (string)$attr->encodinganalog;
-                if ($type === 'ahaa:AI08') {
-                    if ($level1 === null) {
-                        $level1 = $format;
-                    } else {
-                        $level2 = $format;
+                foreach ($geogname->geographiccoordinates as $coordinates) {
+                    $system = trim((string)($coordinates->attributes()->coordinatesystem ?? ''));
+                    if ($system === 'WGS84') {
+                        $trimmedCoordinates = array_map(
+                            'trim',
+                            explode(',', (string)$coordinates)
+                        );
+                        if (count($trimmedCoordinates) === 2) {
+                            [$lat, $lon] = $trimmedCoordinates;
+                            $result[] = "POINT($lon $lat)";
+                        }
                     }
-                } elseif ($type === 'ahaa:AI57') {
-                    $level2 = $format;
                 }
             }
         }
-
-        if (null === $level1) {
-            $level1 = $defaultFormat ?? '';
-        }
-
-        return $level2 ? "$level1/$level2" : $level1;
+        return $result;
     }
 
     /**
@@ -952,21 +1306,20 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getInstitution()
     {
-        if (isset($this->doc->did->repository)) {
-            foreach ($this->doc->did->repository as $repo) {
-                $attr = $repo->attributes();
-                if (! isset($attr->encodinganalog)
-                    || 'ahaa:AI42' !== (string)$attr->encodinganalog
-                ) {
+        foreach ($this->doc->did->repository ?? [] as $repo) {
+            $attr = $repo->attributes();
+            if (
+                !isset($attr->encodinganalog)
+                || 'ahaa:AI42' !== (string)$attr->encodinganalog
+            ) {
+                continue;
+            }
+            foreach ($repo->corpname as $node) {
+                $attr = $node->attributes();
+                if (!isset($attr->identifier)) {
                     continue;
                 }
-                foreach ($repo->corpname as $node) {
-                    $attr = $node->attributes();
-                    if (! isset($attr->identifier)) {
-                        continue;
-                    }
-                    return (string)$attr->identifier;
-                }
+                return (string)$attr->identifier;
             }
         }
         return '';
@@ -1005,7 +1358,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return bool
      */
-    protected function isTimeIntervalNode(\SimpleXMLElement $node) : bool
+    protected function isTimeIntervalNode(\SimpleXMLElement $node): bool
     {
         return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;

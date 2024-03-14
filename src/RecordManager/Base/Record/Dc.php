@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Dublin Core record class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2021.
+ * Copyright (C) The National Library of Finland 2011-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -72,6 +74,13 @@ class Dc extends AbstractRecord
     protected $db;
 
     /**
+     * Record namespace identifier
+     *
+     * @var string
+     */
+    protected $recordNs = 'http://www.openarchives.org/OAI/2.0/oai_dc/';
+
+    /**
      * Constructor
      *
      * @param array             $config           Main configuration
@@ -108,10 +117,13 @@ class Dc extends AbstractRecord
     {
         $this->XmlTraitSetData($source, $oaiID, $data);
 
-        if (empty($this->doc->recordID)) {
-            $p = strpos($oaiID, ':');
-            $p = strpos($oaiID, ':', $p + 1);
-            $this->doc->addChild('recordID', substr($oaiID, $p + 1));
+        if (
+            empty($this->doc->recordID)
+            && empty($this->doc->children($this->recordNs)->recordID)
+        ) {
+            $parts = explode(':', $oaiID);
+            $id = ('oai' === $parts[0] && !empty($parts[2])) ? $parts[2] : $oaiID;
+            $this->doc->addChild('recordID', $id);
         }
     }
 
@@ -122,7 +134,11 @@ class Dc extends AbstractRecord
      */
     public function getID()
     {
-        return (string)$this->doc->recordID[0];
+        $id = (string)$this->doc->recordID[0];
+        if ('' === $id) {
+            $id = (string)$this->doc->children($this->recordNs)->recordID[0];
+        }
+        return $id;
     }
 
     /**
@@ -131,7 +147,7 @@ class Dc extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -167,8 +183,7 @@ class Dc extends AbstractRecord
         );
         $data['author2'] = $this->getValues('contributor');
 
-        $data['title'] = $data['title_full'] = $this->metadataUtils
-            ->stripTrailingPunctuation(trim((string)$doc->title));
+        $data['title'] = $data['title_full'] = $this->getTitle();
         $titleParts = explode(' : ', $data['title'], 2);
         $data['title_short'] = $titleParts[0];
         if (isset($titleParts[1])) {
@@ -179,11 +194,12 @@ class Dc extends AbstractRecord
         $data['publisher'] = [
             $this->metadataUtils->stripTrailingPunctuation(
                 trim((string)$doc->publisher)
-            )
+            ),
         ];
         $data['publishDate'] = $this->getPublicationYear();
 
         $data['isbn'] = $this->getISBNs();
+        $data['doi_str_mv'] = $this->getDOIs();
 
         $data['topic'] = $data['topic_facet'] = $this->getValues('subject');
 
@@ -210,7 +226,7 @@ class Dc extends AbstractRecord
      *
      * @return string
      */
-    public function getFullTitle()
+    public function getFullTitleForDebugging()
     {
         return trim((string)$this->doc->title);
     }
@@ -227,13 +243,11 @@ class Dc extends AbstractRecord
     {
         $title = trim((string)$this->doc->title);
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            // Again, just in case stripping the article affected this
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
+        } else {
+            $title
+                = $this->metadataUtils->stripTrailingPunctuation($title, '', true);
         }
-        $title = $this->metadataUtils->stripTrailingPunctuation($title);
         return $title;
     }
 
@@ -291,7 +305,7 @@ class Dc extends AbstractRecord
     /**
      * Dedup: Return format from predefined values
      *
-     * @return string
+     * @return string|array
      */
     public function getFormat()
     {
@@ -325,11 +339,33 @@ class Dc extends AbstractRecord
     }
 
     /**
+     * Get DOIs
+     *
+     * @return array
+     */
+    protected function getDOIs(): array
+    {
+        $result = [];
+
+        foreach ($this->getValues('identifier') as $identifier) {
+            $found = preg_match(
+                '{(urn:doi:|https?://doi.org/|https?://dx.doi.org/)([^?#]+)}',
+                $identifier,
+                $matches
+            );
+            if ($found) {
+                $result[] = urldecode($matches[2]);
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Get all values for a tag
      *
      * @param string $tag XML tag to get
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getValues($tag)
     {

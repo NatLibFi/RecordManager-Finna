@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Forward record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2016-2019.
  *
@@ -25,11 +26,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function in_array;
+use function is_array;
 
 /**
  * Forward record class
@@ -52,7 +57,7 @@ class Forward extends AbstractRecord
      * @var array
      */
     protected $primaryAuthorRelators = [
-        'd02', 'a00', 'a03', 'a06', 'a50', 'a99'
+        'd02', 'a00', 'a03', 'a06', 'a50', 'a99',
     ];
 
     /**
@@ -61,7 +66,7 @@ class Forward extends AbstractRecord
      * @var array
      */
     protected $secondaryAuthorRelators = [
-        'd01', 'e01', 'f01', 'f02'
+        'd01', 'e01', 'f01', 'f02',
     ];
 
     /**
@@ -72,9 +77,14 @@ class Forward extends AbstractRecord
     protected $corporateAuthorRelators = [
     ];
 
+    /**
+     * Fields to leave out from allfields
+     *
+     * @var array
+     */
     protected $filterFromAllFields = [
         'Identifier', 'RecordSource', 'TitleRelationship', 'Activity',
-        'AgentIdentifier', 'ProductionEventType', 'DescriptionType', 'Language'
+        'AgentIdentifier', 'ProductionEventType', 'DescriptionType', 'Language',
     ];
 
     /**
@@ -142,7 +152,7 @@ class Forward extends AbstractRecord
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
@@ -162,9 +172,7 @@ class Forward extends AbstractRecord
             }
         }
         $data['title_short'] = $data['title_full'] = $data['title'];
-        $data['title_sort'] = $this->metadataUtils->stripLeadingPunctuation(
-            $this->metadataUtils->stripLeadingArticle($data['title'])
-        );
+        $data['title_sort'] = $this->getTitle(true);
 
         $descriptions = $this->getDescriptions($this->primaryLanguage);
         if (empty($descriptions)) {
@@ -174,7 +182,7 @@ class Forward extends AbstractRecord
         if (empty($contents)) {
             $contents = $this->getContents();
         }
-        $descriptions = array_merge($descriptions, $contents);
+        $descriptions = [...$descriptions, ...$contents];
         $data['description'] = implode(' ', $descriptions);
 
         $data['topic'] = $data['topic_facet'] = $this->getSubjects();
@@ -226,11 +234,43 @@ class Forward extends AbstractRecord
         $authors = $this->getPrimaryAuthorsSorted();
         $author = $authors['names'][0] ?? '';
         if ($author) {
-            if (strpos($author, ',') === false) {
+            if (!str_contains($author, ',')) {
                 $author = $this->metadataUtils->convertAuthorLastFirst($author);
             }
         }
         return $author;
+    }
+
+    /**
+     * Return record title
+     *
+     * @param bool $forFiling Whether the title is to be used in filing
+     *                        (e.g. sorting, non-filing characters should be removed)
+     *
+     * @return string
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function getTitle($forFiling = false)
+    {
+        $doc = $this->getMainElement();
+        $title = (string)$doc->IdentifyingTitle;
+
+        if ($forFiling) {
+            $title = $this->metadataUtils->createSortTitle($title);
+        }
+
+        return $title;
+    }
+
+    /**
+     * Return format from predefined values
+     *
+     * @return string|array
+     */
+    public function getFormat()
+    {
+        return 'MotionPicture';
     }
 
     /**
@@ -250,7 +290,7 @@ class Forward extends AbstractRecord
      *
      * @param string $fields Fields to use (optional)
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getAllFields($fields = null)
     {
@@ -268,7 +308,7 @@ class Forward extends AbstractRecord
             }
             $subs = $this->getAllFields($field->children());
             if ($subs) {
-                $results = array_merge($results, $subs);
+                $results = [...$results, ...$subs];
             }
         }
         return $results;
@@ -367,8 +407,8 @@ class Forward extends AbstractRecord
             }
         }
         return [
-            'names' => array_merge($directors['names'], $others['names']),
-            'relators' => array_merge($directors['relators'], $others['relators']),
+            'names' => [...$directors['names'], ...$others['names']],
+            'relators' => [...$directors['relators'], ...$others['relators']],
         ];
     }
 
@@ -377,7 +417,7 @@ class Forward extends AbstractRecord
      *
      * @param string $language Optionally take only description in the given language
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getContents($language = null)
     {
@@ -386,7 +426,8 @@ class Forward extends AbstractRecord
             if (null !== $language && (string)$description->Language !== $language) {
                 continue;
             }
-            if ((string)$description->DescriptionType == 'Content description'
+            if (
+                (string)$description->DescriptionType == 'Content description'
                 && !empty($description->DescriptionText)
             ) {
                 $results[] = (string)$description->DescriptionText;
@@ -400,7 +441,7 @@ class Forward extends AbstractRecord
      *
      * @param string $language Optionally take only description in the given language
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getDescriptions($language = null)
     {
@@ -409,45 +450,14 @@ class Forward extends AbstractRecord
             if (null !== $language && (string)$description->Language !== $language) {
                 continue;
             }
-            if ((string)$description->DescriptionType == 'Synopsis'
+            if (
+                (string)$description->DescriptionType == 'Synopsis'
                 && !empty($description->DescriptionText)
             ) {
                 $results[] = (string)$description->DescriptionText;
             }
         }
         return $results;
-    }
-
-    /**
-     * Return record title
-     *
-     * @param bool $forFiling Whether the title is to be used in filing
-     *                        (e.g. sorting, non-filing characters should be removed)
-     *
-     * @return string
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     */
-    public function getTitle($forFiling = false)
-    {
-        $doc = $this->getMainElement();
-        $title = (string)$doc->IdentifyingTitle;
-
-        if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-        }
-
-        return $title;
-    }
-
-    /**
-     * Return format from predefined values
-     *
-     * @return string
-     */
-    public function getFormat()
-    {
-        return 'MotionPicture';
     }
 
     /**
@@ -489,7 +499,7 @@ class Forward extends AbstractRecord
     /**
      * Get all subjects
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function getSubjects()
     {

@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Deduplication Handler
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2021.
+ * Copyright (C) The National Library of Finland 2011-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Deduplication;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
@@ -32,6 +34,10 @@ use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Utils\FieldMapper;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function count;
+use function in_array;
+use function strlen;
 
 /**
  * Deduplication handler
@@ -98,6 +104,20 @@ class DedupHandler implements DedupHandlerInterface
     protected $normalizationForm;
 
     /**
+     * Identifiers ignored in deduplication
+     *
+     * @var array
+     */
+    protected $ignoredIds = [];
+
+    /**
+     * Identifiers+titles ignored in deduplication
+     *
+     * @var array
+     */
+    protected $ignoredIdsAndTitles = [];
+
+    /**
      * Metadata utilities
      *
      * @var MetadataUtils
@@ -134,6 +154,14 @@ class DedupHandler implements DedupHandlerInterface
 
         $this->normalizationForm
             = $config['Site']['unicode_normalization_form'] ?? 'NFKC';
+        foreach ((array)($config['Deduplication']['ignored_ids'] ?? []) as $ignored) {
+            $parts = explode('|', $ignored);
+            $this->ignoredIds[] = $parts[0];
+            $this->ignoredIdsAndTitles[] = [
+                'id' => $parts[0],
+                'title' => $parts[1] ?? '',
+            ];
+        }
     }
 
     /**
@@ -150,10 +178,12 @@ class DedupHandler implements DedupHandlerInterface
         $results = [];
         $sources = [];
         if (!$dedupRecord['deleted'] && empty($dedupRecord['ids'])) {
-            $this->db->deleteDedup($dedupRecord['_id']);
+            $dedupRecord['deleted'] = true;
+            $dedupRecord['changed'] = $this->db->getTimestamp();
+            $this->db->saveDedup($dedupRecord);
             return [
-                "Deleted dedup record '{$dedupRecord['_id']}' (no records in"
-                . ' non-deleted dedup record)'
+                "Marked dedup record '{$dedupRecord['_id']}' deleted (no records in"
+                . ' non-deleted dedup record)',
             ];
         }
         $removed = [];
@@ -226,7 +256,8 @@ class DedupHandler implements DedupHandlerInterface
                 );
                 // Now update dedup record
                 $this->removeFromDedupRecord($dedupRecord['_id'], $id);
-                if (isset($record['dedup_id'])
+                if (
+                    isset($record['dedup_id'])
                     && $record['dedup_id'] != $dedupRecord['_id']
                 ) {
                     $this->removeFromDedupRecord($record['dedup_id'], $id);
@@ -299,7 +330,7 @@ class DedupHandler implements DedupHandlerInterface
                 . $this->metadataUtils->normalizeKey(
                     $authorParts[0],
                     $this->normalizationForm
-                )
+                ),
             ];
         } else {
             $keys = [];
@@ -353,7 +384,9 @@ class DedupHandler implements DedupHandlerInterface
      */
     public function dedupRecord($record)
     {
-        if ($record['deleted'] || ($record['suppressed'] ?? false)
+        if (
+            $record['deleted']
+            || ($record['suppressed'] ?? false)
             || empty($this->dataSourceConfig[$record['source_id']]['dedup'])
         ) {
             if (isset($record['dedup_id'])) {
@@ -378,43 +411,40 @@ class DedupHandler implements DedupHandlerInterface
         $noMatchRecordIds = [];
         $candidateCount = 0;
 
-        $titleArray = isset($record['title_keys'])
-            ? array_values(array_filter((array)$record['title_keys'])) : [];
-        $isbnArray = isset($record['isbn_keys'])
-            ? array_values(array_filter((array)$record['isbn_keys'])) : [];
-        $idArray = isset($record['id_keys'])
-            ? array_values(array_filter((array)$record['id_keys'])) : [];
+        $titleArray = $this->getTitleKeys($record);
+        $isbnArray = $this->getIsbnKeys($record);
+        $idArray = $this->getIdKeys($record);
 
         $rules = [
             [
                 'type' => 'isbn_keys',
                 'keys' => $isbnArray,
-                'filters' => ['dedup_id' => ['$exists' => true]]
+                'filters' => ['dedup_id' => ['$exists' => true]],
             ],
             [
                 'type' => 'id_keys',
                 'keys' => $idArray,
-                'filters' => ['dedup_id' => ['$exists' => true]]
+                'filters' => ['dedup_id' => ['$exists' => true]],
             ],
             [
                 'type' => 'isbn_keys',
                 'keys' => $isbnArray,
-                'filters' => ['dedup_id' => ['$exists' => false]]
+                'filters' => ['dedup_id' => ['$exists' => false]],
             ],
             [
                 'type' => 'id_keys',
                 'keys' => $idArray,
-                'filters' => ['dedup_id' => ['$exists' => false]]
+                'filters' => ['dedup_id' => ['$exists' => false]],
             ],
             [
                 'type' => 'title_keys',
                 'keys' => $titleArray,
-                'filters' => ['dedup_id' => ['$exists' => true]]
+                'filters' => ['dedup_id' => ['$exists' => true]],
             ],
             [
                 'type' => 'title_keys',
                 'keys' => $titleArray,
-                'filters' => ['dedup_id' => ['$exists' => false]]
+                'filters' => ['dedup_id' => ['$exists' => false]],
             ],
         ];
 
@@ -438,7 +468,7 @@ class DedupHandler implements DedupHandlerInterface
                 $params,
                 [
                     'sort' => ['created' => 1],
-                    'limit' => 101
+                    'limit' => 101,
                 ]
             );
             $processed = 0;
@@ -455,17 +485,19 @@ class DedupHandler implements DedupHandlerInterface
                 if ($candidateDedupId) {
                     // Check if we already have a candidate with the same dedup id
                     foreach ($matchRecords as $matchRecord) {
-                        if (!empty($matchRecord['dedup_id'])
+                        if (
+                            !empty($matchRecord['dedup_id'])
                             && (string)$matchRecord['dedup_id'] === $candidateDedupId
                         ) {
                             continue 2;
                         }
                     }
+                    // Check if the candidate is deduplicated with the same source:
                     $existingDuplicate = $this->db->findRecord(
                         [
                             'dedup_id' => $candidate['dedup_id'],
                             'source_id' => $record['source_id'],
-                            '_id' => ['$ne' => $record['_id']]
+                            '_id' => ['$ne' => $record['_id']],
                         ]
                     );
                     if ($existingDuplicate) {
@@ -487,7 +519,7 @@ class DedupHandler implements DedupHandlerInterface
                     break;
                 }
 
-                if (!isset($origRecord)) {
+                if (null === $origRecord) {
                     $origRecord = $this->createRecord(
                         $record['format'],
                         $this->metadataUtils->getRecordData($record, true),
@@ -539,8 +571,7 @@ class DedupHandler implements DedupHandlerInterface
                 foreach ($matchRecords as $matchRecord) {
                     $dedupId = !empty($matchRecord['dedup_id']) ?
                         (string)$matchRecord['dedup_id'] : '';
-                    if ($dedupId && !isset($bestMatchCandidates[$dedupId])
-                    ) {
+                    if ($dedupId && !isset($bestMatchCandidates[$dedupId])) {
                         $bestMatchCandidates[$dedupId] = $matchRecord;
                         $dedupIdKeys[] = $matchRecord['dedup_id'];
                     }
@@ -550,7 +581,7 @@ class DedupHandler implements DedupHandlerInterface
                     $this->db->iterateDedups(
                         [
                             '_id' => ['$in' => $dedupIdKeys],
-                            'deleted' => false
+                            'deleted' => false,
                         ],
                         [],
                         function ($dedupRecord) use (
@@ -559,7 +590,9 @@ class DedupHandler implements DedupHandlerInterface
                         ) {
                             $cnt = count($dedupRecord['ids']);
                             $dedupId = (string)$dedupRecord['_id'];
-                            if ($cnt > $bestMatchRecords || '' === $bestDedupId
+                            if (
+                                $cnt > $bestMatchRecords
+                                || '' === $bestDedupId
                                 || ($cnt === $bestMatchRecords
                                 && strcmp($bestDedupId, $dedupId) > 0)
                             ) {
@@ -669,14 +702,15 @@ class DedupHandler implements DedupHandlerInterface
                 $dedupRecord['ids'] = [];
                 $dedupRecord['deleted'] = true;
 
-                $otherRecord = $this->db->getRecord($otherId);
-                if (isset($otherRecord['dedup_id'])) {
-                    unset($otherRecord['dedup_id']);
+                if (null !== ($otherRecord = $this->db->getRecord($otherId))) {
+                    if (isset($otherRecord['dedup_id'])) {
+                        unset($otherRecord['dedup_id']);
+                    }
+                    if (!$otherRecord['deleted'] && empty($otherRecord['suppressed'])) {
+                        $otherRecord['update_needed'] = true;
+                    }
+                    $this->db->saveRecord($otherRecord);
                 }
-                if (!$otherRecord['deleted'] && empty($otherRecord['suppressed'])) {
-                    $otherRecord['update_needed'] = true;
-                }
-                $this->db->saveRecord($otherRecord);
             } elseif (empty($dedupRecord['ids'])) {
                 // No records remaining => just mark dedup record deleted.
                 // This shouldn't happen since a dedup record should always contain
@@ -704,36 +738,37 @@ class DedupHandler implements DedupHandlerInterface
     /**
      * Check if records are duplicate matches
      *
-     * @param array  $record     Database record
-     * @param object $origRecord Metadata record (from $record)
-     * @param array  $candidate  Candidate database record
+     * @param array  $origDbRecord      Database record
+     * @param object $origRecord        Metadata record (from $origDbRecord)
+     * @param array  $candidateDbRecord Candidate database record
      *
      * @return bool
      */
-    protected function matchRecords($record, $origRecord, $candidate)
+    protected function matchRecords($origDbRecord, $origRecord, $candidateDbRecord)
     {
-        $cRecord = $this->createRecord(
-            $candidate['format'],
-            $this->metadataUtils->getRecordData($candidate, true),
-            $candidate['oai_id'],
-            $candidate['source_id']
+        $candidateRecord = $this->createRecord(
+            $candidateDbRecord['format'],
+            $this->metadataUtils->getRecordData($candidateDbRecord, true),
+            $candidateDbRecord['oai_id'],
+            $candidateDbRecord['source_id']
         );
-        $this->log->writelnVeryVerbose('Check candidate ' . $candidate['_id']);
+        $this->log
+            ->writelnVeryVerbose('Check candidate ' . $candidateDbRecord['_id']);
         $this->log->writelnDebug(
-            function () use ($candidate) {
-                return $this->metadataUtils->getRecordData($candidate, true);
+            function () use ($candidateDbRecord) {
+                return $this->metadataUtils->getRecordData($candidateDbRecord, true);
             }
         );
 
         $recordHidden = $this->metadataUtils->isHiddenComponentPart(
-            $this->dataSourceConfig[$record['source_id']],
-            $record,
+            $this->dataSourceConfig[$origDbRecord['source_id']],
+            $origDbRecord,
             $origRecord
         );
         $candidateHidden = $this->metadataUtils->isHiddenComponentPart(
-            $this->dataSourceConfig[$candidate['source_id']],
-            $candidate,
-            $cRecord
+            $this->dataSourceConfig[$candidateDbRecord['source_id']],
+            $candidateDbRecord,
+            $candidateRecord
         );
 
         // Check that both records are hidden component parts or neither is
@@ -751,8 +786,8 @@ class DedupHandler implements DedupHandlerInterface
         }
 
         // Check access restrictions
-        if ($cRecord->getAccessRestrictions() != $origRecord->getAccessRestrictions()
-        ) {
+        $candidateRestrictions = $candidateRecord->getAccessRestrictions();
+        if ($candidateRestrictions != $origRecord->getAccessRestrictions()) {
             $this->log->writelnVeryVerbose(
                 '--Candidate has different access restrictions'
             );
@@ -760,91 +795,118 @@ class DedupHandler implements DedupHandlerInterface
         }
 
         // Check format
-        $origFormat = $origRecord->getFormat();
-        $cFormat = $cRecord->getFormat();
+        $origFormat = (array)$origRecord->getFormat();
+        $candidateFormat = (array)$candidateRecord->getFormat();
         $origMapped = $this->fieldMapper->mapFormat(
-            $record['source_id'],
+            $origDbRecord['source_id'],
             $origFormat
         );
-        $cMapped = $this->fieldMapper->mapFormat($candidate['source_id'], $cFormat);
-        if ($origFormat != $cFormat && $origMapped != $cMapped) {
+        $candidateMapped = $this->fieldMapper->mapFormat(
+            $candidateDbRecord['source_id'],
+            $candidateFormat
+        );
+        sort($origFormat);
+        sort($candidateFormat);
+        sort($origMapped);
+        sort($candidateMapped);
+        if ($origFormat != $candidateFormat && $origMapped != $candidateMapped) {
             $this->log->writelnVeryVerbose(
-                "--Format mismatch: $origFormat != $cFormat and $origMapped != "
-                . $cMapped
+                '--Format mismatch: ' . implode(',', $origFormat) . ' != ' .
+                implode(',', $candidateFormat) . ' and ' . implode(',', $origMapped)
+                . ' != ' . implode(',', $candidateMapped)
             );
             return false;
         }
 
         // Check for common ISBN
-        $origISBNs = $origRecord->getISBNs();
-        $cISBNs = $cRecord->getISBNs();
-        $isect = array_intersect($origISBNs, $cISBNs);
+        $origISBNs = $this->filterIds($origRecord->getISBNs(), $origDbRecord);
+        $candidateISBNs
+            = $this->filterIds($candidateRecord->getISBNs(), $candidateDbRecord);
+        $isect = array_intersect($origISBNs, $candidateISBNs);
         if (!empty($isect)) {
             // Shared ISBN -> match
             $this->log->writelnVeryVerbose(
-                function () use ($origISBNs, $cISBNs, $origRecord, $cRecord) {
+                function () use (
+                    $origISBNs,
+                    $candidateISBNs,
+                    $origRecord,
+                    $candidateRecord
+                ) {
                     return '++ISBN match:' . PHP_EOL
                         . print_r($origISBNs, true) . PHP_EOL
-                        . print_r($cISBNs, true) . PHP_EOL
-                        . $origRecord->getFullTitle()
-                        . $cRecord->getFullTitle();
+                        . print_r($candidateISBNs, true) . PHP_EOL
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
+                        . $candidateRecord->getFullTitleForDebugging();
                 }
             );
             return true;
         }
 
         // Check for other common ID (e.g. NBN)
-        $origIDs = $origRecord->getUniqueIDs();
-        $cIDs = $cRecord->getUniqueIDs();
-        $isect = array_intersect($origIDs, $cIDs);
+        $origIDs = $this->filterIds($origRecord->getUniqueIDs(), $origDbRecord);
+        $candidateIDs = $candidateRecord->getUniqueIDs();
+        $isect = array_intersect($origIDs, $candidateIDs);
         if (!empty($isect)) {
             // Shared ID -> match
             $this->log->writelnVeryVerbose(
-                function () use ($origIDs, $cIDs, $origRecord, $cRecord) {
+                function () use (
+                    $origIDs,
+                    $candidateIDs,
+                    $origRecord,
+                    $candidateRecord
+                ) {
                     return '++ID match:' . PHP_EOL
                         . print_r($origIDs, true) . PHP_EOL
-                        . print_r($cIDs, true) . PHP_EOL
-                        . $origRecord->getFullTitle()
-                        . $cRecord->getFullTitle();
+                        . print_r($candidateIDs, true) . PHP_EOL
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
+                        . $candidateRecord->getFullTitleForDebugging();
                 }
             );
             return true;
         }
 
-        $origISSNs = $origRecord->getISSNs();
-        $cISSNs = $cRecord->getISSNs();
-        $commonISSNs = array_intersect($origISSNs, $cISSNs);
-        if (!empty($origISSNs) && !empty($cISSNs) && empty($commonISSNs)) {
+        $origISSNs = $this->filterIds($origRecord->getISSNs(), $origDbRecord);
+        $candidateISSNs = $candidateRecord->getISSNs();
+        $commonISSNs = array_intersect($origISSNs, $candidateISSNs);
+        if (!empty($origISSNs) && !empty($candidateISSNs) && empty($commonISSNs)) {
             // Both have ISSNs but none match
             $this->log->writelnVeryVerbose(
-                function () use ($origISSNs, $cISSNs, $origRecord, $cRecord) {
-                    return '++ISSN match:' . PHP_EOL
+                function () use (
+                    $origISSNs,
+                    $candidateISSNs,
+                    $origRecord,
+                    $candidateRecord
+                ) {
+                    return '--ISSN mismatch:' . PHP_EOL
                         . print_r($origISSNs, true) . PHP_EOL
-                        . print_r($cISSNs, true) . PHP_EOL
-                        . $origRecord->getFullTitle()
-                        . $cRecord->getFullTitle();
+                        . print_r($candidateISSNs, true) . PHP_EOL
+                        . $origRecord->getFullTitleForDebugging() . PHP_EOL
+                        . $candidateRecord->getFullTitleForDebugging();
                 }
             );
             return false;
         }
 
         $origYear = $origRecord->getPublicationYear();
-        $cYear = $cRecord->getPublicationYear();
-        if ($origYear && $cYear && $origYear != $cYear) {
-            $this->log->writelnVeryVerbose("--Year mismatch: $origYear != $cYear");
+        $candidateYear = $candidateRecord->getPublicationYear();
+        if ($origYear && $candidateYear && $origYear != $candidateYear) {
+            $this->log
+                ->writelnVeryVerbose("--Year mismatch: $origYear != $candidateYear");
             return false;
         }
         $pages = $origRecord->getPageCount();
-        $cPages = $cRecord->getPageCount();
-        if ($pages && $cPages && abs($pages - $cPages) > 10) {
-            $this->log->writelnVeryVerbose("--Pages mismatch ($pages != $cPages)");
+        $candidatePages = $candidateRecord->getPageCount();
+        if ($pages && $candidatePages && abs($pages - $candidatePages) > 10) {
+            $this->log
+                ->writelnVeryVerbose("--Pages mismatch ($pages != $candidatePages)");
             return false;
         }
 
-        if ($origRecord->getSeriesISSN() != $cRecord->getSeriesISSN()) {
+        if ($origRecord->getSeriesISSN() != $candidateRecord->getSeriesISSN()) {
             return false;
         }
-        if ($origRecord->getSeriesNumbering() != $cRecord->getSeriesNumbering()) {
+        $candidateNumbering = $candidateRecord->getSeriesNumbering();
+        if ($origRecord->getSeriesNumbering() != $candidateNumbering) {
             return false;
         }
 
@@ -852,22 +914,25 @@ class DedupHandler implements DedupHandlerInterface
             $origRecord->getTitle(true),
             $this->normalizationForm
         );
-        $cTitle = $this->metadataUtils->normalizeKey(
-            $cRecord->getTitle(true),
+        $candidateTitle = $this->metadataUtils->normalizeKey(
+            $candidateRecord->getTitle(true),
             $this->normalizationForm
         );
-        if (!$origTitle || !$cTitle) {
+        if (!$origTitle || !$candidateTitle) {
             // No title match without title...
             $this->log->writelnVeryVerbose('--No title - no further matching');
             return false;
         }
-        $lev = levenshtein(substr($origTitle, 0, 255), substr($cTitle, 0, 255));
+        $lev = levenshtein(
+            substr($origTitle, 0, 255),
+            substr($candidateTitle, 0, 255)
+        );
         $lev = $lev / strlen($origTitle) * 100;
         if ($lev >= 10) {
             $this->log->writelnVeryVerbose(
                 "--Title distance discard: $lev" . PHP_EOL
                 . "Original:  $origTitle" . PHP_EOL
-                . "Candidate: $cTitle"
+                . "Candidate: $candidateTitle"
             );
             return false;
         }
@@ -876,31 +941,31 @@ class DedupHandler implements DedupHandlerInterface
             $origRecord->getMainAuthor(),
             $this->normalizationForm
         );
-        $cAuthor = $this->metadataUtils->normalizeKey(
-            $cRecord->getMainAuthor(),
+        $candidateAuthor = $this->metadataUtils->normalizeKey(
+            $candidateRecord->getMainAuthor(),
             $this->normalizationForm
         );
         $authorLev = 0;
-        if ($origAuthor || $cAuthor) {
-            if (!$origAuthor || !$cAuthor) {
+        if ($origAuthor || $candidateAuthor) {
+            if (!$origAuthor || !$candidateAuthor) {
                 $this->log->writelnVeryVerbose(
-                    "--Author discard:" . PHP_EOL
+                    '--Author discard:' . PHP_EOL
                     . "Original:  $origAuthor" . PHP_EOL
-                    . "Candidate: $cAuthor"
+                    . "Candidate: $candidateAuthor"
                 );
                 return false;
             }
-            if (!$this->metadataUtils->authorMatch($origAuthor, $cAuthor)) {
+            if (!$this->metadataUtils->authorMatch($origAuthor, $candidateAuthor)) {
                 $authorLev = levenshtein(
                     substr($origAuthor, 0, 255),
-                    substr($cAuthor, 0, 255)
+                    substr($candidateAuthor, 0, 255)
                 );
                 $authorLev = $authorLev / mb_strlen($origAuthor) * 100;
                 if ($authorLev > 20) {
                     $this->log->writelnVeryVerbose(
                         "--Author distance discard: $authorLev" . PHP_EOL
                         . "Original:  $origAuthor" . PHP_EOL
-                        . "Candidate: $cAuthor"
+                        . "Candidate: $candidateAuthor"
                     );
                     return false;
                 }
@@ -914,20 +979,114 @@ class DedupHandler implements DedupHandlerInterface
                 $origRecord,
                 $origAuthor,
                 $origTitle,
-                $cRecord,
-                $cAuthor,
-                $cTitle
+                $candidateRecord,
+                $candidateAuthor,
+                $candidateTitle
             ) {
                 return "++Title match (distance: $lev, author distance: $authorLev):"
                     . PHP_EOL
-                    . $origRecord->getFullTitle() . PHP_EOL
+                    . $origRecord->getFullTitleForDebugging() . PHP_EOL
                     . "   $origAuthor - $origTitle." . PHP_EOL
-                    . $cRecord->getFullTitle() . PHP_EOL
-                    . "   $cAuthor - $cTitle.";
+                    . $candidateRecord->getFullTitleForDebugging() . PHP_EOL
+                    . "   $candidateAuthor - $candidateTitle.";
             }
         );
         // We have a match!
         return true;
+    }
+
+    /**
+     * Get title keys from a database record
+     *
+     * @param array|\ArrayAccess $record Database record
+     *
+     * @return array
+     */
+    protected function getTitleKeys($record): array
+    {
+        return isset($record['title_keys'])
+            ? array_values(array_filter((array)$record['title_keys'])) : [];
+    }
+
+    /**
+     * Get ISBN keys from a database record
+     *
+     * @param array|\ArrayAccess $record Database record
+     *
+     * @return array
+     */
+    protected function getISBNKeys($record): array
+    {
+        $result = isset($record['isbn_keys'])
+            ? array_values(array_filter((array)$record['isbn_keys'])) : [];
+        return $this->filterIds($result, $record);
+    }
+
+    /**
+     * Get ID keys from a database record
+     *
+     * @param array|\ArrayAccess $record Database record
+     *
+     * @return array
+     */
+    protected function getIDKeys($record): array
+    {
+        $result = isset($record['id_keys'])
+            ? array_values(array_filter((array)$record['id_keys'])) : [];
+        return $this->filterIds($result, $record);
+    }
+
+    /**
+     * Filter blocked identifiers from a list
+     *
+     * @param array              $ids    Identifiers
+     * @param array|\ArrayAccess $record Database record
+     *
+     * @return array
+     */
+    protected function filterIds(array $ids, $record): array
+    {
+        // First check quickly if we have matching identifiers:
+        $result = $ids;
+        if (array_diff($ids, $this->ignoredIds) !== $ids) {
+            $recordTitleKeys = $this->getTitleKeys($record);
+            foreach ($this->ignoredIdsAndTitles as $ignored) {
+                if (false === ($key = array_search($ignored['id'], $result))) {
+                    continue;
+                }
+                // Check title keys:
+                $titleKey = $ignored['title'] ?
+                    $this->metadataUtils->createTitleKey(
+                        $ignored['title'],
+                        $this->normalizationForm
+                    ) : '';
+
+                if (
+                    !$titleKey
+                    || array_filter(
+                        $recordTitleKeys,
+                        function ($s) use ($titleKey) {
+                            return str_starts_with($s, $titleKey);
+                        }
+                    )
+                ) {
+                    // No title rule or title match, remove id:
+                    unset($result[$key]);
+                    if (!$result) {
+                        break;
+                    }
+                }
+            }
+
+            if ($result !== $ids) {
+                $this->log->writelnVerbose(
+                    'ID ignored: '
+                    . implode(',', array_diff($ids, $result))
+                );
+            }
+            $result = array_values($result);
+        }
+        return $result;
     }
 
     /**
@@ -974,42 +1133,47 @@ class DedupHandler implements DedupHandlerInterface
 
         $setValues = [
             'updated' => $this->db->getTimestamp(),
-            'update_needed' => false
+            'update_needed' => false,
         ];
         // Deferred removal to keep database checks happy
         $removeFromDedup = [];
         if (!empty($rec2['dedup_id'])) {
+            // Record 2 is already deduplicated, try to add to it:
             if (!$this->addToDedupRecord($rec2['dedup_id'], $rec1['_id'])) {
                 $removeFromDedup[] = [
                     'dedup_id' => $rec2['dedup_id'],
-                    '_id' => $rec2['_id']
+                    '_id' => $rec2['_id'],
                 ];
                 $rec2['dedup_id'] = $this->createDedupRecord(
                     $rec1['_id'],
                     $rec2['_id']
                 );
             }
+            // If record 1 was previously deduplicated, remove it from that group:
             if (isset($rec1['dedup_id']) && $rec1['dedup_id'] != $rec2['dedup_id']) {
                 $removeFromDedup[] = [
                     'dedup_id' => $rec1['dedup_id'],
-                    '_id' => $rec1['_id']
+                    '_id' => $rec1['_id'],
                 ];
             }
             $setValues['dedup_id'] = $rec1['dedup_id'] = $rec2['dedup_id'];
-        } else {
-            if (!empty($rec1['dedup_id'])) {
-                if (!$this->addToDedupRecord($rec1['dedup_id'], $rec2['_id'])) {
-                    $this->removeFromDedupRecord($rec1['dedup_id'], $rec1['_id']);
-                    $rec1['dedup_id'] = $this->createDedupRecord(
-                        $rec1['_id'],
-                        $rec2['_id']
-                    );
-                }
-                $setValues['dedup_id'] = $rec2['dedup_id'] = $rec1['dedup_id'];
-            } else {
-                $setValues['dedup_id'] = $rec1['dedup_id'] = $rec2['dedup_id']
-                    = $this->createDedupRecord($rec1['_id'], $rec2['_id']);
+        } elseif (!empty($rec1['dedup_id'])) {
+            // Record 1 is already deduplicated, try to add to it:
+            if (!$this->addToDedupRecord($rec1['dedup_id'], $rec2['_id'])) {
+                $removeFromDedup[] = [
+                    'dedup_id' => $rec1['dedup_id'],
+                    '_id' => $rec1['_id'],
+                ];
+                $rec1['dedup_id'] = $this->createDedupRecord(
+                    $rec1['_id'],
+                    $rec2['_id']
+                );
             }
+            $setValues['dedup_id'] = $rec2['dedup_id'] = $rec1['dedup_id'];
+        } else {
+            // Create a new dedup record:
+            $setValues['dedup_id'] = $rec1['dedup_id'] = $rec2['dedup_id']
+                = $this->createDedupRecord($rec1['_id'], $rec2['_id']);
         }
         $this->log->writelnVerbose(
             "Marking {$rec1['_id']} as duplicate with {$rec2['_id']} "
@@ -1050,8 +1214,8 @@ class DedupHandler implements DedupHandlerInterface
             'deleted' => false,
             'ids' => [
                 $id1,
-                $id2
-             ]
+                $id2,
+             ],
         ];
         $record = $this->db->saveDedup($record);
         return $record['_id'];
@@ -1073,7 +1237,8 @@ class DedupHandler implements DedupHandlerInterface
         }
         $source = $this->metadataUtils->getSourceFromId($id);
         foreach ((array)$record['ids'] as $existingId) {
-            if ($id !== $existingId
+            if (
+                $id !== $existingId
                 && $source === $this->metadataUtils->getSourceFromId($existingId)
             ) {
                 return false;
@@ -1166,11 +1331,12 @@ class DedupHandler implements DedupHandlerInterface
                             $component1['oai_id'],
                             $component1['source_id']
                         );
-                        if (!$this->matchRecords(
-                            $component1,
-                            $metadataComponent1,
-                            $component2
-                        )
+                        if (
+                            !$this->matchRecords(
+                                $component1,
+                                $metadataComponent1,
+                                $component2
+                            )
                         ) {
                             $allMatch = false;
                             break;
@@ -1234,7 +1400,7 @@ class DedupHandler implements DedupHandlerInterface
             [
                 'source_id' => $sourceId,
                 'host_record_id' => [
-                    '$in' => array_values((array)$hostRecordId)
+                    '$in' => array_values((array)$hostRecordId),
                 ],
                 'deleted' => false,
                 'suppressed' => ['$in' => [null, false]],

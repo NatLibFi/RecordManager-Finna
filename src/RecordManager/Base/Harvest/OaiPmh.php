@@ -1,10 +1,11 @@
 <?php
+
 /**
  * OAI-PMH Harvesting Class
  *
  * Based on harvest-oai.php in VuFind
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) Demian Katz 2010.
  * Copyright (c) The National Library of Finland 2011-2021.
@@ -29,9 +30,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Exception\HttpRequestException;
+
+use function call_user_func;
+use function count;
+use function strlen;
 
 /**
  * OaiPmh Class
@@ -170,9 +176,7 @@ class OaiPmh extends AbstractBase
         $this->granularity = $settings['dateGranularity'] ?? 'auto';
         $this->debugLog = $settings['debuglog'] ?? '';
         $this->preXslt = [];
-        foreach ((array)($settings['oaipmhTransformation'] ?? [])
-            as $transformation
-        ) {
+        foreach ((array)($settings['oaipmhTransformation'] ?? []) as $transformation) {
             $style = new \DOMDocument();
             $xsltPath = RECMAN_BASE_PATH . "/transformations/$transformation";
             $loadResult = $style->load($xsltPath);
@@ -242,6 +246,35 @@ class OaiPmh extends AbstractBase
     }
 
     /**
+     * Harvest a single record.
+     *
+     * @param callable $callback Function to be called to store a harvested record
+     * @param string   $id       Record ID
+     *
+     * @return void
+     */
+    public function harvestSingle(callable $callback, string $id): void
+    {
+        $this->initHarvest($callback);
+
+        // Make the OAI-PMH request:
+        $params = [
+            'metadataPrefix' => $this->metadataPrefix,
+            'identifier' => $id,
+        ];
+        $this->xml = $this->sendRequest('GetRecord', $params);
+
+        // Save the records from the response:
+        $getRecord = $this->getSingleNode($this->xml, 'GetRecord');
+        if ($getRecord !== false) {
+            $records = $this->getImmediateChildrenByTagName($getRecord, 'record');
+            if ($records) {
+                $this->processRecords($records);
+            }
+        }
+    }
+
+    /**
      * List identifiers of all available documents.
      *
      * @param callable $callback Function to be called to process an identifier
@@ -292,10 +325,9 @@ class OaiPmh extends AbstractBase
     protected function safeguard($resumptionToken)
     {
         if ($this->lastResumptionToken === $resumptionToken) {
-            if (++$this->sameResumptionTokenCount >= $this->sameResumptionTokenLimit
-            ) {
+            if (++$this->sameResumptionTokenCount >= $this->sameResumptionTokenLimit) {
                 throw new \Exception(
-                    "Same resumptionToken received"
+                    'Same resumptionToken received'
                     . " {$this->sameResumptionTokenCount} times, aborting"
                 );
             }
@@ -409,6 +441,9 @@ class OaiPmh extends AbstractBase
                         FILE_APPEND
                     );
                 }
+                if ('' === $responseStr) {
+                    throw new \Exception('Empty response from server');
+                }
                 return $this->processResponse(
                     $responseStr,
                     isset($params['resumptionToken'])
@@ -448,7 +483,7 @@ class OaiPmh extends AbstractBase
             file_put_contents($tempfile, $xml);
             $this->errorMsg("Invalid XML stored in $tempfile");
             throw new \Exception(
-                "Failed to parse XML response: " . $e->getMessage()
+                'Failed to parse XML response: ' . $e->getMessage()
             );
         }
 
@@ -456,9 +491,7 @@ class OaiPmh extends AbstractBase
         $error = $this->getSingleNode($result, 'error');
         if ($error) {
             $code = $error->getAttribute('code');
-            if (($resumption && !$this->ignoreNoRecordsMatch)
-                || $code != 'noRecordsMatch'
-            ) {
+            if (($resumption && !$this->ignoreNoRecordsMatch) || $code != 'noRecordsMatch') {
                 $value = $result->saveXML($error);
                 $this->errorMsg("OAI-PMH server returned error $code ($value)");
                 throw new \Exception(
@@ -474,7 +507,7 @@ class OaiPmh extends AbstractBase
     /**
      * Extract the ID from a record object (support method for processRecords()).
      *
-     * @param \DOMNode $record XML record header
+     * @param \DOMElement $record XML record header
      *
      * @return string The ID value
      */
@@ -721,15 +754,15 @@ class OaiPmh extends AbstractBase
         if ($nodes->length == 0) {
             return false;
         }
-        return $nodes->item(0);
+        return $nodes->item(0) ?? false;
     }
 
     /**
      * Traverse all children and collect those nodes that
      * have the tagname specified in $tagName. Non-recursive
      *
-     * @param \DOMElement $element DOM Element
-     * @param string      $tagName Tag to get
+     * @param \DOMNode $element DOM Element
+     * @param string   $tagName Tag to get
      *
      * @return array
      */

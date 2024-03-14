@@ -1,11 +1,12 @@
 <?php
+
 /**
  * Trait for creating records
  *
  * Prerequisites:
  * - FixtureTrait
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2020-2022.
  *
@@ -29,8 +30,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Record;
 
+use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Utils\Logger;
 
 /**
@@ -63,10 +66,35 @@ trait CreateSampleRecordTrait
         string $module = 'Base',
         array $constructorParams = []
     ) {
+        $recordString = $this->getFixture("record/$sample", $module);
+        return $this->createRecordFromString(
+            $recordString,
+            $class,
+            $dsConfig,
+            $constructorParams
+        );
+    }
+
+    /**
+     * Create a sample record driver from a record string
+     *
+     * @param string $recordString      Record as a string
+     * @param string $class             Record class
+     * @param array  $dsConfig          Datasource config
+     * @param array  $constructorParams Additional constructor params
+     *
+     * @return \RecordManager\Base\Record\AbstractRecord
+     */
+    protected function createRecordFromString(
+        string $recordString,
+        string $class,
+        array $dsConfig = [],
+        array $constructorParams = []
+    ) {
         $logger = $this->createMock(Logger::class);
         $config = [
             'Site' => [
-                'articles' => 'articles.lst'
+                'articles' => 'articles.lst',
             ],
         ];
         $metadataUtils = new \RecordManager\Base\Utils\MetadataUtils(
@@ -81,8 +109,44 @@ trait CreateSampleRecordTrait
             $metadataUtils,
             ...$constructorParams
         );
-        $data = $this->getFixture("record/$sample", $module);
-        $record->setData('__unit_test_no_source__', '__unit_test_no_id__', $data);
+        $record->setData(
+            '__unit_test_no_source__',
+            '__unit_test_no_id__',
+            $recordString
+        );
         return $record;
+    }
+
+    /**
+     * Create a sample MARC record driver
+     *
+     * @param string $class             Record class
+     * @param string $sample            Sample record file
+     * @param array  $dsConfig          Datasource config
+     * @param string $module            Module name
+     * @param array  $constructorParams Additional constructor params
+     *
+     * @return \RecordManager\Base\Record\AbstractRecord
+     */
+    protected function createMarcRecord(
+        string $class,
+        string $sample,
+        array $dsConfig = [],
+        string $module = 'Base',
+        array $constructorParams = []
+    ) {
+        $baseParams = [
+            function ($data) {
+                return new \RecordManager\Base\Marc\Marc($data);
+            },
+            new FormatCalculator(),
+        ];
+        return $this->createRecord(
+            $class,
+            $sample,
+            $dsConfig,
+            $module,
+            array_merge($baseParams, $constructorParams),
+        );
     }
 }

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Call number base class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2015-2021.
  *
@@ -25,7 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function intval;
+use function strlen;
 
 /**
  * Call number base class
@@ -73,7 +78,7 @@ abstract class AbstractCallNumber
             function ($matches) {
                 return strlen((string)(intval($matches[1]))) . $matches[1];
             },
-            strtoupper($str)
+            mb_strtoupper($str, 'UTF-8')
         );
         return preg_replace('/\s{2,}/', ' ', $str);
     }

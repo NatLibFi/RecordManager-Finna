@@ -1,8 +1,9 @@
 <?php
+
 /**
  * FieldMapper tests
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2017-2021
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Utils;
 
 use RecordManager\Base\Utils\FieldMapper;
@@ -54,12 +56,12 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
             'format' => 'marc',
             'building_mapping' => [
                 'building.map',
-                'building_sub.map,regexp'
+                'building_sub.map,regexp',
             ],
             'rights_mapping' => [
-                'rights.map,regexp'
-            ]
-        ]
+                'rights.map,regexp',
+            ],
+        ],
     ];
 
     /**
@@ -73,16 +75,17 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
 
         $record = [
             'building' => ['A1', 'B1'],
-            'rights' => ['CC FOO', 'CC BY ND']
+            'rights' => ['CC FOO', 'CC BY ND'],
         ];
         $expected = [
             'building' => ['A', 'B'],
-            'rights' => ['by', 'nd']
+            'rights' => ['by', 'nd'],
         ];
 
         $mapped = $fieldMapper->mapValues('test', $record);
 
         $this->assertIsArray($mapped);
+        $this->assertEquals($expected, $record);
         $this->assertEquals($expected, $mapped);
     }
 
@@ -97,11 +100,11 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
 
         $record = [
             'building' => ['A1', 'B1'],
-            'rights' => ['CC FOO', 'CC BAR']
+            'rights' => ['CC FOO', 'CC BAR'],
         ];
         $expected = [
             'building' => ['A', 'B'],
-            'rights' => ['other']
+            'rights' => ['other'],
         ];
 
         $mapped = $fieldMapper->mapValues('test', $record);
@@ -126,8 +129,8 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-basic.map']
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(
@@ -189,8 +192,8 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-regexp.map']
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(
@@ -251,10 +254,10 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     'readMappingFile',
                     [
                         $this->getConfigDir()
-                        . '/mappings/building-regexp-no-default.map'
+                        . '/mappings/building-regexp-no-default.map',
                     ]
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(
@@ -309,8 +312,8 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-regexp-multi.map']
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(
@@ -366,8 +369,8 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-regexp-multi.map']
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(
@@ -422,7 +425,7 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-basic.map']
-                )
+                ),
             ],
             [
                 'type' => 'regexp',
@@ -430,8 +433,8 @@ class FieldMapperTest extends \PHPUnit\Framework\TestCase
                     $fieldMapper,
                     'readMappingFile',
                     [$this->getConfigDir() . '/mappings/building-regexp.map']
-                )
-            ]
+                ),
+            ],
         ];
 
         $result = $this->callProtected(

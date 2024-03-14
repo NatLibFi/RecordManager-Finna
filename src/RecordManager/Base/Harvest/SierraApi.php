@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Sierra API Harvesting Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (c) The National Library of Finland 2016-2021.
+ * Copyright (c) The National Library of Finland 2016-2022.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,9 +26,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Exception\HttpRequestException;
+
+use function call_user_func;
+use function in_array;
+use function intval;
 
 /**
  * SierraApi Class
@@ -109,8 +115,15 @@ class SierraApi extends AbstractBase
      */
     protected $httpOptions = [
         // Set a timeout since Sierra may sometimes just hang without ever returning.
-        'timeout' => 600
+        'timeout' => 600,
     ];
+
+    /**
+     * Fields to request from Sierra
+     *
+     * @var string
+     */
+    protected $harvestFields = 'id,deleted,locations,fixedFields,varFields';
 
     /**
      * Initialize harvesting
@@ -126,7 +139,8 @@ class SierraApi extends AbstractBase
         parent::init($source, $verbose, $reharvest);
 
         $settings = $this->dataSourceConfig[$source] ?? [];
-        if (empty($settings['sierraApiKey']) || empty($settings['sierraApiSecret'])
+        if (
+            empty($settings['sierraApiKey']) || empty($settings['sierraApiSecret'])
         ) {
             throw new \Exception(
                 'sierraApiKey or sierraApiSecret missing from settings'
@@ -170,7 +184,7 @@ class SierraApi extends AbstractBase
         $apiParams = [
             'limit' => $this->batchSize,
             'offset' => $this->startPosition,
-            'fields' => 'id,deleted,locations,fixedFields,varFields'
+            'fields' => $this->harvestFields,
         ];
         if (null !== $this->suppressedRecords) {
             $apiParams['suppressed'] = $this->suppressedRecords ? 'true' : 'false';
@@ -225,6 +239,33 @@ class SierraApi extends AbstractBase
                 gmdate('Y-m-d\TH:i:s\Z', $harvestStartTime)
             );
         }
+    }
+
+    /**
+     * Harvest a single record.
+     *
+     * @param callable $callback Function to be called to store a harvested record
+     * @param string   $id       Record ID
+     *
+     * @return void
+     */
+    public function harvestSingle(callable $callback, string $id): void
+    {
+        $this->initHarvest($callback);
+
+        $apiParams = [
+            'limit' => $this->batchSize,
+            'offset' => $this->startPosition,
+            'fields' => 'id,deleted,locations,fixedFields,varFields',
+            'id' => $id,
+        ];
+        if (null !== $this->suppressedRecords) {
+            $apiParams['suppressed'] = $this->suppressedRecords ? 'true' : 'false';
+        }
+
+        $response = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
+        $this->processResponse($response->getBody());
+        $this->reportResults();
     }
 
     /**
@@ -483,7 +524,7 @@ class SierraApi extends AbstractBase
     }
 
     /**
-     * Convert Sierra record to our internal MARC array format
+     * Convert Sierra record to MARC-in-JSON -style array format
      *
      * @param array $record Sierra BIB record varFields
      *
@@ -493,9 +534,10 @@ class SierraApi extends AbstractBase
     {
         $id = $record['id'];
         $marc = [];
+        $marc['fields'][] = ['001' => $id];
         foreach ($record['varFields'] as $varField) {
             if ($varField['fieldTag'] == '_') {
-                $marc['000'] = $varField['content'];
+                $marc['leader'] = $varField['content'];
                 continue;
             }
             if (!isset($varField['marcTag']) || $varField['marcTag'] == '852') {
@@ -508,52 +550,61 @@ class SierraApi extends AbstractBase
                     $subfields = [];
                     foreach ($varField['subfields'] as $subfield) {
                         $subfields[] = [
-                            $subfield['tag'] => $subfield['content']
+                            $subfield['tag'] => $subfield['content'],
                         ];
                     }
-                    $marc[$marcTag][] = [
-                        'i1' => $varField['ind1'],
-                        'i2' => $varField['ind2'],
-                        's' => $subfields
+                    $marc['fields'][] = [
+                        (string)$marcTag => [
+                            'ind1' => $varField['ind1'],
+                            'ind2' => $varField['ind2'],
+                            'subfields' => $subfields,
+                        ],
                     ];
                 }
             } else {
-                $marc[$marcTag][] = $varField['content'];
+                $marc['fields'][] = [(string)$marcTag => $varField['content']];
             }
-        }
-
-        if (isset($record['fixedFields']['30']['value'])) {
-            $marc['977'][] = [
-                'i1' => ' ',
-                'i2' => ' ',
-                's' => [
-                    ['a' => trim($record['fixedFields']['30']['value'])]
-                ]
-            ];
         }
 
         if (!empty($record['locations'])) {
             foreach ($record['locations'] as $location) {
-                $marc['852'][] = [
-                    'i1' => ' ',
-                    'i2' => ' ',
-                    's' => [
-                        ['b' => $location['code']]
-                    ]
+                $marc['fields'][] = [
+                    '852' => [
+                        'ind1' => ' ',
+                        'ind2' => ' ',
+                        'subfields' => [
+                            ['b' => $location['code']],
+                        ],
+                    ],
                 ];
             }
         }
 
-        $marc['001'] = [$id];
-
-        if (empty($marc['000'])) {
-            $this->warningMsg("No leader found for record $id in {$this->source}");
-            $marc['000'] = '00000nam  2200000   4500';
+        if (isset($record['fixedFields']['30']['value'])) {
+            $marc['fields'][] = [
+                '977' => [
+                    'ind1' => ' ',
+                    'ind2' => ' ',
+                    'subfields' => [
+                        ['a' => trim($record['fixedFields']['30']['value'])],
+                    ],
+                ],
+            ];
         }
 
-        ksort($marc);
+        if (empty($marc['leader'])) {
+            $this->warningMsg("No leader found for record $id in {$this->source}");
+            $marc['leader'] = '00000nam  2200000   4500';
+        }
 
-        return ['v' => 3, 'f' => $marc];
+        uasort(
+            $marc['fields'],
+            function ($a, $b) {
+                return key($a) <=> key($b);
+            }
+        );
+
+        return $marc;
     }
 
     /**

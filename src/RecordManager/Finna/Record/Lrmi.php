@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Lrmi record class
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2011-2020.
+ * Copyright (C) The National Library of Finland 2011-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -23,12 +24,19 @@
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\ClientManager;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
+
+use function boolval;
 
 /**
  * Lrmi record class
@@ -39,11 +47,17 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
 class Lrmi extends \RecordManager\Base\Record\Lrmi
 {
+    use AuthoritySupportTrait;
+    use QdcRecordTrait {
+        toSolrArray as _toSolrArray;
+    }
+
     /**
      * Fields that are not included in allfield.
      *
@@ -52,11 +66,36 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
     protected $ignoredAllfields = [
         'format', 'id', 'identifier', 'date', 'dateCreated', 'dateModified',
         'filesize', 'inLanguage', 'position', 'recordID', 'rights', 'targetUrl',
-        'url'
+        'url',
     ];
 
-    use QdcRecordTrait {
-        toSolrArray as _toSolrArray;
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param ClientManager $httpManager      HTTP client manager
+     * @param ?Database     $db               Database
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        ClientManager $httpManager,
+        Database $db = null
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils,
+            $httpManager,
+            $db
+        );
+        $this->initMediaTypeTrait($config);
     }
 
     /**
@@ -65,41 +104,29 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
      * @param Database $db Database connection. Omit to avoid database lookups for
      *                     related records.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSolrArray(Database $db = null)
     {
         $data = $this->_toSolrArray();
 
         $doc = $this->doc;
-
-        // Materials
-        foreach ($doc->material ?? [] as $material) {
-            if ($url = (string)($material->url ?? '')) {
-                $link = [
-                    'url' => $url,
-                    'text' => trim((string)($material->name ?? $url)),
-                    'source' => $this->source
-                ];
-                $data['online_urls_str_mv'][] = json_encode($link);
-            }
-        }
-
         // Facets
         foreach ($doc->educationalAudience as $audience) {
             $data['educational_audience_str_mv'][]
                 = (string)$audience->educationalRole;
         }
-        $data['educational_level_str_mv'] = array_map(
-            'strval',
-            (array)($doc->learningResource->educationalLevel ?? [])
-        );
-        $data['educational_aim_str_mv'] = array_map(
-            'strval',
-            (array)($doc->learningResource->teaches ?? [])
-        );
+        foreach ($doc->learningResource->educationalLevel ?? [] as $educationalLevel) {
+            $educationalLevel = $educationalLevel->name ?? $educationalLevel;
+            $data['educational_level_str_mv'][] = (string)$educationalLevel;
+        }
+        foreach ($doc->learningResource->teaches ?? [] as $teaches) {
+            $teaches = $teaches->name ?? $teaches;
+            $data['educational_aim_str_mv'][] = (string)$teaches;
+        }
         foreach ($doc->learningResource->educationalAlignment ?? [] as $alignment) {
             if ($subject = $alignment->educationalSubject ?? null) {
+                $subject = $subject->targetName ?? $subject;
                 $data['educational_subject_str_mv'][] = (string)$subject;
             }
         }
@@ -109,12 +136,38 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         }
 
         // Topic ids
-        $data['topic_id_str_mv'] = array_merge(
-            $data['topic_id_str_mv'] ?? [],
-            array_filter(array_column($this->getTopicsExtended(), 'id'))
-        );
+        $data['topic_id_str_mv'] = $this->getTopicIds();
 
         return $data;
+    }
+
+    /**
+     * Get online URLs
+     *
+     * @return array
+     */
+    public function getOnlineUrls(): array
+    {
+        $results = [];
+        // Materials
+        foreach ($this->doc->material ?? [] as $material) {
+            if ($url = (string)($material->url ?? '')) {
+                $result = [
+                    'url' => $url,
+                    'text' => trim((string)($material->name ?? $url)),
+                    'source' => $this->source,
+                ];
+                $mediaType = $this->getLinkMediaType(
+                    $url,
+                    trim($material->format ?? '')
+                );
+                if ($mediaType) {
+                    $result['mediaType'] = $mediaType;
+                }
+                $results[] = $result;
+            }
+        }
+        return $results;
     }
 
     /**
@@ -136,11 +189,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             }
         }
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            // Again, just in case stripping the article affected this
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         }
         return $title;
     }
@@ -167,5 +216,16 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         }
 
         return !empty($this->doc->material);
+    }
+
+    /**
+     * Return subject identifiers associated with object.
+     *
+     * @return array
+     */
+    protected function getTopicIDs(): array
+    {
+        $result = $this->getTopicData(true);
+        return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 }
