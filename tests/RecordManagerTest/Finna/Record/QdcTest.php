@@ -89,6 +89,42 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test coverage.
+     *
+     * @return void
+     */
+    public function testCoverage()
+    {
+        $spatial = [
+            'Helsinki',
+            'Vantaa',
+        ];
+        $temporal = [
+            '2010',
+            '2010-luku',
+        ];
+        $geocoding = [
+            'POINT(27.1826451 63.5694237)',
+            'POINT(20.0 60.0)',
+        ];
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_dateranges.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+        $this->assertEquals($spatial, $fields['geographic']);
+        $this->assertEquals($spatial, $fields['geographic_facet']);
+        $this->assertEquals($geocoding, $fields['location_geo']);
+        $this->assertEquals($temporal, $fields['era']);
+        $this->assertEquals($temporal, $fields['era_facet']);
+    }
+
+    /**
      * Test media types
      *
      * @return void
@@ -114,6 +150,47 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'video/mp4',
             ],
             $fields['media_type_str_mv']
+        );
+    }
+
+    /**
+     * Test QDC processing warnings handling
+     *
+     * @return void
+     */
+    public function testQdcLanguageWarnings()
+    {
+        $record = $this->createRecord(
+            Qdc::class,
+            'qdc_language_warnings.xml',
+            [],
+            'Finna',
+            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+        );
+        $fields = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'unhandled language Veryodd',
+                'unhandled language verylonglanguagehere',
+                'unhandled language EnGb',
+                'unhandled language caT',
+                'unhandled language po,tt',
+                'unhandled language ,',
+                'unhandled language EMPTY_VALUE',
+            ],
+            $record->getProcessingWarnings(),
+            'getProcessingWarnings'
+        );
+        $this->compareArray(
+            [
+                'fi',
+                'jp',
+                'sv',
+                'en',
+                'nr',
+            ],
+            $fields['language'],
+            'LanguageCheckAfterWarnings'
         );
     }
 }

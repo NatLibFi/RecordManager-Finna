@@ -137,26 +137,10 @@ trait QdcRecordTrait
             }
         }
 
-        foreach ($this->doc->coverage as $coverage) {
-            $attrs = $coverage->attributes();
-            if ($attrs->type == 'geocoding') {
-                $match = preg_match(
-                    '/([\d\.]+)\s*,\s*([\d\.]+)/',
-                    trim((string)$coverage),
-                    $matches
-                );
-                if ($match) {
-                    if ($attrs->format == 'lon,lat') {
-                        $lon = $matches[1];
-                        $lat = $matches[2];
-                    } else {
-                        $lat = $matches[1];
-                        $lon = $matches[2];
-                    }
-                    $data['location_geo'][] = "POINT($lon $lat)";
-                }
-            }
-        }
+        $data['era'] = $data['era_facet'] = $this->getCoverageByType('temporal');
+        $data['geographic'] = $data['geographic_facet'] = $this->getCoverageByType('spatial');
+        $data['location_geo'] = $this->getCoverageByType('geocoding');
+
         if (!empty($data['location_geo'])) {
             $data['center_coords']
                 = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
@@ -185,6 +169,67 @@ trait QdcRecordTrait
         $data['format_ext_str_mv'] = $data['format'];
 
         return $data;
+    }
+
+    /**
+     * Get locations for geocoding
+     *
+     * Returns an associative array of primary and secondary locations
+     *
+     * @return array
+     */
+    public function getLocations(): array
+    {
+        $locations = [];
+        // If there is already coordinates in the record, don't return anything for geocoding
+        if (!$this->getCoverageByType('geocoding')) {
+            $locations = $this->getCoverageByType('spatial');
+        }
+        return [
+            'primary' => $locations,
+            'secondary' => [],
+        ];
+    }
+
+    /**
+     * Get coverage by type
+     *
+     * @param string $type Type attribute
+     *
+     * @return array
+     */
+    protected function getCoverageByType(string $type): array
+    {
+        $result = [];
+        foreach ($this->doc->coverage as $coverage) {
+            if ($type !== (string)$coverage->attributes()->type) {
+                continue;
+            }
+            $cov = trim((string)$coverage);
+            // Check if field contains coordinates
+            $match = preg_match(
+                '/([\d\.]+)\s*,\s*([\d\.]+)/',
+                $cov,
+                $matches
+            );
+            // If type is geocoding, return only coordinates.
+            // Other types might contain ill-formatted coordinates which should be discarded.
+            if ('geocoding' === $type) {
+                if ($match) {
+                    if ($coverage->attributes()->format == 'lon,lat') {
+                        $lon = $matches[1];
+                        $lat = $matches[2];
+                    } else {
+                        $lat = $matches[1];
+                        $lon = $matches[2];
+                    }
+                    $result[] = "POINT($lon $lat)";
+                }
+            } elseif (!$match && $stripped = $this->metadataUtils->stripTrailingPunctuation($cov, '.')) {
+                $result[] = $stripped;
+            }
+        }
+        return $result;
     }
 
     /**

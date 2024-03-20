@@ -77,7 +77,8 @@
                             </namePlaceSet>
                             <placeID type="prt" source="YSO">Prt</placeID>
                             <placeID type="kiinteist&#xF6;tunnus" source="Kiinteist&#xF6;rekisteri">Kiinteistötunnus</placeID>
-                            <placeID type="URI" source="YSO">Uri and Yso</placeID>
+                            <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p94413</placeID>
+                            <placeID type="URI" source="YSO"><!-- Empty value should not appear --></placeID>
                         </repositoryLocation>
                     </repositorySet>
                 </repositoryWrap>

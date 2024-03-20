@@ -174,7 +174,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'geographic_id_str_mv' => [
                 '(prt)Prt',
                 '(kiinteistötunnus)Kiinteistötunnus',
-                '(URI)Uri and Yso',
+                'http://www.yso.fi/onto/yso/p94413',
             ],
             'collection' => 'Kansatieteen kuvakokoelma',
             'thumbnail' => 'http://muisti.nba.fi/m/4878_1/00013199.jpg',
@@ -198,7 +198,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Repository Location 2',
                 'Prt',
                 'Kiinteistötunnus',
-                'Uri and Yso',
+                'http://www.yso.fi/onto/yso/p94413',
                 'valmistus',
                 'Hintze Harry',
                 '1897',
@@ -291,7 +291,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '4878:1',
                 'Prt',
                 'Kiinteistötunnus',
-                'Uri and Yso',
             ],
         ];
 

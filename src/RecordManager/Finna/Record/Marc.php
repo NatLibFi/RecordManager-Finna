@@ -2590,6 +2590,12 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     protected function getAvailableItemsBuildings()
     {
+        $buildingSubfields = [];
+        foreach ($this->getBuildingFieldSpec() as $spec) {
+            if ('952' === $spec['field']) {
+                $buildingSubfields[] = $spec;
+            }
+        }
         $building = [];
         if ($this->getDriverParam('holdingsInBuilding', true)) {
             foreach ($this->record->getFields('952') as $field) {
@@ -2597,9 +2603,18 @@ class Marc extends \RecordManager\Base\Record\Marc
                 if (!$available) {
                     continue;
                 }
-                $location = $this->record->getSubfield($field, 'b');
-                if ($location) {
-                    $building[] = $location;
+                foreach ($buildingSubfields as $buildingField) {
+                    $location = $this->record->getSubfield($field, $buildingField['loc']);
+                    if ($location) {
+                        $subLocField = $buildingField['sub'];
+                        if ($subLocField) {
+                            $sub = $this->record->getSubfield($field, $subLocField);
+                            if ($sub) {
+                                $location = [$location, $sub];
+                            }
+                        }
+                        $building[] = $location;
+                    }
                 }
             }
         }
