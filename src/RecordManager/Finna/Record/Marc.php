@@ -1370,7 +1370,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = [];
         foreach ($fieldTags as $tag) {
             foreach ($this->record->getFields($tag) as $field) {
-                if ($id = $this->getIDFromField($field)) {
+                if ($id = $this->getIDFromField($field, 'topic')) {
                     $result[] = $id;
                 }
             }
@@ -1381,18 +1381,24 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Get identifier from subfield 0. Prefix with source if necessary.
      *
-     * @param array $field MARC field
+     * @param array  $field MARC field
+     * @param string $type  Type of the id
      *
      * @return string
      */
-    protected function getIdFromField(array $field): string
+    protected function getIdFromField(array $field, string $type = ''): string
     {
         if ($id = $this->record->getSubfield($field, '0')) {
             if (
                 !preg_match('/^https?:/', $id)
                 && ($srcId = $this->getThesaurusId($field))
             ) {
-                $id = "($srcId)$id";
+                // Do not prepend source in front of authority ids
+                $regex = $this->getAuthorityIdRegex($type);
+                if ($regex && preg_match($regex, $id)) {
+                    return $id;
+                }
+                return "($srcId)$id";
             }
         }
         return $id;
