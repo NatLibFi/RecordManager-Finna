@@ -947,6 +947,126 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test MARC topics
+     *
+     * @return void
+     */
+    public function testMarcTopic()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-topic.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'authority' => [
+                        '*' => 'testauth',
+                    ],
+                    'authority_id_regex' => [
+                        '*' => '/^\(FI-ASTERI-N\)*/',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        unset($fields['fullrecord']);
+
+        $expected = [
+            'record_format' => 'marc',
+            'building' => [],
+            'lccn' => '',
+            'ctrlnum' => [],
+            'allfields' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+                'finaf',
+            ],
+            'language' => [],
+            'format' => 'Book',
+            'author' => [],
+            'author_role' => [],
+            'author_sort' => '',
+            'author2' => [],
+            'author2_role' => [],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author2_id_str_mv' => [],
+            'author2_id_role_str_mv' => [],
+            'author_additional' => [],
+            'title' => '',
+            'title_sub' => '',
+            'title_short' => '',
+            'title_full' => '',
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => '',
+            'series' => [],
+            'publisher' => [],
+            'publishDateSort' => '2015',
+            'publishDate' => [
+                '2015',
+            ],
+            'physical' => [],
+            'dateSpan' => [],
+            'edition' => '',
+            'contents' => [],
+            'issn' => [],
+            'doi_str_mv' => [],
+            'callnumber-first' => '',
+            'callnumber-raw' => [],
+            'callnumber-sort' => '',
+            'topic' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+            ],
+            'genre' => [],
+            'geographic' => [],
+            'geographic_id_str_mv' => [],
+            'era' => [],
+            'topic_facet' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
+            'illustrated' => 'Illustrated',
+            'main_date_str' => '2015',
+            'main_date' => '2015-01-01T00:00:00Z',
+            'publication_daterange' => '[2015-01-01 TO 2015-12-31]',
+            'search_daterange_mv' => [
+                '[2015-01-01 TO 2015-12-31]',
+            ],
+            'publication_place_txt_mv' => [],
+            'subtitle_lng_str_mv' => [],
+            'original_lng_str_mv' => [],
+            'source_str_mv' => '__unit_test_no_source__',
+            'datasource_str_mv' => [
+                '__unit_test_no_source__',
+            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
+            'holdings_txtP_mv' => [],
+            'author_facet' => [],
+            'format_ext_str_mv' => 'Book',
+            'topic_id_str_mv' => [
+                'testauth.(FI-ASTERI-N)000107840',
+                'testauth.(FI-ASTERI-N)000189739',
+            ],
+            'description' => '',
+            'media_type_str_mv' => [],
+        ];
+
+        $this->compareArray($expected, $fields, 'toSolrArray');
+    }
+
+    /**
      * Test MARC date range
      *
      * @return void

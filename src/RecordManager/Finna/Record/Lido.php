@@ -114,6 +114,20 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Repository location types to be included.
+     *
+     * @var array
+     */
+    protected $repositoryLocationTypes = ['Current location'];
+
+    /**
+     * Excluded location appellationValue labels.
+     *
+     * @var array
+     */
+    protected $excludedLocationAppellationValueLabels = ['tarkempi paikka'];
+
+    /**
      * Location labels which should be included when getting location information.
      *
      * @var array
