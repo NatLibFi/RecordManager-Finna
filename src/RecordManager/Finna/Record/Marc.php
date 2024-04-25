@@ -562,18 +562,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ('1' === $subBuilding) { // true
             $subBuilding = 'c';
         }
-        $itemSubBuilding = $this->getDriverParam('itemSubBuilding', $subBuilding);
         if ($subBuilding) {
-            foreach ($this->record->getFields('852') as $field) {
-                $location = $this->record->getSubfield($field, $subBuilding);
+            foreach ($this->record->getFieldsSubfields('852', str_split($subBuilding)) as $location) {
                 if ('' !== $location) {
                     $data['building_sub_str_mv'][] = $location;
                 }
             }
         }
+        $itemSubBuilding = $this->getDriverParam('itemSubBuilding', $subBuilding);
         if ($itemSubBuilding) {
-            foreach ($this->record->getFields('952') as $field) {
-                $location = $this->record->getSubfield($field, $itemSubBuilding);
+            foreach ($this->record->getFieldsSubfields('952', str_split($itemSubBuilding)) as $location) {
                 if ('' !== $location) {
                     $data['building_sub_str_mv'][] = $location;
                 }
