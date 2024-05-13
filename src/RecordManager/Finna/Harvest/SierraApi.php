@@ -50,7 +50,7 @@ class SierraApi extends \RecordManager\Base\Harvest\SierraApi
      *
      * @var string
      */
-    protected $harvestFields = 'id,copies,orders,deleted,locations,fixedFields,varFields';
+    protected $harvestFields = 'default,copies,orders,locations,fixedFields,varFields';
 
     /**
      * Convert Sierra record to MARC-in-JSON -style array format

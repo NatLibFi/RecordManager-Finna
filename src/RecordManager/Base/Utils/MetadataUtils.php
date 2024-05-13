@@ -752,16 +752,14 @@ class MetadataUtils
      *
      * @param string $date Date to validate
      *
-     * @return boolean|int False if invalid, resulting time otherwise
+     * @return false|int False if invalid, resulting unix time otherwise
      */
     public function validateDate($date)
     {
-        $found = preg_match(
-            '/^(\-?\d{4})-(\d{2})-(\d{2})$/',
-            $date,
-            $parts
-        );
-        if (!$found) {
+        if (!$date || strlen($date) !== 10) {
+            return false;
+        }
+        if (!preg_match('/^(\-?\d{4})-(\d{2})-(\d{2})$/', $date, $parts)) {
             return false;
         }
         if (

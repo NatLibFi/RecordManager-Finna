@@ -203,18 +203,19 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Set record data
      *
-     * @param string       $source Source ID
-     * @param string       $oaiID  Record ID received from OAI-PMH (or empty string
-     *                             for file import)
-     * @param string|array $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
         $this->extraFields = [];
         $this->cachedFormat = null;
-        parent::setData($source, $oaiID, $data);
+        parent::setData($source, $oaiID, $data, $extraData);
     }
 
     /**
@@ -929,6 +930,11 @@ class Marc extends \RecordManager\Base\Record\Marc
                 (array)($data[$field] ?? []),
                 (array)$fieldData
             );
+        }
+
+        // Process any extra data
+        if ($date = $this->metadataUtils->validateDate($this->extraData['catalogDate'] ?? null)) {
+            $data['catalog_date'] = date('Y-m-d', $date) . 'T00:00:00Z';
         }
 
         return $data;
