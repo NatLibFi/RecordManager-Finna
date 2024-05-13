@@ -536,6 +536,23 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test online and free online booleans
+     *
+     * @return void
+     */
+    public function testOnlineBooleans()
+    {
+        $fields = $this->createRecord(Ead3::class, 'yksa2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('1', $fields['online_boolean']);
+        $this->assertEquals('1', $fields['free_online_boolean']);
+        $fields = $this->createRecord(Ead3::class, 'ead3_online_boolean.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertNotContains('online_boolean', $fields);
+        $this->assertNotContains('free_online_boolean', $fields);
+    }
+
+    /**
      * Test SKS EAD3 record handling
      *
      * @return void
