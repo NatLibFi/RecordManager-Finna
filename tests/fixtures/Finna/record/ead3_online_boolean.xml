@@ -27,15 +27,12 @@
     </langmaterial>
     <daoset>
       <dao daotype="derived" lang="fi" href="">
-        <descriptivenote><p lang="fi"><!--Empty--></p></descriptivenote>
-      </dao>
-      <dao daotype="derived" lang="fi" href="http://urn.fi/urn:nbn:fi:fsd:T-FSD3390">
         <descriptivenote><p lang="fi">Yhteiskuntatieteellinen tietoarkisto FSD</p></descriptivenote>
       </dao>
     </daoset>
     <unitdate>1931</unitdate>
   </did>
   <accessrestrict>
-    <p><!-- Empty value --></p>
+    <p>notFreeOnline</p>
   </accessrestrict>
 </record>
