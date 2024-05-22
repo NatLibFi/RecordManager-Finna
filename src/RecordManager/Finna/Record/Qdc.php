@@ -54,6 +54,13 @@ class Qdc extends \RecordManager\Base\Record\Qdc
     use QdcRecordTrait;
 
     /**
+     * Type fields which should be excluded when defining format.
+     *
+     * @var array
+     */
+    protected $excludedFormatTypes = ['version'];
+
+    /**
      * Constructor
      *
      * @param array         $config           Main configuration
