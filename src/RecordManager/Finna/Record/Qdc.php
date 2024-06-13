@@ -54,6 +54,13 @@ class Qdc extends \RecordManager\Base\Record\Qdc
     use QdcRecordTrait;
 
     /**
+     * Type fields which should be excluded when defining format.
+     *
+     * @var array
+     */
+    protected $excludedFormatTypes = ['version'];
+
+    /**
      * Constructor
      *
      * @param array         $config           Main configuration
@@ -205,6 +212,9 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             ];
         }
         foreach ($this->doc->file as $file) {
+            if (trim((string)($file->attributes()->bundle ?? '')) === 'TEXT') {
+                continue;
+            }
             $url = (string)$file->attributes()->href
                 ? trim((string)$file->attributes()->href)
                 : trim((string)$file);
