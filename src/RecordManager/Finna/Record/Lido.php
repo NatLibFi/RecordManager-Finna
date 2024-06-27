@@ -836,13 +836,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Also read in "description of subject" which contains data suitable for
         // this field
         $title = str_replace([',', ';'], ' ', $title);
-        if ($this->getDriverParam('splitTitles', false)) {
-            $titlePart = $this->metadataUtils->splitTitle($title);
-            if ($titlePart) {
-                $title = $titlePart;
-            }
-        }
-        $title = str_replace([',', ';'], ' ', $title);
         foreach ($this->getSubjectSetNodes() as $set) {
             $subject = $set->displaySubject;
             $label = $subject['label'];

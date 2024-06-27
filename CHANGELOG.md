@@ -5,16 +5,54 @@ Notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.3.0 - TBD
+## 3.0.0 - TBD
+
+Anything marked with [**BC**] is known to affect backward compatibility with previous versions.
+
+### Changed
+
+- [**BC**] The HTTP client library has been changed from HTTP_Request2 to Guzzle. This has required some changes to how the HTTP client is used. See e.g. src/RecordManager/Base/Harvest/SierraApi.php for usage examples. This also affects the settings in HTTP section of recordmanager.ini. Only the most commonly used legacy settings are automatically mapped to Guzzle's equivalents.
+
+### Removed
+
+- [**BC**] Support for splitting titles of LIDO records has been dropped.
+
+
+## 2.3.0 - 2024-06-24
 
 Anything marked with [**BC**] is known to affect backward compatibility with previous versions.
 
 ### Added
 - [**BC**] Additional metadata can be stored in records outside of the main metadata record. This affects the setData method and MySQL schema.
+- Added support for summed fields for merged records. See `summed_fields` in conf/recordmanager.ini.sample for more information.
+- MARC: Added support for filtering fields (see Marc::filterFields).
+- LIDO: Added support for filtering repository locations.
+- QDC: Added a driver param (preferredFormatTypes) to indicate preferred dc.type fields for format.
+- Added optional index hints for PDO databases. Not useful in most cases.
+- Added option to keep existing 852 fields in Sierra harvesting.
+- Enhanced the export function:
+  - Added support for timestamp injection
+  - Improved namespace handling
+  - Added option to apply an XSL transformation to exported records
+- Field processing rules have been enhanced quite significantly with e.g. support for match conditions.
+
 
 ### Changed
 
-- Format of $isbnFields and $issnFields definition arrays in Marc.php have been changed to include the type of the field. It can be used to avoid reporting e.g. invalid ISBNs or extra content in combined fields in the `warnings_field` index field.
+- [**BC**] Format of $isbnFields and $issnFields definition arrays in Marc.php have been changed to include the type of the field. It can be used to avoid reporting e.g. invalid ISBNs or extra content in combined fields in the `warnings_field` index field.
+- Improved error message when a mapping file cannot be parsed.
+- Sierra: Fields to harvest are now defined in a member variable to that they can be overridden as necessary.
+- EAD3: First unitid is now used addIdToHierarchyTitle setting if sequenceUnitIdlabel is missing.
+
+### Fixed
+
+- solr:delete command did not encode the request properly.
+- Host record linking did not ignore deleted records in all cases.
+- DC, QDC, DOAJ: OAI identifiers containing colons were not handled properly.
+- Wrong timestamp was used to find dedup records to process in Solr update.
+- Deduplication could have used candidate records whose sources had deduplication toggled to disabled without renormalizing the records.
+-
+
 
 ## 2.2.0 - 2023-11-13
 

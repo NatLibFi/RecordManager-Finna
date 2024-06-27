@@ -30,7 +30,7 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Utils\Logger;
@@ -79,7 +79,7 @@ class Aipa extends Qdc
      * @param array               $dataSourceConfig    Data source settings
      * @param Logger              $logger              Logger
      * @param MetadataUtils       $metadataUtils       Metadata utilities
-     * @param HttpClientManager   $httpManager         HTTP client manager
+     * @param HttpService         $httpService         HTTP service
      * @param ?Database           $db                  Database
      * @param RecordPluginManager $recordPluginManager Record plugin manager
      */
@@ -88,7 +88,7 @@ class Aipa extends Qdc
         $dataSourceConfig,
         Logger $logger,
         MetadataUtils $metadataUtils,
-        HttpClientManager $httpManager,
+        HttpService $httpService,
         ?Database $db,
         RecordPluginManager $recordPluginManager
     ) {
@@ -97,7 +97,7 @@ class Aipa extends Qdc
             $dataSourceConfig,
             $logger,
             $metadataUtils,
-            $httpManager,
+            $httpService,
             $db
         );
         $this->recordPluginManager = $recordPluginManager;

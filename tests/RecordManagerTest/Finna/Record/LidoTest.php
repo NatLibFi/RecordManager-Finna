@@ -298,6 +298,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Prt',
                 'Kiinteistötunnus',
             ],
+            'description' => '',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

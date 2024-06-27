@@ -32,7 +32,7 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager;
+use RecordManager\Base\Http\HttpService;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
@@ -76,7 +76,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
      * @param array         $dataSourceConfig Data source settings
      * @param Logger        $logger           Logger
      * @param MetadataUtils $metadataUtils    Metadata utilities
-     * @param ClientManager $httpManager      HTTP client manager
+     * @param HttpService   $httpService      HTTP service
      * @param ?Database     $db               Database
      */
     public function __construct(
@@ -84,7 +84,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         array $dataSourceConfig,
         Logger $logger,
         MetadataUtils $metadataUtils,
-        ClientManager $httpManager,
+        HttpService $httpService,
         Database $db = null
     ) {
         parent::__construct(
@@ -92,7 +92,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $dataSourceConfig,
             $logger,
             $metadataUtils,
-            $httpManager,
+            $httpService,
             $db
         );
         $this->initMediaTypeTrait($config);
