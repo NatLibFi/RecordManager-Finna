@@ -1390,11 +1390,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 if ($identifier = trim((string)$attrs->identifier)) {
                     $ids[] = $identifier;
                 }
-                // Discard certain types of filenames like Tiedosto 1
-                $linktitle = trim((string)$attrs->linktitle);
-                if (0 === preg_match('/^tiedosto [\d]{1,}$/i', $linktitle)) {
+                if ($linktitle = trim((string)$attrs->linktitle)) {
                     $fileNames[] = $linktitle;
-                } elseif ($href = trim((string)$attrs->href)) {
+                }
+                if ($href = trim((string)$attrs->href)) {
                     if (!preg_match('/^http(s)?:\/\//', $href)) {
                         // Add scheme if missing
                         $href = '://' . $href;
