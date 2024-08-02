@@ -836,6 +836,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 's_24537_0003.tif',
                 's_24537_0004.tif',
                 's_24537_0005.tif',
+                'Very good filename',
             ],
         ];
         if (null !== $expectedTitleInHierarchy) {

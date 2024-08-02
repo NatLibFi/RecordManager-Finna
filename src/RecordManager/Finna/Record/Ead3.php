@@ -1394,8 +1394,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $linktitle = trim((string)$attrs->linktitle);
                 if (0 === preg_match('/^tiedosto [\d]{1,}$/i', $linktitle)) {
                     $fileNames[] = $linktitle;
-                }
-                if ($href = trim((string)$attrs->href)) {
+                } elseif ($href = trim((string)$attrs->href)) {
                     if (!preg_match('/^http(s)?:\/\//', $href)) {
                         // Add scheme if missing
                         $href = '://' . $href;
