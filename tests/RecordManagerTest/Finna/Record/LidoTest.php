@@ -297,8 +297,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '4878:1',
                 'Prt',
                 'Kiinteistötunnus',
+                '111222',
             ],
             'description' => '',
+            'file_identifier_str_mv' => [
+                '111222',
+                'mau.jpg',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

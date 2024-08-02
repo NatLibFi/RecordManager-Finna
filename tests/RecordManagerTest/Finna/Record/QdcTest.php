@@ -154,6 +154,32 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test getResourceIdentifiers
+     *
+     * @return void
+     */
+    public function testGetResourceIdentifiers()
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_media_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+        $this->assertEquals(
+            [
+                'powerpoint_1',
+                'jpg_2',
+            ],
+            $fields['file_identifier_str_mv']
+        );
+    }
+
+    /**
      * Test QDC processing warnings handling
      *
      * @return void

@@ -115,7 +115,10 @@ trait QdcRecordTrait
                 array_column($onlineUrls, 'mediaType')
             )
         );
-
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        if ($result = [...$resourceIdentifiers['ids'], ...$resourceIdentifiers['fileNames']]) {
+            $data['file_identifier_str_mv'] = $result;
+        }
         // Get thumbnail from files
         foreach ($this->doc->file as $file) {
             $url = (string)$file->attributes()->href
@@ -189,6 +192,27 @@ trait QdcRecordTrait
             'primary' => $locations,
             'secondary' => [],
         ];
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileNames]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileNames = [];
+        foreach ($this->doc->file as $file) {
+            if ($fileName = trim((string)$file->attributes()->name)) {
+                $fileNames[] = $fileName;
+            }
+        }
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileNames');
     }
 
     /**

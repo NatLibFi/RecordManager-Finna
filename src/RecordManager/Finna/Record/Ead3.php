@@ -250,7 +250,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['location_geo'] = $this->getGeographicCoordinates();
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
-
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        $data['identifier_txtP_mv'] = [...$resourceIdentifiers['ids']];
+        if ($result = [...$resourceIdentifiers['ids'], ...$resourceIdentifiers['fileNames']]) {
+            $data['file_identifier_str_mv'] = $result;
+        }
         return $data;
     }
 
@@ -1366,5 +1370,51 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileNames]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileNames = [];
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileNames) {
+            if ($check && $attrs = $check->attributes()) {
+                if ($identifier = trim((string)$attrs->identifier)) {
+                    $ids[] = $identifier;
+                }
+                // Discard certain types of filenames like Tiedosto 1
+                $linktitle = trim((string)$attrs->linktitle);
+                if (0 === preg_match('/^tiedosto [\d]{1,}$/i', $linktitle)) {
+                    $fileNames[] = $linktitle;
+                }
+                if ($href = trim((string)$attrs->href)) {
+                    if (!preg_match('/^http(s)?:\/\//', $href)) {
+                        // Add scheme if missing
+                        $href = '://' . $href;
+                    }
+                    // We dont really need the domain and other parts from the url
+                    if ($path = parse_url($href, PHP_URL_PATH)) {
+                        $exploded = explode('/', $path);
+                        $fileNames[] = array_pop($exploded);
+                    }
+                }
+            }
+        };
+
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            $matchAttributes($set);
+            foreach ($set->dao as $dao) {
+                $matchAttributes($dao);
+            }
+        }
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileNames');
     }
 }
