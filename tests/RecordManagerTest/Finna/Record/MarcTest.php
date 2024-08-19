@@ -1219,7 +1219,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return array
      */
-    public function marcAudioBooksProvider(): array
+    public static function marcAudioBooksProvider(): array
     {
         return [
             [

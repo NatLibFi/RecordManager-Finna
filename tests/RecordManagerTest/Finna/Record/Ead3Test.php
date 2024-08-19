@@ -263,7 +263,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return Array
      */
-    public function getTestTitleYearRange()
+    public static function getTestTitleYearRange()
     {
         $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
         $mdash = html_entity_decode('&#x2014;', ENT_NOQUOTES, 'UTF-8');
@@ -557,7 +557,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return array
      */
-    public function sksProvider(): array
+    public static function sksProvider(): array
     {
         return [
             'addIdToHierarchyTitle=true' => [

@@ -195,6 +195,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // size
         $data['measurements'] = $this->getMeasurements();
 
+        $data['identifier'] = $this->getIdentifier();
         $data['culture'] = $this->getCulture();
         $data['rights'] = $this->getRights();
 
