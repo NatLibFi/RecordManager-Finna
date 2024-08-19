@@ -81,6 +81,26 @@
                             <placeID type="URI" source="YSO"><!-- Empty value should not appear --></placeID>
                         </repositoryLocation>
                     </repositorySet>
+                    <repositorySet type="Current location">
+                        <repositoryLocation>
+                            <namePlaceSet>
+                                <appellationValue label="tarkempi paikka">Tarkempi paikka veden &#xE4;&#xE4;rell&#xE4;</appellationValue>
+                            </namePlaceSet>
+                            <namePlaceSet>
+                                <appellationValue>Kalasatama</appellationValue>
+                            </namePlaceSet>
+                            <partOfPlace>
+                                <namePlaceSet>
+                                    <appellationValue label="katuosoite">Capellanranta 1 ja 3 v&#xE4;lill&#xE4;</appellationValue>
+                                </namePlaceSet>
+                                <partOfPlace>
+                                    <namePlaceSet>
+                                        <appellationValue label="kunta/kaupunki">Helsinki</appellationValue>
+                                    </namePlaceSet>
+                                </partOfPlace>
+                            </partOfPlace>
+                        </repositoryLocation>
+                    </repositorySet>
                 </repositoryWrap>
                 <objectMeasurementsWrap>
                     <objectMeasurementsSet>

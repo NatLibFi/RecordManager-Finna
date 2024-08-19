@@ -51,16 +51,17 @@ class Ead3 extends Ead
     /**
      * Set record data
      *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
-        parent::setData($source, $oaiID, $data);
+        parent::setData($source, $oaiID, $data, $extraData);
 
         $this->doc = $this->parseXMLRecord($data);
     }
@@ -110,7 +111,7 @@ class Ead3 extends Ead
                 . $this->getId() . "' to XML"
             );
         }
-        return $xml;
+        return (string)$xml;
     }
 
     /**
@@ -517,7 +518,7 @@ class Ead3 extends Ead
     protected function getHierarchyFields(array &$data): void
     {
         $data['hierarchytype'] = 'Default';
-        $sequenceUnitId = '';
+        $sequenceUnitId = $firstId = '';
         if ($this->doc->{'add-data'}->archive) {
             $archiveAttr = $this->doc->{'add-data'}->archive->attributes();
             $data['hierarchy_top_id'] = (string)$archiveAttr->{'id'};
@@ -530,6 +531,7 @@ class Ead3 extends Ead
             $seqLabel = $this->getDriverParam('sequenceUnitIdLabel', 'sequence');
             if ($seqLabel) {
                 foreach ($this->doc->did->unitid ?? [] as $unitId) {
+                    $firstId = $firstId ?: (string)$unitId;
                     if ($seqLabel === (string)$unitId->attributes()->label) {
                         $sequenceUnitId = (string)$unitId;
                         $data['hierarchy_sequence']
@@ -552,6 +554,9 @@ class Ead3 extends Ead
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)($this->doc->did->unittitle ?? '');
         }
+
+        // We only need title_in_hierarchy if it differs from title:
+        $sequenceUnitId = $sequenceUnitId ?: $firstId;
         if (
             $sequenceUnitId
             && $this->getDriverParam('addIdToHierarchyTitle', true)

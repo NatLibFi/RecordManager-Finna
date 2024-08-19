@@ -57,16 +57,17 @@ trait XmlRecordTrait
     /**
      * Set record data
      *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
-        parent::setData($source, $oaiID, $data);
+        parent::setData($source, $oaiID, $data, $extraData);
 
         $this->doc = $this->parseXMLRecord($data);
     }
@@ -98,7 +99,7 @@ trait XmlRecordTrait
                 . $this->getId() . "' to XML"
             );
         }
-        return $xml;
+        return (string)$xml;
     }
 
     /**
@@ -113,19 +114,13 @@ trait XmlRecordTrait
     {
         $saveUseErrors = libxml_use_internal_errors(true);
         try {
-            libxml_clear_errors();
             if (empty($xml)) {
                 throw new \Exception('Tried to parse empty XML string');
             }
-            $doc = $this->metadataUtils->loadXML($xml);
+            $errors = '';
+            $doc = $this->metadataUtils->loadXML($xml, errors: $errors);
             if (false === $doc) {
-                $errors = libxml_get_errors();
-                $messageParts = [];
-                foreach ($errors as $error) {
-                    $messageParts[] = '[' . $error->line . ':' . $error->column
-                        . '] Error ' . $error->code . ': ' . $error->message;
-                }
-                throw new \Exception(implode("\n", $messageParts));
+                throw new \Exception($errors);
             }
             libxml_use_internal_errors($saveUseErrors);
             assert($doc instanceof \SimpleXMLElement);

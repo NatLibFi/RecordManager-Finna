@@ -114,6 +114,20 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Repository location types to be included.
+     *
+     * @var array
+     */
+    protected $repositoryLocationTypes = ['Current location'];
+
+    /**
+     * Excluded location appellationValue labels.
+     *
+     * @var array
+     */
+    protected $excludedLocationAppellationValueLabels = ['tarkempi paikka'];
+
+    /**
      * Location labels which should be included when getting location information.
      *
      * @var array
@@ -181,6 +195,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // size
         $data['measurements'] = $this->getMeasurements();
 
+        $data['identifier'] = $this->getIdentifier();
         $data['culture'] = $this->getCulture();
         $data['rights'] = $this->getRights();
 
@@ -821,13 +836,6 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         // Also read in "description of subject" which contains data suitable for
         // this field
-        $title = str_replace([',', ';'], ' ', $title);
-        if ($this->getDriverParam('splitTitles', false)) {
-            $titlePart = $this->metadataUtils->splitTitle($title);
-            if ($titlePart) {
-                $title = $titlePart;
-            }
-        }
         $title = str_replace([',', ';'], ' ', $title);
         foreach ($this->getSubjectSetNodes() as $set) {
             $subject = $set->displaySubject;

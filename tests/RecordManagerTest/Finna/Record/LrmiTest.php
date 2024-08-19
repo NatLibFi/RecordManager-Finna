@@ -56,7 +56,7 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'lrmi_media_types.xml',
             [],
             'Finna',
-            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+            [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
         );
         $fields = $record->toSolrArray();
         $this->assertEquals(

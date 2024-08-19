@@ -215,16 +215,17 @@ class Marc extends AbstractRecord
     /**
      * Set record data
      *
-     * @param string       $source Source ID
-     * @param string       $oaiID  Record ID received from OAI-PMH (or empty string
-     *                             for file import)
-     * @param string|array $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
-        parent::setData($source, $oaiID, $data);
+        parent::setData($source, $oaiID, $data, $extraData);
 
         $this->record = ($this->createRecordCallback)($data);
     }
@@ -652,7 +653,7 @@ class Marc extends AbstractRecord
      *
      * @return array
      */
-    public function getHostRecordIDs()
+    public function getHostRecordIDs(): array
     {
         $field = $this->record->getField('941');
         if ($field) {
@@ -1587,22 +1588,7 @@ class Marc extends AbstractRecord
             $this->getDriverParam('holdingsInBuilding', true)
             || false !== $buildingFieldSpec
         ) {
-            $buildingFieldSpec = $this->getDriverParam('buildingFields', false);
-            if (false === $buildingFieldSpec) {
-                $buildingFields = $this->getDefaultBuildingFields();
-            } else {
-                $buildingFields = [];
-                $parts = explode(':', $buildingFieldSpec);
-                foreach ($parts as $part) {
-                    $buildingFields[] = [
-                        'field' => substr($part, 0, 3),
-                        'loc' => substr($part, 3, 1),
-                        'sub' => substr($part, 4, 1),
-                    ];
-                }
-            }
-
-            foreach ($buildingFields as $buildingField) {
+            foreach ($this->getBuildingFieldSpec() as $buildingField) {
                 foreach ($this->record->getFields($buildingField['field']) as $field) {
                     $location = $this->record->getSubfield($field, $buildingField['loc']);
                     if ($location) {
@@ -1648,6 +1634,30 @@ class Marc extends AbstractRecord
             ];
         }
         return $fields;
+    }
+
+    /**
+     * Get building field specs from configuration
+     *
+     * @return array
+     */
+    protected function getBuildingFieldSpec(): array
+    {
+        $buildingFieldSpec = $this->getDriverParam('buildingFields', false);
+        if (false === $buildingFieldSpec) {
+            $buildingFields = $this->getDefaultBuildingFields();
+        } else {
+            $buildingFields = [];
+            $parts = explode(':', $buildingFieldSpec);
+            foreach ($parts as $part) {
+                $buildingFields[] = [
+                    'field' => substr($part, 0, 3),
+                    'loc' => substr($part, 3, 1),
+                    'sub' => substr($part, 4, 1),
+                ];
+            }
+        }
+        return $buildingFields;
     }
 
     /**

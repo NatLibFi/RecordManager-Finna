@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (c) The National Library of Finland 2016-2022.
+ * Copyright (c) The National Library of Finland 2016-2024.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -29,6 +29,8 @@
 
 namespace RecordManager\Base\Harvest;
 
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Message\MessageInterface;
 use RecordManager\Base\Exception\HttpRequestException;
 
 use function call_user_func;
@@ -109,6 +111,14 @@ class SierraApi extends AbstractBase
     protected $suppressedBibCode3 = [];
 
     /**
+     * Whether to keep existing 852 fields in the MARC records before adding new ones
+     * for the item locations.
+     *
+     * @var bool
+     */
+    protected $keepExisting852Fields = false;
+
+    /**
      * HTTP client options
      *
      * @var array
@@ -123,7 +133,7 @@ class SierraApi extends AbstractBase
      *
      * @var string
      */
-    protected $harvestFields = 'id,deleted,locations,fixedFields,varFields';
+    protected $harvestFields = 'default,locations,fixedFields,varFields,catalogDate';
 
     /**
      * Initialize harvesting
@@ -154,7 +164,8 @@ class SierraApi extends AbstractBase
             ',',
             $settings['suppressedBibCode3'] ?? ''
         );
-        $this->apiVersion = 'v' . ($settings['sierraApiVersion'] ?? '5');
+        $this->apiVersion = 'v' . ($settings['sierraApiVersion'] ?? '6');
+        $this->keepExisting852Fields = $settings['keepExisting852Fields'] ?? false;
     }
 
     /**
@@ -205,7 +216,7 @@ class SierraApi extends AbstractBase
         // Keep harvesting as long as a records are received:
         do {
             $response = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
-            $count = $this->processResponse($response->getBody());
+            $count = $this->processResponse((string)$response->getBody());
             $this->reportResults();
             $apiParams['offset'] += $apiParams['limit'];
         } while ($count > 0);
@@ -228,7 +239,7 @@ class SierraApi extends AbstractBase
             do {
                 $response
                     = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
-                $count = $this->processResponse($response->getBody());
+                $count = $this->processResponse((string)$response->getBody());
                 $this->reportResults();
                 $apiParams['offset'] += $apiParams['limit'];
             } while ($count > 0);
@@ -264,7 +275,7 @@ class SierraApi extends AbstractBase
         }
 
         $response = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
-        $this->processResponse($response->getBody());
+        $this->processResponse((string)$response->getBody());
         $this->reportResults();
     }
 
@@ -277,6 +288,7 @@ class SierraApi extends AbstractBase
     {
         $response = $this->sendRequest([$this->apiVersion, 'info', 'token'], []);
         if ($date = $response->getHeader('Date')) {
+            $date = reset($date);
             $dateTime = \DateTime::createFromFormat('D\, d M Y H:i:s O+', $date);
             if (false === $dateTime) {
                 throw new \Exception("Could not parse server date header: $date");
@@ -301,11 +313,11 @@ class SierraApi extends AbstractBase
      * @param array $path   Sierra API path
      * @param array $params GET parameters for the method
      *
-     * @return \HTTP_Request2_Response
+     * @return MessageInterface
      * @throws \Exception
-     * @throws \HTTP_Request2_LogicException
+     * @throws GuzzleException
      */
-    protected function sendRequest($path, $params)
+    protected function sendRequest($path, $params): MessageInterface
     {
         // Set up the request:
         $apiUrl = $this->baseURL;
@@ -314,43 +326,31 @@ class SierraApi extends AbstractBase
             $apiUrl .= '/' . urlencode($value);
         }
 
-        $request = $this->httpClientManager->createClient(
-            $apiUrl,
-            \HTTP_Request2::METHOD_GET,
-            $this->httpOptions
-        );
-        $request->setHeader('Accept', 'application/json');
-
-        // Load request parameters:
-        $url = $request->getURL();
-        $url->setQueryVariables($params);
-        $urlStr = $url->getURL();
+        $client = $this->httpService->createClient($apiUrl, $this->httpOptions);
+        $headers = [
+            'Accept' => 'application/json',
+        ];
+        $url = $this->httpService->appendQueryParams($apiUrl, $params);
 
         if (null === $this->accessToken) {
             $this->renewAccessToken();
         }
-        $request->setHeader(
-            'Authorization',
-            "Bearer {$this->accessToken}"
-        );
+        $headers['Authorization'] = "Bearer {$this->accessToken}";
 
         // Perform request and throw an exception on error:
         $maxTries = $this->maxTries;
         for ($try = 1; $try <= $maxTries; $try++) {
-            $this->infoMsg("Sending request: $urlStr");
+            $this->infoMsg("Sending request: $url");
             try {
-                $response = $request->send();
-                $code = $response->getStatus();
+                $response = $client->get($url, compact('headers'));
+                $code = $response->getStatusCode();
                 if ($code == 404) {
                     return $response;
                 }
                 if ($code == 401) {
                     $this->infoMsg('Renewing access token');
                     $this->renewAccessToken();
-                    $request->setHeader(
-                        'Authorization',
-                        "Bearer {$this->accessToken}"
-                    );
+                    $headers['Authorization'] = "Bearer {$this->accessToken}";
                     ++$maxTries;
                     sleep(1);
                     continue;
@@ -358,14 +358,14 @@ class SierraApi extends AbstractBase
                 if ($code >= 300) {
                     if ($try < $this->maxTries) {
                         $this->warningMsg(
-                            "Request '$urlStr' failed ($code: "
-                            . $response->getBody() . '), retrying in '
+                            "Request '$url' failed ($code: "
+                            . (string)$response->getBody() . '), retrying in '
                             . "{$this->retryWait} seconds..."
                         );
                         sleep($this->retryWait);
                         continue;
                     }
-                    $this->fatalMsg("Request '$urlStr' failed: $code");
+                    $this->fatalMsg("Request '$url' failed: $code");
                     throw new HttpRequestException("Request failed: $code", $code);
                 }
 
@@ -373,7 +373,7 @@ class SierraApi extends AbstractBase
             } catch (\Exception $e) {
                 if ($try < $this->maxTries) {
                     $this->warningMsg(
-                        "Request '$urlStr' failed (" . $e->getMessage()
+                        "Request '$url' failed (" . $e->getMessage()
                         . "), retrying in {$this->retryWait} seconds..."
                     );
                     sleep($this->retryWait);
@@ -425,7 +425,7 @@ class SierraApi extends AbstractBase
             $oaiId = $this->createOaiId($this->source, $id);
             $deleted = $this->isDeleted($record);
             if ($deleted) {
-                call_user_func($this->callback, $this->source, $oaiId, true, null);
+                call_user_func($this->callback, $this->source, $oaiId, true, null, $this->getExtraMetadata($record));
                 $this->deletedRecords++;
             } else {
                 $this->changedRecords += call_user_func(
@@ -433,7 +433,8 @@ class SierraApi extends AbstractBase
                     $this->source,
                     $oaiId,
                     false,
-                    $this->convertRecordToMarcArray($record)
+                    $this->convertRecordToMarcArray($record),
+                    $this->getExtraMetadata($record)
                 );
             }
         }
@@ -445,41 +446,36 @@ class SierraApi extends AbstractBase
      *
      * @return void
      * @throws \Exception
-     * @throws \HTTP_Request2_LogicException
+     * @throws GuzzleException
      */
     protected function renewAccessToken()
     {
         // Set up the request:
         $apiUrl = $this->baseURL . '/' . $this->apiVersion . '/token';
-        $request = $this->httpClientManager->createClient(
-            $apiUrl,
-            \HTTP_Request2::METHOD_POST
-        );
-        $request->setHeader('Accept', 'application/json');
-        $request->setHeader(
-            'Authorization',
-            'Basic ' . base64_encode("{$this->apiKey}:{$this->apiSecret}")
-        );
-        $request->setBody('grant_type=client_credentials');
+        $client = $this->httpService->createClient($apiUrl);
+        $headers = [
+            'Accept' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode("{$this->apiKey}:{$this->apiSecret}"),
+        ];
 
         // Perform request and throw an exception on error:
         for ($try = 1; $try <= $this->maxTries; $try++) {
             $this->infoMsg("Sending request: $apiUrl");
             try {
-                $response = $request->send();
-                $code = $response->getStatus();
+                $response = $client->post($apiUrl, ['headers' => $headers, 'body' => 'grant_type=client_credentials']);
+                $code = $response->getStatusCode();
                 if ($code >= 300) {
                     if ($try < $this->maxTries) {
                         $this->warningMsg(
                             "Request '$apiUrl' failed ($code: "
-                            . $response->getBody() . '), retrying in'
+                            . (string)$response->getBody() . '), retrying in'
                             . " {$this->retryWait} seconds..."
                         );
                         sleep($this->retryWait);
                         continue;
                     }
                     $this->fatalMsg(
-                        "Request '$apiUrl' failed ($code: " . $response->getBody()
+                        "Request '$apiUrl' failed ($code: " . (string)$response->getBody()
                         . ')'
                     );
                     throw new HttpRequestException(
@@ -488,10 +484,10 @@ class SierraApi extends AbstractBase
                     );
                 }
 
-                $json = json_decode($response->getBody(), true);
+                $json = json_decode((string)$response->getBody(), true);
                 if (empty($json['access_token'])) {
                     throw new \Exception(
-                        'No access token in response: ' . $response->getBody()
+                        'No access token in response: ' . (string)$response->getBody()
                     );
                 }
                 $this->accessToken = $json['access_token'];
@@ -540,7 +536,10 @@ class SierraApi extends AbstractBase
                 $marc['leader'] = $varField['content'];
                 continue;
             }
-            if (!isset($varField['marcTag']) || $varField['marcTag'] == '852') {
+            if (
+                !isset($varField['marcTag'])
+                || (!$this->keepExisting852Fields && $varField['marcTag'] == '852')
+            ) {
                 continue;
             }
             // Make sure the tag has three characters
@@ -605,6 +604,19 @@ class SierraApi extends AbstractBase
         );
 
         return $marc;
+    }
+
+    /**
+     * Get any extra metadata from the Sierra record
+     *
+     * @param array $record Sierra BIB record
+     *
+     * @return array
+     */
+    protected function getExtraMetadata(array $record): array
+    {
+        $catalogDate = $record['catalogDate'] ?? null;
+        return $catalogDate ? compact('catalogDate') : [];
     }
 
     /**

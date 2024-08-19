@@ -212,7 +212,7 @@ class Forward extends \RecordManager\Base\Record\Forward
      *
      * @return array
      */
-    public function getHostRecordIDs()
+    public function getHostRecordIDs(): array
     {
         if (!($parentIdType = $this->getDriverParam('parentIdType', ''))) {
             return [];

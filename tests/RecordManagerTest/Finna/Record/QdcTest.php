@@ -81,7 +81,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
             ]
         );
         $fields = $fields->toSolrArray()['search_daterange_mv'];
@@ -113,7 +113,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
             ]
         );
         $fields = $fields->toSolrArray();
@@ -137,7 +137,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Http\ClientManager::class),
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
             ]
         );
         $fields = $fields->toSolrArray();
@@ -165,7 +165,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'qdc_language_warnings.xml',
             [],
             'Finna',
-            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+            [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
         );
         $fields = $record->toSolrArray();
         $this->compareArray(

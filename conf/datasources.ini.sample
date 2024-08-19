@@ -41,6 +41,12 @@
 ;
 ; RecordManager settings:
 ; type                  Harvester type (HTTPFiles, OAI-PMH (default), SFX, SierraApi)
+; url                   Harvesting URL
+; username              Username for HTTP authentication (OAI-PMH, HTTPFiled)
+; password              Password for HTTP authentication (OAI-PMH, HTTPFiled)
+; authType              Authentication type for HTTP authentication (OAI-PMH, HTTPFiled).
+;                       Allowed options are "basic" (default), "digest" and "ntlm".
+;                       Digest and NTLM authentication require the Curl adapter to be used (see HTTP section in recordmanager.ini).
 ; institution           The institution code mapped to the source (required)
 ; recordXPath           xpath expression used when loading records from a file to identify a single record (optional, e.g. //record)
 ; format                Record format in RecordManager
@@ -77,13 +83,22 @@
 ; fieldRules[]          An array of rules for changing fields before they're sent to Solr. Allows deleting, copying and moving of fields.
 ;                       Rules are processed in order before processing mappings and converting hierarchical facets.
 ;                       The following rules are available:
-;                         delete <field>             Removes a field
-;                         copy <from> <to> [default] Copies field <from> to <to>. A default value can be specified in case the field is empty or doesn't exist.
-;                         move <from> <to> [default] Moves field <from> to <to>. A default value can be specified in case the field is empty or doesn't exist.
+;                         delete <field> [params] Removes a field
+;                         copy <from> <to> [params]   Copies field <from> to <to>
+;                         move <from> <to> [params]   Moves field <from> to <to>
 ;                       Examples:
 ;                         fieldRules[] = "delete collection"
 ;                         fieldRules[] = "copy building building2_str_mv MAIN"
+;                         fieldRules[] = 'copy building building2_str_mv match="/^(MAIN|SUB)$/" default="MAIN"'
 ;                         fieldRules[] = "move author author2"
+;
+;                       Params may be a single word for a default value or a set of further expressions:
+;
+;                         match="value"      Only do the operation if field contents matches the given value.
+;                         match="/regexp/"   Only do the operation if field contents matches the given regular expression.
+;                         match="/regexp/i"  Only do the operation if field contents matches the given regular expression (case insensitive).
+;                         default="value"    Use default value if a value does not exist or doesn't match any regular expression.
+;
 ; driverParams[]        An array of extra parameters that can be used to customize record driver behavior
 ; enrichments[]         An array of enrichment class names that can be used to enrich records. ",final" can be appended to indicate that enrichment is executed to the
 ;                       final record after mappings etc. have been processed. By default it is executed before mappings, normalization etc.
@@ -156,6 +171,8 @@
 ;[arc]
 ;institution = MyInst
 ;url = http://oai-pmh.ead-server/request
+;username = "user"
+;password = "secret"
 ;metadataPrefix = ead
 ;recordSplitterClass = "\RecordManager\Base\Splitter\Ead"
 ;format = ead
@@ -191,6 +208,7 @@
 ;; unsuppressed to suppressed won't be detected.
 ;;suppressedRecords = false
 ;suppressedBibCode3 = 'c,d,n'
+;keepExisting852Fields = false
 ;institution = SierraLib
 ;format = marc
 ;dedup = true

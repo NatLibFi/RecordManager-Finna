@@ -808,9 +808,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         if (null !== ($online = $this->getDriverParam('online', null))) {
             return boolval($online);
         }
-        foreach ($this->doc->did->daoset->dao ?? [] as $dao) {
-            if ($dao->attributes()->{'href'}) {
-                return true;
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            foreach ($set->dao as $dao) {
+                if (trim((string)$dao->attributes()->href)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -859,9 +861,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         if (null !== ($free = $this->getDriverParam('freeOnline', null))) {
             return boolval($free);
         }
-        foreach ($this->doc->accessrestrict->p ?? [] as $restrict) {
-            if (trim((string)$restrict) !== '') {
-                return false;
+        foreach ($this->doc->accessrestrict ?? [] as $accessrestrict) {
+            foreach ($accessrestrict->p ?? [] as $p) {
+                if (trim((string)$p) !== '') {
+                    return false;
+                }
             }
         }
         return $this->getDriverParam('freeOnlineDefault', true);

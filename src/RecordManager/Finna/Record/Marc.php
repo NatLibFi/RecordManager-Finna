@@ -203,18 +203,19 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Set record data
      *
-     * @param string       $source Source ID
-     * @param string       $oaiID  Record ID received from OAI-PMH (or empty string
-     *                             for file import)
-     * @param string|array $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
         $this->extraFields = [];
         $this->cachedFormat = null;
-        parent::setData($source, $oaiID, $data);
+        parent::setData($source, $oaiID, $data, $extraData);
     }
 
     /**
@@ -562,18 +563,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ('1' === $subBuilding) { // true
             $subBuilding = 'c';
         }
-        $itemSubBuilding = $this->getDriverParam('itemSubBuilding', $subBuilding);
         if ($subBuilding) {
-            foreach ($this->record->getFields('852') as $field) {
-                $location = $this->record->getSubfield($field, $subBuilding);
+            foreach ($this->record->getFieldsSubfields('852', str_split($subBuilding)) as $location) {
                 if ('' !== $location) {
                     $data['building_sub_str_mv'][] = $location;
                 }
             }
         }
+        $itemSubBuilding = $this->getDriverParam('itemSubBuilding', $subBuilding);
         if ($itemSubBuilding) {
-            foreach ($this->record->getFields('952') as $field) {
-                $location = $this->record->getSubfield($field, $itemSubBuilding);
+            foreach ($this->record->getFieldsSubfields('952', str_split($itemSubBuilding)) as $location) {
                 if ('' !== $location) {
                     $data['building_sub_str_mv'][] = $location;
                 }
@@ -931,6 +930,11 @@ class Marc extends \RecordManager\Base\Record\Marc
                 (array)($data[$field] ?? []),
                 (array)$fieldData
             );
+        }
+
+        // Process any extra data
+        if ($date = $this->metadataUtils->validateDate($this->extraData['catalogDate'] ?? null)) {
+            $data['catalog_date'] = date('Y-m-d', $date) . 'T00:00:00Z';
         }
 
         return $data;
@@ -1370,7 +1374,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $result = [];
         foreach ($fieldTags as $tag) {
             foreach ($this->record->getFields($tag) as $field) {
-                if ($id = $this->getIDFromField($field)) {
+                if ($id = $this->getIDFromField($field, 'topic')) {
                     $result[] = $id;
                 }
             }
@@ -1381,18 +1385,25 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Get identifier from subfield 0. Prefix with source if necessary.
      *
-     * @param array $field MARC field
+     * @param array  $field MARC field
+     * @param string $type  Type of the id
      *
      * @return string
      */
-    protected function getIdFromField(array $field): string
+    protected function getIdFromField(array $field, string $type = ''): string
     {
         if ($id = $this->record->getSubfield($field, '0')) {
             if (
                 !preg_match('/^https?:/', $id)
-                && ($srcId = $this->getThesaurusId($field))
             ) {
-                $id = "($srcId)$id";
+                // Do not prepend source in front of known authority ids (i.e. already prefixed)
+                $regex = $this->getAuthorityIdRegex($type);
+                if ($regex && preg_match($regex, $id)) {
+                    return $id;
+                }
+                if ($srcId = $this->getThesaurusId($field)) {
+                    return "($srcId)$id";
+                }
             }
         }
         return $id;
@@ -2590,6 +2601,12 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     protected function getAvailableItemsBuildings()
     {
+        $buildingSubfields = [];
+        foreach ($this->getBuildingFieldSpec() as $spec) {
+            if ('952' === $spec['field']) {
+                $buildingSubfields[] = $spec;
+            }
+        }
         $building = [];
         if ($this->getDriverParam('holdingsInBuilding', true)) {
             foreach ($this->record->getFields('952') as $field) {
@@ -2597,9 +2614,18 @@ class Marc extends \RecordManager\Base\Record\Marc
                 if (!$available) {
                     continue;
                 }
-                $location = $this->record->getSubfield($field, 'b');
-                if ($location) {
-                    $building[] = $location;
+                foreach ($buildingSubfields as $buildingField) {
+                    $location = $this->record->getSubfield($field, $buildingField['loc']);
+                    if ($location) {
+                        $subLocField = $buildingField['sub'];
+                        if ($subLocField) {
+                            $sub = $this->record->getSubfield($field, $subLocField);
+                            if ($sub) {
+                                $location = [$location, $sub];
+                            }
+                        }
+                        $building[] = $location;
+                    }
                 }
             }
         }

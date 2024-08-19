@@ -109,6 +109,20 @@ class Lido extends AbstractRecord
     protected $subjectConceptIDTypes = ['uri', 'url'];
 
     /**
+     * Repository location types to be included.
+     *
+     * @var array
+     */
+    protected $repositoryLocationTypes = [];
+
+    /**
+     * Excluded location appellationValue labels.
+     *
+     * @var array
+     */
+    protected $excludedLocationAppellationValueLabels = [];
+
+    /**
      * Return record ID (local)
      *
      * @return string
@@ -132,32 +146,13 @@ class Lido extends AbstractRecord
 
         $data['record_format'] = 'lido';
         $title = $this->getTitle(false);
-        if ($this->getDriverParam('splitTitles', false)) {
-            $titlePart = $this->metadataUtils->splitTitle($title);
-            if ($titlePart) {
-                $data['description'] = $title;
-                $title = $titlePart;
-            }
-        }
         $data['title'] = $data['title_short'] = $data['title_full'] = $title;
-        // Create sort title from the title that may have been split above:
         $data['title_sort'] = $this->metadataUtils->createSortTitle($title);
         $data['title_alt'] = $this->getAltTitles();
 
-        $description = $this->getDescription();
-        if ($description) {
-            if (
-                !empty($data['description'])
-                && !str_starts_with($description, $data['description'])
-            ) {
-                $data['description'] .= " -- $description";
-            } else {
-                $data['description'] = $description;
-            }
-        }
+        $data['description'] = $this->getDescription();
 
         $data['format'] = $this->getObjectWorkType();
-        $data['identifier'] = $this->getIdentifier();
         $data['institution'] = $this->getLegalBodyName();
 
         $data['author'] = $this->getAuthors();
@@ -1320,9 +1315,35 @@ class Lido extends AbstractRecord
             $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
             ?? [] as $set
         ) {
+            $type = (string)($set->attributes()->type ?? '');
+            if ($this->repositoryLocationTypes && !in_array($type, $this->repositoryLocationTypes)) {
+                continue;
+            }
             foreach ($set->repositoryLocation->namePlaceSet ?? [] as $nameSet) {
                 foreach ($nameSet->appellationValue ?? [] as $place) {
-                    $result[] = (string)$place;
+                    if (
+                        $place
+                        && !in_array((string)$place->attributes()->label, $this->excludedLocationAppellationValueLabels)
+                    ) {
+                        $result[] = trim((string)$place);
+                    }
+                }
+            }
+            foreach ($set->repositoryLocation ?? [] as $location) {
+                foreach ($location->partOfPlace ?? [] as $part) {
+                    while ($part->namePlaceSet) {
+                        if ($partName = $part->namePlaceSet->appellationValue ?? null) {
+                            if (
+                                !in_array(
+                                    (string)$partName->attributes()->label,
+                                    $this->excludedLocationAppellationValueLabels
+                                )
+                            ) {
+                                $result[] = trim((string)$partName);
+                            }
+                        }
+                        $part = $part->partOfPlace;
+                    }
                 }
             }
         }

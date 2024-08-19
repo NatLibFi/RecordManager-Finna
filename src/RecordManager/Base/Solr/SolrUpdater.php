@@ -29,10 +29,11 @@
 
 namespace RecordManager\Base\Solr;
 
+use GuzzleHttp\Client;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
 use RecordManager\Base\Exception\HttpRequestException;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Record\AbstractRecord;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Settings\Ini;
@@ -138,11 +139,11 @@ class SolrUpdater
     protected $enrichmentPluginManager;
 
     /**
-     * HTTP client manager
+     * HTTP service
      *
-     * @var HttpClientManager
+     * @var HttpService
      */
-    protected $httpClientManager;
+    protected $httpService;
 
     /**
      * Metadata utilities
@@ -287,9 +288,9 @@ class SolrUpdater
     /**
      * HTTP Client
      *
-     * @var \HTTP_Request2
+     * @var Client
      */
-    protected $request = null;
+    protected ?Client $httpClient = null;
 
     /**
      * Fields to merge when processing deduplicated records
@@ -608,7 +609,7 @@ class SolrUpdater
      * @param Logger                  $log               Logger
      * @param RecordPluginManager     $recordPM          Record plugin manager
      * @param EnrichmentPluginManager $enrichmentPM      Enrichment plugin manager
-     * @param HttpClientManager       $httpManager       HTTP client manager
+     * @param HttpService             $httpService       HTTP service
      * @param Ini                     $configReader      Configuration reader
      * @param FieldMapper             $fieldMapper       Field mapper
      * @param MetadataUtils           $metadataUtils     Metadata utilities
@@ -625,7 +626,7 @@ class SolrUpdater
         Logger $log,
         RecordPluginManager $recordPM,
         EnrichmentPluginManager $enrichmentPM,
-        HttpClientManager $httpManager,
+        HttpService $httpService,
         Ini $configReader,
         FieldMapper $fieldMapper,
         MetadataUtils $metadataUtils,
@@ -636,7 +637,7 @@ class SolrUpdater
         $this->log = $log;
         $this->recordPluginManager = $recordPM;
         $this->enrichmentPluginManager = $enrichmentPM;
-        $this->httpClientManager = $httpManager;
+        $this->httpService = $httpService;
         $this->configReader = $configReader;
         $this->fieldMapper = $fieldMapper;
         $this->metadataUtils = $metadataUtils;
@@ -1003,7 +1004,7 @@ class SolrUpdater
                     // timestamp:
                     $earliestRecordTimestamp -= 5;
                     $dedupParams['changed']
-                        = ['$gte' => $this->db->getTimestamp($fromTimestamp)];
+                        = ['$gte' => $this->db->getTimestamp($earliestRecordTimestamp)];
                     $this->log->logInfo(
                         'updateRecords',
                         'Processing dedup records from '
@@ -1148,7 +1149,6 @@ class SolrUpdater
             function ($record) use (
                 $sourceId,
                 $delete,
-                &$mergedComponents,
                 $dedupRecord,
                 &$result,
                 &$members
@@ -1403,12 +1403,7 @@ class SolrUpdater
                 if ($mapped) {
                     $data = $this->createSolrArray($record, $mergedComponents);
                 } else {
-                    $metadataRecord = $this->createRecord(
-                        $record['format'],
-                        $this->metadataUtils->getRecordData($record, true),
-                        $record['oai_id'],
-                        $record['source_id']
-                    );
+                    $metadataRecord = $this->createRecordFromDbRecord($record);
                     if (isset($settings['solrTransformationXSLT'])) {
                         $params = [
                             'source_id' => $source,
@@ -1483,7 +1478,7 @@ class SolrUpdater
         if (null === $query) {
             $query = '*:*';
         }
-        $request = $this->initSolrRequest(\HTTP_Request2::METHOD_GET);
+        $client = $this->initSolrRequest();
         $baseUrl = $this->config['Solr']['search_url']
             . '?q=' . urlencode($query)
             . '&sort=id+asc&wt=json&fl=id,record_format&rows=1000';
@@ -1498,17 +1493,16 @@ class SolrUpdater
         $cursorMark = '*';
         while ($cursorMark && $cursorMark !== $lastCursorMark) {
             $url = $baseUrl . '&cursorMark=' . urlencode($cursorMark);
-            $request->setUrl($url);
-            $response = $request->send();
-            if ($response->getStatus() != 200) {
+            $response = $client->get($url);
+            if ($response->getStatusCode() != 200) {
                 $this->log->logInfo(
                     'SolrCheck',
                     "Could not scroll cursor mark (url $url), status code "
-                        . $response->getStatus()
+                        . $response->getStatusCode()
                 );
                 throw new \Exception('Solr request failed');
             }
-            $json = json_decode($response->getBody(), true);
+            $json = json_decode((string)$response->getBody(), true);
             $records = $json['response']['docs'];
 
             foreach ($records as $record) {
@@ -1648,17 +1642,18 @@ class SolrUpdater
      */
     public function solrRequest($body, $timeout = null)
     {
-        if (null === $this->request) {
-            $this->request
-                = $this->initSolrRequest(\HTTP_Request2::METHOD_POST, $timeout);
+        if (null === $this->httpClient) {
+            $this->httpClient = $this->initSolrRequest($timeout);
         }
 
         if (!$this->waitForClusterStateOk()) {
             throw new \Exception('Failed to check that the cluster state is ok');
         }
 
-        $this->request->setHeader('Content-Type', 'application/json');
-        $this->request->setBody($body);
+        $params = [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => $body,
+        ];
 
         $response = null;
         $maxTries = $this->maxUpdateTries;
@@ -1670,7 +1665,7 @@ class SolrUpdater
                         'Failed to check that the cluster state is ok'
                     );
                 }
-                $response = $this->request->send();
+                $response = $this->httpClient->post($this->config['Solr']['update_url'], $params);
             } catch (\Exception $e) {
                 if ($try < $maxTries) {
                     $this->log->logWarning(
@@ -1684,14 +1679,14 @@ class SolrUpdater
                 throw HttpRequestException::fromException($e);
             }
             if ($try < $maxTries) {
-                $code = $response->getStatus();
+                $code = $response->getStatusCode();
                 if ($code >= 300) {
                     $this->log->logWarning(
                         'solrRequest',
                         "Solr server request failed ($code), retrying in "
                             . "{$this->updateRetryWait} seconds..."
                             . 'Beginning of response: '
-                            . substr($response->getBody(), 0, 1000)
+                            . substr((string)$response->getBody(), 0, 1000)
                     );
                     sleep($this->updateRetryWait);
                     continue;
@@ -1699,13 +1694,13 @@ class SolrUpdater
             }
             break;
         }
-        $code = null === $response ? 999 : $response->getStatus();
+        $code = null === $response ? 999 : $response->getStatusCode();
         if ($code >= 300) {
             throw new HttpRequestException(
                 "Solr server request failed ($code). URL:\n"
                 . $this->config['Solr']['update_url']
                 . "\nRequest:\n$body\n\nResponse:\n"
-                . (null !== $response ? $response->getBody() : ''),
+                . (null !== $response ? (string)$response->getBody() : ''),
                 $code
             );
         }
@@ -1874,23 +1869,7 @@ class SolrUpdater
                 $this->nonIndexedSources[] = $source;
             }
 
-            foreach ($settings['fieldRules'] ?? [] as $ruleStr) {
-                $ruleParts = explode(' ', $ruleStr);
-                $rule['op'] = $this->ruleMap[$ruleParts[0]] ?? null;
-                if (
-                    null === $rule['op']
-                    || (self::RULE_DELETE === $rule['op'] && empty($ruleParts[1]))
-                    || (self::RULE_DELETE !== $rule['op'] && empty($ruleParts[2]))
-                ) {
-                    throw new \Exception(
-                        "Invalid field rule for $source: '$ruleStr'"
-                    );
-                }
-                $rule['src'] = $ruleParts[1];
-                $rule['dst'] = $ruleParts[2] ?? null;
-                $rule['extra'] = $ruleParts[3] ?? null;
-                $this->settings[$source]['fieldProcessingRules'][] = $rule;
-            }
+            $this->parseFieldRules($source, $settings['fieldRules'] ?? []);
         }
     }
 
@@ -1931,12 +1910,7 @@ class SolrUpdater
             }
         }
 
-        $metadataRecord = $this->createRecord(
-            $record['format'],
-            $this->metadataUtils->getRecordData($record, true),
-            $record['oai_id'],
-            $record['source_id']
-        );
+        $metadataRecord = $this->createRecordFromDbRecord($record);
 
         $settings = $this->settings[$source];
         $hiddenComponent = $this->metadataUtils->isHiddenComponentPart(
@@ -2062,14 +2036,8 @@ class SolrUpdater
                     $hostMetadataRecord = $this->metadataRecordCache
                         ->get($hostRecord['_id']);
                     if (null === $hostMetadataRecord) {
-                        $hostMetadataRecord = $this->createRecord(
-                            $hostRecord['format'],
-                            $this->metadataUtils->getRecordData($hostRecord, true),
-                            $hostRecord['oai_id'],
-                            $hostRecord['source_id']
-                        );
-                        $this->metadataRecordCache
-                            ->put($hostRecord['_id'], $hostMetadataRecord);
+                        $hostMetadataRecord = $this->createRecordFromDbRecord($hostRecord);
+                        $this->metadataRecordCache->put($hostRecord['_id'], $hostMetadataRecord);
                     }
                     $hostTitle = $hostMetadataRecord->getTitle();
                     if ($this->hierarchyParentTitleField) {
@@ -2343,6 +2311,8 @@ class SolrUpdater
                     continue;
                 }
                 if (is_array($datavalue)) {
+                    // phpcs:ignore
+                    /** @psalm-suppress NoValue */
                     $values = array_map(
                         function ($s) {
                             return str_replace('/', ' ', $s);
@@ -2460,6 +2430,55 @@ class SolrUpdater
     }
 
     /**
+     * Parse field rules
+     *
+     * @param string $source Source ID
+     * @param array  $rules  Field rules
+     *
+     * @return void
+     */
+    protected function parseFieldRules(string $source, array $rules): void
+    {
+        foreach ($rules as $ruleStr) {
+            $ruleParts = explode(' ', $ruleStr);
+            $rule = [
+                'op' => $this->ruleMap[array_shift($ruleParts)] ?? null,
+            ];
+            $src = array_shift($ruleParts);
+            if (
+                null === $rule['op']
+                || null === $src
+                || (self::RULE_DELETE !== $rule['op'] && !$ruleParts)
+            ) {
+                throw new \Exception(
+                    "Invalid field rule for $source: '$ruleStr'"
+                );
+            }
+            $rule['src'] = $src;
+            $rule['dst'] = self::RULE_DELETE !== $rule['op'] ? array_shift($ruleParts) : null;
+            if ($params = $ruleParts ? implode(' ', $ruleParts) : '') {
+                $offset = 0;
+                while (preg_match('/^(match|default)="([^"]*)"\s*/', $params, $matches, 0, $offset)) {
+                    $rule[$matches[1]] = $matches[2];
+                    $offset += strlen($matches[0]);
+                }
+                if ($extra = trim(substr($params, $offset))) {
+                    if (isset($rule['default'])) {
+                        throw new \Exception(
+                            "Could not parse field rule params for $source: '$ruleStr' at $extra"
+                        );
+                    }
+                    $rule['default'] = $extra;
+                }
+            }
+            $this->settings[$source]['fieldProcessingRules'][] = $rule;
+        }
+        $this->log->writelnVeryVerbose(
+            "Field rules for $source: " . var_export($this->settings[$source]['fieldProcessingRules'] ?? [], true)
+        );
+    }
+
+    /**
      * Process any field rules
      *
      * @param string                                   $source Source ID
@@ -2473,25 +2492,52 @@ class SolrUpdater
     {
         foreach ($this->settings[$source]['fieldProcessingRules'] ?? [] as $rule) {
             $src = $rule['src'];
-            if (!($fieldValue = ($data[$src] ?? null) ?: $rule['extra'])) {
+            $srcValues = $data[$src] ?? null;
+            if ($match = $rule['match'] ?? null) {
+                // If we don't have values, nothing can match:
+                if (null === $srcValues) {
+                    continue;
+                }
+                // Filter source values by the match rule:
+                $re = str_starts_with($match, '/') && (str_ends_with($match, '/') || str_ends_with($match, '/i'));
+                $matchingValues = array_filter(
+                    (array)$srcValues,
+                    function ($srcValue) use ($re, $match) {
+                        return
+                            ($re && preg_match($match, $srcValue))
+                            || (!$re && $match === $srcValue);
+                    }
+                );
+                // Stop if we don't have any matching values:
+                if (!$matchingValues) {
+                    continue;
+                }
+                $srcValues = is_array($srcValues) ? $matchingValues : reset($matchingValues);
+            }
+            if (!($newValues = $srcValues ?: ($rule['default'] ?? null))) {
                 continue;
             }
             $dst = $rule['dst'];
             if (in_array($rule['op'], [self::RULE_COPY, self::RULE_MOVE])) {
                 if (!isset($data[$dst])) {
-                    $data[$dst] = $fieldValue;
+                    $data[$dst] = $newValues;
                 } else {
                     $data[$dst] = [
                         ...(array)$data[$dst],
-                        ...(array)$fieldValue,
+                        ...(array)$newValues,
                     ];
                 }
             }
-            if (
-                in_array($rule['op'], [self::RULE_DELETE, self::RULE_MOVE])
-                && isset($data[$src])
-            ) {
-                unset($data[$src]);
+            if (in_array($rule['op'], [self::RULE_DELETE, self::RULE_MOVE])) {
+                // If we have a match rule and multiple values, only remove matching values:
+                if ($match && is_array($srcValues)) {
+                    $data[$src] = array_diff($data[$src], $srcValues);
+                    if (!$data[$src]) {
+                        unset($data[$src]);
+                    }
+                } else {
+                    unset($data[$src]);
+                }
             }
         }
     }
@@ -2720,36 +2766,33 @@ class SolrUpdater
     /**
      * Initialize a Solr request object
      *
-     * @param string $method  HTTP method
-     * @param int    $timeout Timeout in seconds (optional)
+     * @param int $timeout Timeout in seconds (optional)
      *
-     * @return \HTTP_Request2
+     * @return Client
      */
-    protected function initSolrRequest($method, $timeout = null)
+    protected function initSolrRequest($timeout = null): Client
     {
-        $request = $this->httpClientManager->createClient(
-            $this->config['Solr']['update_url'],
-            $method
-        );
-        if ($timeout !== null) {
-            $request->setConfig('timeout', $timeout);
-        }
-        $request->setHeader('Connection', 'Keep-Alive');
         // At least some combinations of PHP + curl cause both Transfer-Encoding and
-        // Content-Length to be set in certain cases. Set follow_redirects to true to
+        // Content-Length to be set in certain cases. Set allow_redirects to true to
         // invoke the PHP workaround in the curl adapter.
-        $request->setConfig('follow_redirects', true);
+        $options = [
+            'headers' => ['Connection' => 'Keep-Alive'],
+            'allow_redirects' => true,
+        ];
         if (
-            isset($this->config['Solr']['username'])
-            && isset($this->config['Solr']['password'])
+            ($username = $this->config['Solr']['username'] ?? null)
+            && ($password = $this->config['Solr']['password'] ?? null)
         ) {
-            $request->setAuth(
-                $this->config['Solr']['username'],
-                $this->config['Solr']['password'],
-                \HTTP_Request2::AUTH_BASIC
-            );
+            $options['auth'] = [$username, $password];
         }
-        return $request;
+
+        if (null !== $timeout) {
+            $options['timeout'] = $timeout;
+        }
+        return $this->httpService->createClient(
+            $this->config['Solr']['update_url'],
+            $options
+        );
     }
 
     /**
@@ -2805,12 +2848,11 @@ class SolrUpdater
             return $this->clusterState;
         }
         $this->lastClusterStateCheck = time();
-        $request = $this->initSolrRequest(\HTTP_Request2::METHOD_GET);
+        $client = $this->initSolrRequest();
         $url = $this->config['Solr']['admin_url'] . '/zookeeper'
             . '?wt=json&detail=true&path=%2Fclusterstate.json&view=graph';
-        $request->setUrl($url);
         try {
-            $response = $request->send();
+            $response = $client->get($url);
         } catch (\Exception $e) {
             $this->log->logError(
                 'checkClusterState',
@@ -2820,7 +2862,7 @@ class SolrUpdater
             return 'error';
         }
 
-        $code = $response->getStatus();
+        $code = $response->getStatusCode();
         if (200 !== $code) {
             $this->log->logError(
                 'checkClusterState',
@@ -2829,12 +2871,12 @@ class SolrUpdater
             $this->clusterState = 'error';
             return 'error';
         }
-        $state = json_decode($response->getBody(), true);
+        $state = json_decode((string)$response->getBody(), true);
         if (null === $state) {
             $this->log->logError(
                 'checkClusterState',
                 'Unable to decode zookeeper status from response: '
-                    . $response->getBody()
+                    . (string)$response->getBody()
             );
             $this->clusterState = 'error';
             return 'error';

@@ -263,7 +263,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      *
      * @return Array
      */
-    public function getTestTitleYearRange()
+    public static function getTestTitleYearRange()
     {
         $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
         $mdash = html_entity_decode('&#x2014;', ENT_NOQUOTES, 'UTF-8');
@@ -536,14 +536,65 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test SKS EAD3 record handling
+     * Test online and free online booleans
      *
      * @return void
      */
-    public function testSKS()
+    public function testOnlineBooleans()
     {
-        $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
+        $fields = $this->createRecord(Ead3::class, 'yksa2.xml', [], 'Finna')
             ->toSolrArray();
+        $this->assertEquals('1', $fields['online_boolean']);
+        $this->assertEquals('1', $fields['free_online_boolean']);
+        $fields = $this->createRecord(Ead3::class, 'ead3_online_boolean.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertNotContains('online_boolean', $fields);
+        $this->assertNotContains('free_online_boolean', $fields);
+    }
+
+    /**
+     * Data provider for testSKS
+     *
+     * @return array
+     */
+    public static function sksProvider(): array
+    {
+        return [
+            'addIdToHierarchyTitle=true' => [
+                'true',
+                '1 1 Sundvall Gustaf Edvard S 1:a) 1',
+            ],
+            'addIdToHierarchyTitle=false' => [
+                'false',
+                null,
+            ],
+        ];
+    }
+
+    /**
+     * Test SKS EAD3 record handling
+     *
+     * @param string  $addIdToHierarchyTitle    Value for addIdToHierarchyTitle driver param
+     * @param ?string $expectedTitleInHierarchy Expected title_in_hierarchy field contents
+     *
+     * @dataProvider sksProvider
+     *
+     * @return void
+     */
+    public function testSKS(string $addIdToHierarchyTitle, ?string $expectedTitleInHierarchy): void
+    {
+        $fields = $this->createRecord(
+            Ead3::class,
+            'sks.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        "addIdToHierarchyTitle=$addIdToHierarchyTitle",
+                    ],
+                ],
+            ],
+            'Finna'
+        )->toSolrArray();
         unset($fields['fullrecord']);
         $ltr = "\u{200E}";
 
@@ -768,6 +819,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'image/tiff',
             ],
         ];
+        if (null !== $expectedTitleInHierarchy) {
+            $expected['title_in_hierarchy'] = $expectedTitleInHierarchy;
+        }
 
         $this->assertEquals(
             $expected,
