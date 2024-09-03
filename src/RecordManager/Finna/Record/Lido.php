@@ -613,7 +613,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
      *
-     * @return array<string,array> [ids, fileNames, fileIds]
+     * @return array<string,array> [ids, fileIds]
      */
     protected function getResourceIdentifiers(): array
     {
