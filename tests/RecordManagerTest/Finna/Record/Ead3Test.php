@@ -832,17 +832,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 '242790426',
                 '242790431',
                 'Tiedosto 1',
-                's_24537_0001.tif',
                 'Tiedosto 2',
-                's_24537_0002.tif',
                 'Tiedosto 3',
-                's_24537_0003.tif',
                 'Tiedosto 4',
-                's_24537_0004.tif',
                 'Tiedosto 5',
-                's_24537_0005.tif',
                 'Very good filename',
-                'actuallyishouldappear.tif',
             ],
         ];
         if (null !== $expectedTitleInHierarchy) {

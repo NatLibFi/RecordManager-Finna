@@ -251,10 +251,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
         $resourceIdentifiers = $this->getResourceIdentifiers();
-        $data['identifier_txtP_mv'] = [...$resourceIdentifiers['ids']];
-        if ($result = [...$resourceIdentifiers['ids'], ...$resourceIdentifiers['fileNames']]) {
-            $data['file_identifier_str_mv'] = $result;
-        }
+        $data['identifier_txtP_mv'] = $resourceIdentifiers['ids'];
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         return $data;
     }
 
@@ -1375,7 +1373,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
      *
-     * @return array<string,array> [ids, fileNames]
+     * @return array<string,array> [ids, fileNames, fileIds]
      */
     protected function getResourceIdentifiers(): array
     {
@@ -1384,25 +1382,14 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             return $this->resultCache[$cacheKey];
         }
         $ids = [];
-        $fileNames = [];
-        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileNames) {
+        $fileIds = [];
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds) {
             if ($check && $attrs = $check->attributes()) {
                 if ($identifier = trim((string)$attrs->identifier)) {
                     $ids[] = $identifier;
                 }
                 if ($linktitle = trim((string)$attrs->linktitle)) {
-                    $fileNames[] = $linktitle;
-                }
-                if ($href = trim((string)$attrs->href)) {
-                    if (!preg_match('/^http(s)?:\/\//', $href)) {
-                        // Add scheme if missing
-                        $href = '://' . $href;
-                    }
-                    // We dont really need the domain and other parts from the url
-                    if ($path = parse_url($href, PHP_URL_PATH)) {
-                        $exploded = explode('/', $path);
-                        $fileNames[] = array_pop($exploded);
-                    }
+                    $fileIds[] = $linktitle;
                 }
             }
         };
@@ -1413,6 +1400,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $matchAttributes($dao);
             }
         }
-        return $this->resultCache[$cacheKey] = compact('ids', 'fileNames');
+        $fileIds = [...$ids, ...$fileIds];
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 }

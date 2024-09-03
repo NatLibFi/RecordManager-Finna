@@ -317,9 +317,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         );
         $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         $resourceIdentifiers = $this->getResourceIdentifiers();
-        if ($result = [...$resourceIdentifiers['ids'], ...$resourceIdentifiers['fileNames']]) {
-            $data['file_identifier_str_mv'] = $result;
-        }
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         return $data;
     }
 
@@ -615,7 +613,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
      *
-     * @return array<string,array> [ids, fileNames]
+     * @return array<string,array> [ids, fileNames, fileIds]
      */
     protected function getResourceIdentifiers(): array
     {
@@ -624,17 +622,18 @@ class Lido extends \RecordManager\Base\Record\Lido
             return $this->resultCache[$cacheKey];
         }
         $ids = [];
-        $fileNames = [];
+        $fileIds = [];
         foreach ($this->getResourceSetNodes() as $node) {
             if ($resourceID = trim((string)$node->resourceID)) {
                 $ids[] = $resourceID;
+                $fileIds[] = $resourceID;
             }
             $description = $node->resourceDescription;
             if ($description && 'displayLink' === trim((string)$description->attributes()->type)) {
-                $fileNames[] = trim((string)$description);
+                $fileIds[] = trim((string)$description);
             }
         }
-        return $this->resultCache[$cacheKey] = compact('ids', 'fileNames');
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 
     /**
