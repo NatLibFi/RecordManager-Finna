@@ -336,19 +336,20 @@ class Lido extends \RecordManager\Base\Record\Lido
                 if (!empty($placeNode->place->gml)) {
                     return [];
                 }
-                if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
-                    $subjectLocations = [
-                        ...$subjectLocations,
-                        ...$this->splitLocation((string)$placeNode->displayPlace),
-                    ];
-                    continue;
-                }
+                $hierarchicalLocations = false;
                 foreach ($placeNode->place as $place) {
                     if ($result = $this->getHierarchicalLocations($place)) {
+                        $hierarchicalLocations = true;
                         foreach ($result as $location) {
                             $subjectLocations[] = implode(', ', $location);
                         }
                     }
+                }
+                if (!$hierarchicalLocations && !empty($placeNode->displayPlace)) {
+                    $subjectLocations = [
+                        ...$subjectLocations,
+                        ...$this->splitLocation((string)$placeNode->displayPlace),
+                    ];
                 }
             }
         }
@@ -449,8 +450,20 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getRawGeographicTopicIds(): array
     {
+        return $this->processPlaceIDElements($this->getPlaceIDElements(false, true));
+    }
+
+    /**
+     * Process an array of placeID elements
+     *
+     * @param array $ids PlaceID elements
+     *
+     * @return array
+     */
+    protected function processPlaceIDElements(array $ids): array
+    {
         $result = [];
-        foreach ($this->getPlaceIDElements() as $placeID) {
+        foreach ($ids as $placeID) {
             if (!($id = trim((string)$placeID))) {
                 continue;
             }
@@ -468,34 +481,29 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get all the placeID elements
      *
-     * @param bool $allEvents Return all events for event places
+     * @param bool $allEvents                    Return all events for event places
+     * @param bool $excludePlacesWithCoordinates Exclude places that contain coordinates
      *
      * @return array
      */
-    protected function getPlaceIDElements(bool $allEvents = false): array
+    protected function getPlaceIDElements(bool $allEvents = false, bool $excludePlacesWithCoordinates = false): array
     {
         $result = [];
         foreach ($this->getEventNodes($allEvents ? null : $this->getPlaceEvents()) as $eventNode) {
             foreach ($eventNode->eventPlace as $eventPlace) {
-                foreach ($eventPlace->place->placeID ?? [] as $placeID) {
-                    $result[] = $placeID;
+                if (!$excludePlacesWithCoordinates || empty($eventPlace->place->gml)) {
+                    foreach ($eventPlace->place->placeID ?? [] as $placeID) {
+                        $result[] = $placeID;
+                    }
                 }
             }
         }
         foreach ($this->getSubjectNodes() as $subject) {
             foreach ($subject->subjectPlace as $subjectPlace) {
-                foreach ($subjectPlace->place->placeID ?? [] as $placeID) {
-                    $result[] = $placeID;
-                }
-            }
-        }
-        if ($allEvents) {
-            foreach (
-                $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
-                ?? [] as $set
-            ) {
-                foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
-                    $result[] = $placeID;
+                if (!$excludePlacesWithCoordinates || empty($subjectPlace->place->gml)) {
+                    foreach ($subjectPlace->place->placeID ?? [] as $placeID) {
+                        $result[] = $placeID;
+                    }
                 }
             }
         }
@@ -503,13 +511,15 @@ class Lido extends \RecordManager\Base\Record\Lido
             $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
             ?? [] as $set
         ) {
-            foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
-                $attr = $placeID->attributes();
-                if (in_array($attr->type, $this->includedLocationLabels)) {
-                    $result[] = $placeID;
-                }
-                if ($attr->type == 'URI' && $attr->source == 'YSO') {
-                    $result[] = $placeID;
+            if (!$excludePlacesWithCoordinates || empty($set->repositoryLocation->gml)) {
+                foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
+                    $attr = $placeID->attributes();
+                    if (
+                        $allEvents || in_array($attr->type, $this->includedLocationLabels)
+                        || ($attr->type == 'URI' && $attr->source == 'YSO')
+                    ) {
+                        $result[] = $placeID;
+                    }
                 }
             }
         }
@@ -792,7 +802,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getGeographicTopicIDs()
     {
-        $result = $this->getRawGeographicTopicIds();
+        $result = $this->processPlaceIDElements($this->getPlaceIDElements());
         return $this->addNamespaceToAuthorityIds($result, 'geographic');
     }
 
