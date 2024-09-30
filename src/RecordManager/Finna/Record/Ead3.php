@@ -250,7 +250,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['location_geo'] = $this->getGeographicCoordinates();
         $data['center_coords']
             = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
-
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        $data['identifier_txtP_mv'] = $resourceIdentifiers['ids'];
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         return $data;
     }
 
@@ -1366,5 +1368,39 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileIds]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileIds = [];
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds) {
+            if ($check && $attrs = $check->attributes()) {
+                if ($identifier = trim((string)$attrs->identifier)) {
+                    $ids[] = $identifier;
+                }
+                if ($linktitle = trim((string)$attrs->linktitle)) {
+                    $fileIds[] = $linktitle;
+                }
+            }
+        };
+
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            $matchAttributes($set);
+            foreach ($set->dao as $dao) {
+                $matchAttributes($dao);
+            }
+        }
+        $fileIds = [...$ids, ...$fileIds];
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 }

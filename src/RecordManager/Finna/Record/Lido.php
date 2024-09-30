@@ -316,6 +316,8 @@ class Lido extends \RecordManager\Base\Record\Lido
             )
         );
         $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         return $data;
     }
 
@@ -606,6 +608,32 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         return $results;
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileIds]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileIds = [];
+        foreach ($this->getResourceSetNodes() as $node) {
+            if ($resourceID = trim((string)$node->resourceID)) {
+                $ids[] = $resourceID;
+                $fileIds[] = $resourceID;
+            }
+            $description = $node->resourceDescription;
+            if ($description && 'displayLink' === trim((string)$description->attributes()->type)) {
+                $fileIds[] = trim((string)$description);
+            }
+        }
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 
     /**
@@ -2108,9 +2136,11 @@ class Lido extends \RecordManager\Base\Record\Lido
             return !preg_match('/^https?:/', $el) ? $trimmed : '';
         };
         $identifiers = $this->getIdentifiersByType([], ['issn', 'isbn']);
+        $resourceIdentifiers = $this->getResourceIdentifiers();
         $result = array_merge(
             array_map($filterUrls, $identifiers),
             array_map($filterUrls, $this->getPlaceIDElements(true)),
+            array_map($filterUrls, $resourceIdentifiers['ids'])
         );
         return array_values(array_filter(array_unique($result)));
     }

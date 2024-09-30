@@ -818,6 +818,26 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'media_type_str_mv' => [
                 'image/tiff',
             ],
+            'identifier_txtP_mv' => [
+                '242790411',
+                '242790416',
+                '242790421',
+                '242790426',
+                '242790431',
+            ],
+            'file_identifier_str_mv' => [
+                '242790411',
+                '242790416',
+                '242790421',
+                '242790426',
+                '242790431',
+                'Tiedosto 1',
+                'Tiedosto 2',
+                'Tiedosto 3',
+                'Tiedosto 4',
+                'Tiedosto 5',
+                'Very good filename',
+            ],
         ];
         if (null !== $expectedTitleInHierarchy) {
             $expected['title_in_hierarchy'] = $expectedTitleInHierarchy;
