@@ -87,9 +87,11 @@ return [
     ],
     'service_manager' => [
         'factories' => [
+            \RecordManager\Finna\Solr\SolrUpdater::class => \RecordManager\Base\Solr\SolrUpdaterFactory::class,
             \RecordManager\Finna\Utils\FieldMapper::class => \RecordManager\Base\Utils\FieldMapperFactory::class,
         ],
         'aliases' => [
+            \RecordManager\Base\Solr\SolrUpdater::class => \RecordManager\Finna\Solr\SolrUpdater::class,
             \RecordManager\Base\Utils\FieldMapper::class => \RecordManager\Finna\Utils\FieldMapper::class,
         ],
     ],

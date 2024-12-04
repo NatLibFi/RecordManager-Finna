@@ -228,7 +228,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             ];
             $mediaType = $this->getLinkMediaType(
                 $url,
-                trim($file->attributes()->type)
+                trim($file->attributes()->type ?? '')
             );
             if ($mediaType) {
                 $result['mediaType'] = $mediaType;

@@ -639,5 +639,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
         ];
         $this->compareArray($expected, $result, 'Locations');
+
+        $result = ($record instanceof Lido) ? $record->getRawGeographicTopicIds() : [];
+        $expected = [
+            'http://www.yso.fi/onto/yso/p94191',
+            'http://www.yso.fi/onto/yso/p94124',
+            'http://www.yso.fi/onto/yso/p94137',
+        ];
+        $this->compareArray($expected, $result, 'RawGeographicTopicIds');
     }
 }

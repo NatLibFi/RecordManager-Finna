@@ -837,7 +837,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
                 $result = [
                     'url' => $url,
-                    'desc' => trim($attrs->linktitle),
+                    'desc' => trim($attrs->linktitle ?? ''),
                     'source' => $this->source,
                 ];
                 $mediaType = $this->getLinkMediaType(
