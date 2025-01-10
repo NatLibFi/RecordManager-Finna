@@ -76,20 +76,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     ];
 
     /**
-     * Archive fonds format
-     *
-     * @return string
-     */
-    protected $fondsType = 'Document/Arkisto';
-
-    /**
-     * Archive collection format
-     *
-     * @return string
-     */
-    protected $collectionType = 'Document/Kokoelma';
-
-    /**
      * Undefined format type
      *
      * @return string
@@ -323,7 +309,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (null === $defaultFormat) {
                 $defaultFormat = $format;
             }
-
             if (!$format) {
                 continue;
             }
@@ -885,13 +870,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getSubtitle()
     {
-        $noSubtitleFormats = [
-            $this->fondsType,
-            $this->collectionType,
-        ];
-        if (in_array($this->getFormat(), $noSubtitleFormats)) {
-            return '';
-        }
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
             foreach ($this->doc->did->unitid ?? [] as $id) {
                 $attr = $id->attributes();
