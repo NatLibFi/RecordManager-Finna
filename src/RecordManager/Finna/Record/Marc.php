@@ -249,15 +249,14 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      *
      * @psalm-suppress DuplicateArrayKey
      * @psalm-suppress NoValue
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
 
@@ -603,7 +602,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // NBN
         foreach ($this->record->getFields('015') as $field015) {
             $nbn = $this->record->getSubfield($field015, 'a');
-            $data['nbn_isn_mv'] = $nbn;
+            $data['nbn_str_mv'] = $data['nbn_isn_mv'] = $nbn;
         }
 
         // ISMN, ISRC, UPC, EAN
@@ -920,6 +919,27 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $data['orders_int'] = ($data['orders_int'] ?? 0) + 1;
             } else {
                 $data['items_int'] = ($data['items_int'] ?? 0) + 1;
+            }
+        }
+
+        // Performers
+        foreach ($this->record->getFields('382') as $performer) {
+            $performerData = [];
+            $lastIndex = null;
+            foreach ($performer['subfields'] ?? [] as $subfield) {
+                if (in_array($subfield['code'], ['a', 'b', 'd', 'p'])) {
+                    $performerData[] = $subfield['data'] . '/' . $subfield['data'];
+                    $lastIndex = array_key_last($performerData);
+                }
+                if (in_array($subfield['code'], ['n', 'e']) && $lastIndex !== null) {
+                    $performerData[$lastIndex] .= ' (' . $subfield['data'] . ')';
+                }
+                if ('s' === $subfield['code']) {
+                    $data['performer_total_int_mv'][] = (int)$subfield['data'];
+                }
+            }
+            if (!empty($performerData)) {
+                $data['performer_str_mv'] = array_merge($data['performer_str_mv'] ?? [], $performerData);
             }
         }
 

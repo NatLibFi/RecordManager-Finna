@@ -38,6 +38,7 @@ use RecordManager\Base\Utils\MetadataUtils;
 use function boolval;
 use function count;
 use function in_array;
+use function sprintf;
 
 /**
  * EAD 3 Record Class
@@ -76,20 +77,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     ];
 
     /**
-     * Archive fonds format
-     *
-     * @return string
-     */
-    protected $fondsType = 'Document/Arkisto';
-
-    /**
-     * Archive collection format
-     *
-     * @return string
-     */
-    protected $collectionType = 'Document/Kokoelma';
-
-    /**
      * Undefined format type
      *
      * @return string
@@ -122,12 +109,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
         $doc = $this->doc;
@@ -292,15 +278,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     public function getFormat()
     {
-        $level1 = $level2 = null;
-
+        // If no genreform, use doc level
         $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
         if (!isset($this->doc->controlaccess->genreform)) {
             return $docLevel;
         }
-
+        // For fonds and collections, use doc level as main format
+        $level1 = $level2 = null;
+        if ($docLevel === 'fonds' || $docLevel === 'collection') {
+            $level1 = $docLevel;
+        }
+        // Check format from genreform
         $defaultFormat = null;
         foreach ($this->doc->controlaccess->genreform as $genreform) {
             $nonLangFormat = null;
@@ -321,11 +309,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (null === $defaultFormat) {
                 $defaultFormat = $format;
             }
-
             if (!$format) {
                 continue;
             }
-
+            // Define main and sub format based on encodinganalog attributes
             $attr = $genreform->attributes();
             if (isset($attr->encodinganalog)) {
                 $type = (string)$attr->encodinganalog;
@@ -340,11 +327,14 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-
+        // For fonds and collections, use genreform as default sub format
+        if (($level1 === 'fonds' || $level1 === 'collection') && (null === $level2)) {
+            $level2 = $defaultFormat ?? '';
+        }
+        // For other records, use genreform as default main format
         if (null === $level1) {
             $level1 = $defaultFormat ?? '';
         }
-
         return $level2 ? "$level1/$level2" : $level1;
     }
 
@@ -880,13 +870,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getSubtitle()
     {
-        $noSubtitleFormats = [
-            $this->fondsType,
-            $this->collectionType,
-        ];
-        if (in_array($this->getFormat(), $noSubtitleFormats)) {
-            return '';
-        }
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
             foreach ($this->doc->did->unitid ?? [] as $id) {
                 $attr = $id->attributes();
