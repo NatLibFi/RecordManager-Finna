@@ -182,10 +182,7 @@ class DedupHandler implements DedupHandlerInterface
             $dedupRecord['deleted'] = true;
             $dedupRecord['changed'] = $this->db->getTimestamp();
             $this->db->saveDedup($dedupRecord);
-            return [
-                "Marked dedup record '{$dedupRecord['_id']}' deleted (no records in"
-                . ' non-deleted dedup record)',
-            ];
+            return ["Marked dedup record '{$dedupRecord['_id']}' deleted (no records in non-deleted dedup record)"];
         }
         $removed = [];
         $recordCache = [];
@@ -197,9 +194,6 @@ class DedupHandler implements DedupHandlerInterface
         };
         foreach ((array)($dedupRecord['ids'] ?? []) as $id) {
             $problem = '';
-            if (!isset($recordCache[$id])) {
-                $recordCache[$id] = $this->db->getRecord($id);
-            }
             $record = $getCachedRecord($id);
             $sourceAlreadyExists = false;
             if ($record) {
@@ -221,8 +215,7 @@ class DedupHandler implements DedupHandlerInterface
             } elseif (!isset($record['dedup_id'])) {
                 $problem = 'record is missing dedup_id';
             } elseif ($record['dedup_id'] != $dedupRecord['_id']) {
-                $problem
-                    = "record linked with dedup record '{$record['dedup_id']}'";
+                $problem = "record linked with dedup record '{$record['dedup_id']}'";
             } elseif ($strictCheck) {
                 // This is slower, so check only if there are no other issues:
                 $metadataRecord = $this->createRecordFromDbRecord($record);
@@ -810,8 +803,7 @@ class DedupHandler implements DedupHandlerInterface
 
         // Check for common ISBN
         $origISBNs = $this->filterIds($origRecord->getISBNs(), $origDbRecord);
-        $candidateISBNs
-            = $this->filterIds($candidateRecord->getISBNs(), $candidateDbRecord);
+        $candidateISBNs = $this->filterIds($candidateRecord->getISBNs(), $candidateDbRecord);
         $isect = array_intersect($origISBNs, $candidateISBNs);
         if (!empty($isect)) {
             // Shared ISBN -> match
@@ -880,15 +872,13 @@ class DedupHandler implements DedupHandlerInterface
         $origYear = $origRecord->getPublicationYear();
         $candidateYear = $candidateRecord->getPublicationYear();
         if ($origYear && $candidateYear && $origYear != $candidateYear) {
-            $this->log
-                ->writelnVeryVerbose("--Year mismatch: $origYear != $candidateYear");
+            $this->log->writelnVeryVerbose("--Year mismatch: $origYear != $candidateYear");
             return false;
         }
         $pages = $origRecord->getPageCount();
         $candidatePages = $candidateRecord->getPageCount();
         if ($pages && $candidatePages && abs($pages - $candidatePages) > 10) {
-            $this->log
-                ->writelnVeryVerbose("--Pages mismatch ($pages != $candidatePages)");
+            $this->log->writelnVeryVerbose("--Pages mismatch ($pages != $candidatePages)");
             return false;
         }
 
