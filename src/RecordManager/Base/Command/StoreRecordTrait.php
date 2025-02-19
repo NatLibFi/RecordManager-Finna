@@ -244,11 +244,11 @@ trait StoreRecordTrait
                     // If this is a component part, mark its host record to be
                     // deduplicated.
                     if (!$hostIDs) {
-                        $dbRecord['update_needed']
-                            = $this->dedupHandler->updateDedupCandidateKeys(
-                                $dbRecord,
-                                $metadataRecord
-                            ) || $wasDeleted;
+                        $this->dedupHandler->updateDedupCandidateKeys(
+                            $dbRecord,
+                            $metadataRecord
+                        );
+                        $dbRecord['update_needed'] = true;
                     } else {
                         $this->db->updateRecords(
                             [
