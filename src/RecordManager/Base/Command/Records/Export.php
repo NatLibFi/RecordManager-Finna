@@ -337,7 +337,7 @@ class Export extends AbstractBase
                     $this->addXmlNode($xml, $this->injectId, $id);
                 }
                 if ($this->injectIdPrefixed) {
-                    $this->addXmlNode($xml, $this->injectId, $record['_id']);
+                    $this->addXmlNode($xml, $this->injectIdPrefixed, $record['_id']);
                 }
                 if ($this->injectCreationTimestamp) {
                     $this->addXmlNode(
@@ -510,16 +510,6 @@ class Export extends AbstractBase
                 . ' values: <comment>deduped</comment> = if duplicates exist, <comment>always</comment> = always. '
                 . " Default is to not include the dedup id's."
             )->addOption(
-                'inject-id',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Inject record ID without source prefix to the given XML field'
-            )->addOption(
-                'inject-id-prefixed',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Inject record ID with source prefix to the given XML field'
-            )->addOption(
                 'inject-created',
                 null,
                 InputOption::VALUE_REQUIRED,
@@ -529,6 +519,18 @@ class Export extends AbstractBase
                 . ' (e.g. <comment>\'custom:elem/subelem[@type="some"]\'</comment>). Additional'
                 . ' namespace prefixes can be defined with the <info>--add-namespace</info>'
                 . ' parameter.'
+            )->addOption(
+                'inject-id',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Inject record ID without source prefix to the given XML field'
+                . ' (see <info>--inject-created</info> for more information)'
+            )->addOption(
+                'inject-id-prefixed',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Inject record ID with source prefix to the given XML field'
+                . ' (see <info>--inject-created</info> for more information)'
             )->addOption(
                 'inject-date',
                 null,
