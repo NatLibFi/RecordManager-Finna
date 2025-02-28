@@ -1544,6 +1544,11 @@ class Marc extends \RecordManager\Base\Record\Marc
            ) {
             $dissType = $dissfield[0];
         }
+        if (!$dissType 
+                && $dissfield = $this->record->getFieldsSubFields('920', ['a'])
+           ) {
+            $dissType = $dissfield[0];
+        }
         
         if ($dissType) {
             $dissType = mb_strtolower(
