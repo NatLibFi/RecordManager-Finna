@@ -1,8 +1,9 @@
 <?php
+
 /**
  * GeniePlus API Harvesting Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) Villanova University 2022.
  *
@@ -25,10 +26,19 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Http\Message\MessageInterface;
 use RecordManager\Base\Exception\HttpRequestException;
 use RecordManager\Base\Utils\LineBasedMarcFormatter;
+
+use function array_slice;
+use function call_user_func;
+use function count;
+use function func_get_args;
+use function intval;
 
 /**
  * GeniePlus Class
@@ -170,7 +180,7 @@ class GeniePlus extends AbstractBase
      * @var array
      */
     protected $httpOptions = [
-        'timeout' => 600
+        'timeout' => 600,
     ];
 
     /**
@@ -214,7 +224,8 @@ class GeniePlus extends AbstractBase
         parent::init($source, $verbose, $reharvest);
 
         $settings = $this->dataSourceConfig[$source] ?? [];
-        if (empty($settings['geniePlusDatabase'])
+        if (
+            empty($settings['geniePlusDatabase'])
             || empty($settings['geniePlusOauthId'])
             || empty($settings['geniePlusUsername'])
             || empty($settings['geniePlusPassword'])
@@ -260,18 +271,6 @@ class GeniePlus extends AbstractBase
     }
 
     /**
-     * Reformat a date for use in API queries
-     *
-     * @param string $date Date in YYYY-MM-DD format
-     *
-     * @return string      Date in MM/DD/YYYY format.
-     */
-    protected function reformatDate($date)
-    {
-        return date('n/j/Y', strtotime($date));
-    }
-
-    /**
      * Harvest all available documents.
      *
      * @param callable $callback Function to be called to store a harvested record
@@ -295,7 +294,7 @@ class GeniePlus extends AbstractBase
             'page-size' => $this->batchSize,
             'page' => floor($this->startPosition / $this->batchSize),
             'fields' => implode(',', $fields),
-            'command' => "DtTmModifd > '1/1/1980 1:00:00 PM' sortby DtTmModifd"
+            'command' => "DtTmModifd > '1/1/1980 1:00:00 PM' sortby DtTmModifd",
         ];
 
         if (!empty($this->startDate) || !empty($this->endDate)) {
@@ -331,7 +330,7 @@ class GeniePlus extends AbstractBase
                 ],
                 $apiParams
             );
-            $count = $this->processResponse($response->getBody());
+            $count = $this->processResponse((string)$response->getBody());
             $this->reportResults();
             $apiParams['page']++;
         } while ($count > 0);
@@ -341,6 +340,20 @@ class GeniePlus extends AbstractBase
                 gmdate('Y-m-d\TH:i:s\Z', $harvestStartTime)
             );
         }
+    }
+
+    /**
+     * Reformat a date for use in API queries
+     *
+     * @param string $date Date in YYYY-MM-DD format
+     *
+     * @return string      Date in MM/DD/YYYY format.
+     *
+     * @psalm-suppress FalsableReturnStatement
+     */
+    protected function reformatDate($date)
+    {
+        return date('n/j/Y', strtotime($date));
     }
 
     /**
@@ -357,14 +370,14 @@ class GeniePlus extends AbstractBase
     /**
      * Make a request and return the response as a string
      *
-     * @param array $path   Sierra API path
+     * @param array $path   API path
      * @param array $params GET parameters for the method
      *
-     * @return \HTTP_Request2_Response
+     * @return MessageInterface
      * @throws \Exception
-     * @throws \HTTP_Request2_LogicException
+     * @throws GuzzleException
      */
-    protected function sendRequest($path, $params)
+    protected function sendRequest($path, $params): MessageInterface
     {
         // Set up the request:
         $apiUrl = $this->baseURL;
@@ -373,43 +386,30 @@ class GeniePlus extends AbstractBase
             $apiUrl .= '/' . urlencode($value);
         }
 
-        $request = $this->httpClientManager->createClient(
-            $apiUrl,
-            \HTTP_Request2::METHOD_GET,
-            $this->httpOptions
-        );
-        $request->setHeader('Accept', 'application/json');
-
-        // Load request parameters:
-        $url = $request->getURL();
-        $url->setQueryVariables($params);
-        $urlStr = $url->getURL();
+        $client = $this->httpService->createClient($apiUrl, $this->httpOptions);
+        $headers = $this->httpHeaders;
+        $headers['Accept'] = 'application/json';
+        $url = $this->httpService->appendQueryParams($apiUrl, $params);
 
         if (null === $this->accessToken) {
             $this->renewAccessToken();
         }
-        $request->setHeader(
-            'Authorization',
-            "Bearer {$this->accessToken}"
-        );
+        $headers['Authorization'] = "Bearer {$this->accessToken}";
 
         // Perform request and throw an exception on error:
         $maxTries = $this->maxTries;
         for ($try = 1; $try <= $maxTries; $try++) {
-            $this->infoMsg("Sending request: $urlStr");
+            $this->infoMsg("Sending request: $url");
             try {
-                $response = $request->send();
-                $code = $response->getStatus();
+                $response = $client->get($url, compact('headers'));
+                $code = $response->getStatusCode();
                 if ($code == 404) {
                     return $response;
                 }
                 if ($code == 401) {
                     $this->infoMsg('Renewing access token');
                     $this->renewAccessToken();
-                    $request->setHeader(
-                        'Authorization',
-                        "Bearer {$this->accessToken}"
-                    );
+                    $headers['Authorization'] = "Bearer {$this->accessToken}";
                     ++$maxTries;
                     sleep(1);
                     continue;
@@ -417,14 +417,13 @@ class GeniePlus extends AbstractBase
                 if ($code >= 300) {
                     if ($try < $this->maxTries) {
                         $this->warningMsg(
-                            "Request '$urlStr' failed ($code: "
-                            . $response->getBody() . '), retrying in '
-                            . "{$this->retryWait} seconds..."
+                            "Request '$url' failed ($code: "
+                            . (string)$response->getBody() . "), retrying in {$this->retryWait} seconds..."
                         );
                         sleep($this->retryWait);
                         continue;
                     }
-                    $this->fatalMsg("Request '$urlStr' failed: $code");
+                    $this->fatalMsg("Request '$url' failed: $code");
                     throw new HttpRequestException("Request failed: $code", $code);
                 }
 
@@ -432,7 +431,7 @@ class GeniePlus extends AbstractBase
             } catch (\Exception $e) {
                 if ($try < $this->maxTries) {
                     $this->warningMsg(
-                        "Request '$urlStr' failed (" . $e->getMessage()
+                        "Request '$url' failed (" . $e->getMessage()
                         . "), retrying in {$this->retryWait} seconds..."
                     );
                     sleep($this->retryWait);
@@ -448,7 +447,7 @@ class GeniePlus extends AbstractBase
      * Process the API response.
      * Throw exception if an error is detected.
      *
-     * @param string $response Sierra response JSON
+     * @param string $response Response JSON
      *
      * @return int Count of records processed
      * @throws \Exception
@@ -461,7 +460,7 @@ class GeniePlus extends AbstractBase
         }
         $json = json_decode($response, true);
         if (!isset($json['total'])) {
-            throw new \Exception("Total missing from response; unexpected format!");
+            throw new \Exception('Total missing from response; unexpected format!');
         }
         if (!isset($json['records'])) {
             return 0;
@@ -491,17 +490,15 @@ class GeniePlus extends AbstractBase
      *
      * @return void
      * @throws \Exception
-     * @throws \HTTP_Request2_LogicException
+     * @throws GuzzleException
      */
     protected function renewAccessToken()
     {
         // Set up the request:
         $apiUrl = $this->baseURL . '/_oauth/token';
-        $request = $this->httpClientManager->createClient(
-            $apiUrl,
-            \HTTP_Request2::METHOD_POST
-        );
-        $request->setHeader('Accept', 'application/json');
+        $client = $this->httpService->createClient($apiUrl, $this->httpOptions);
+        $headers = $this->httpHeaders;
+        $headers['Accept'] = 'application/json';
         $params = [
             'client_id' => $this->oauthId,
             'grant_type' => 'password',
@@ -509,26 +506,25 @@ class GeniePlus extends AbstractBase
             'username' => $this->username,
             'password' => $this->password,
         ];
-        $request->setBody(http_build_query($params));
 
         // Perform request and throw an exception on error:
         for ($try = 1; $try <= $this->maxTries; $try++) {
             $this->infoMsg("Sending request: $apiUrl");
             try {
-                $response = $request->send();
-                $code = $response->getStatus();
+                $response = $client->post($apiUrl, ['headers' => $headers, 'body' => http_build_query($params)]);
+                $code = $response->getStatusCode();
                 if ($code >= 300) {
                     if ($try < $this->maxTries) {
                         $this->warningMsg(
                             "Request '$apiUrl' failed ($code: "
-                            . $response->getBody() . '), retrying in'
+                            . (string)$response->getBody() . '), retrying in'
                             . " {$this->retryWait} seconds..."
                         );
                         sleep($this->retryWait);
                         continue;
                     }
                     $this->fatalMsg(
-                        "Request '$apiUrl' failed ($code: " . $response->getBody()
+                        "Request '$apiUrl' failed ($code: " . (string)$response->getBody()
                         . ')'
                     );
                     throw new HttpRequestException(
@@ -537,10 +533,10 @@ class GeniePlus extends AbstractBase
                     );
                 }
 
-                $json = json_decode($response->getBody(), true);
+                $json = json_decode((string)$response->getBody(), true);
                 if (empty($json['access_token'])) {
                     throw new \Exception(
-                        'No access token in response: ' . $response->getBody()
+                        'No access token in response: ' . (string)$response->getBody()
                     );
                 }
                 $this->accessToken = $json['access_token'];
@@ -730,7 +726,7 @@ class GeniePlus extends AbstractBase
         if (false === $xmlString) {
             throw new \Exception("Problem converting MARC record $id to XML string");
         }
-        return $xmlString;
+        return (string)$xmlString;
     }
 
     /**

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * LcCallNumber Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2015-2021.
  *
@@ -25,7 +26,12 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function in_array;
+use function intval;
+use function strlen;
 
 /**
  * LcCallNumber Class
@@ -98,11 +104,11 @@ class LcCallNumber extends AbstractCallNumber
             $matches
         );
         if ($found) {
-            $this->classification = isset($matches[0]) ? trim($matches[0]) : '';
-            $this->letters = isset($matches[1]) ? trim($matches[1]) : '';
-            $this->digits = isset($matches[2]) ? trim($matches[2]) : '';
-            $this->decimal = isset($matches[3]) ? trim($matches[3]) : '';
-            $rest = isset($matches[4]) ? trim($matches[4]) : '';
+            $this->classification = trim($matches[0]);
+            $this->letters = trim($matches[1]);
+            $this->digits = trim($matches[2]);
+            $this->decimal = trim($matches[3]);
+            $rest = trim($matches[4]);
         }
 
         $this->cutter = '';
@@ -214,7 +220,8 @@ class LcCallNumber extends AbstractCallNumber
             return '' === $ptr ? '' : $mapping[$ptr]['cat'];
         }
         foreach ($mapping as $key => $item) {
-            if ($this->letters >= $item['a1']
+            if (
+                $this->letters >= $item['a1']
                 && $this->letters <= $item['a2']
                 && $digits >= $item['d1']
                 && $digits <= $item['d2']

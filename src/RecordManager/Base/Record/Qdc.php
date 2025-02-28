@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Qdc record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2023.
  *
@@ -25,12 +26,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function in_array;
 
 /**
  * Qdc record class
@@ -51,11 +55,11 @@ class Qdc extends AbstractRecord
     use FullTextTrait;
 
     /**
-     * HTTP client manager for FullTextTrait
+     * HTTP service for FullTextTrait
      *
-     * @var HttpClientManager
+     * @var HttpService
      */
-    protected $httpClientManager;
+    protected $httpService;
 
     /**
      * Database for FullTextTrait
@@ -65,46 +69,64 @@ class Qdc extends AbstractRecord
     protected $db;
 
     /**
+     * Record namespace identifier
+     *
+     * @var string
+     */
+    protected $recordNs = 'http://www.openarchives.org/OAI/2.0/oai_dc/';
+
+    /**
+     * Type fields which should be excluded when defining format.
+     *
+     * @var array
+     */
+    protected $excludedFormatTypes = [];
+
+    /**
      * Constructor
      *
-     * @param array             $config           Main configuration
-     * @param array             $dataSourceConfig Data source settings
-     * @param Logger            $logger           Logger
-     * @param MetadataUtils     $metadataUtils    Metadata utilities
-     * @param HttpClientManager $httpManager      HTTP client manager
-     * @param ?Database         $db               Database
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param HttpService   $httpService      HTTP service
+     * @param ?Database     $db               Database
      */
     public function __construct(
         $config,
         $dataSourceConfig,
         Logger $logger,
         MetadataUtils $metadataUtils,
-        HttpClientManager $httpManager,
-        Database $db = null
+        HttpService $httpService,
+        ?Database $db = null
     ) {
         parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils);
-        $this->httpClientManager = $httpManager;
+        $this->httpService = $httpService;
         $this->db = $db;
     }
 
     /**
      * Set record data
      *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
-        $this->XmlTraitSetData($source, $oaiID, $data);
+        $this->XmlTraitSetData($source, $oaiID, $data, $extraData);
 
-        if (empty($this->doc->recordID)) {
-            $p = strpos($oaiID, ':');
-            $p = strpos($oaiID, ':', $p + 1);
-            $this->doc->addChild('recordID', substr($oaiID, $p + 1));
+        if (
+            empty($this->doc->recordID)
+            && empty($this->doc->children($this->recordNs)->recordID)
+        ) {
+            $parts = explode(':', $oaiID, 3);
+            $id = ('oai' === $parts[0] && !empty($parts[2])) ? $parts[2] : $oaiID;
+            $this->doc->addChild('recordID', $id);
         }
     }
 
@@ -115,18 +137,21 @@ class Qdc extends AbstractRecord
      */
     public function getID()
     {
-        return trim((string)$this->doc->recordID[0]);
+        $id = (string)$this->doc->recordID[0];
+        if ('' === $id) {
+            $id = (string)$this->doc->children($this->recordNs)->recordID[0];
+        }
+        return trim($id);
     }
 
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = $this->getFullTextFields($this->doc);
 
@@ -147,7 +172,8 @@ class Qdc extends AbstractRecord
         }
 
         foreach ($doc->title as $title) {
-            if (!isset($data['title'])
+            if (
+                !isset($data['title'])
                 && $title->attributes()->{'type'} !== 'alternative'
             ) {
                 $data['title'] = $data['title_full'] = trim((string)$title);
@@ -204,9 +230,7 @@ class Qdc extends AbstractRecord
     {
         $title = trim((string)$this->doc->title);
         if ($forFiling) {
-            $title = $this->metadataUtils->stripPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         } else {
             $title = $this->metadataUtils->stripTrailingPunctuation($title);
         }
@@ -224,46 +248,6 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get primary authors
-     *
-     * @return array
-     */
-    protected function getPrimaryAuthors()
-    {
-        $result = [];
-        foreach ($this->getValues('creator') as $author) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($author);
-        }
-        return $result;
-    }
-
-    /**
-     * Get secondary authors
-     *
-     * @return array
-     */
-    protected function getSecondaryAuthors()
-    {
-        $result = [];
-        foreach ($this->getValues('contributor') as $contributor) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($contributor);
-        }
-        return $result;
-    }
-
-    /**
-     * Get corporate authors
-     *
-     * @return array
-     */
-    protected function getCorporateAuthors()
-    {
-        return [];
-    }
-
-    /**
      * Dedup: Return unique IDs (control numbers)
      *
      * @return array
@@ -274,7 +258,7 @@ class Qdc extends AbstractRecord
         $form = $this->config['Site']['unicode_normalization_form'] ?? 'NFKC';
         foreach ($this->doc->identifier as $identifier) {
             $identifier = strtolower(trim((string)$identifier));
-            if (strncmp('urn:', $identifier, 4) === 0) {
+            if (str_starts_with($identifier, 'urn:')) {
                 $arr[] = '(urn)' . $this->metadataUtils
                     ->normalizeKey($identifier, $form);
             }
@@ -352,7 +336,28 @@ class Qdc extends AbstractRecord
      */
     public function getFormat()
     {
-        return $this->doc->type ? trim((string)$this->doc->type) : 'Unknown';
+        $param = $this->getDriverParam('preferredFormatTypes', '');
+        $preferredTypes = $param ? explode(',', $param) : [];
+        $collectedTypes = [];
+        $first = '';
+        foreach ($this->doc->type ?? [] as $node) {
+            if ($value = trim((string)$node)) {
+                $typeAttr = trim((string)($node->attributes()->type ?? '')) ?: 'no_type';
+                if (!in_array($typeAttr, $this->excludedFormatTypes) && !($collectedTypes[$typeAttr] ?? '')) {
+                    $collectedTypes[$typeAttr] = $value;
+                    $first = $first ?: $typeAttr;
+                }
+            }
+        }
+        if ($collectedTypes) {
+            foreach ($preferredTypes as $pref) {
+                if ($collectedTypes[$pref] ?? '') {
+                    return $collectedTypes[$pref];
+                }
+            }
+            return $collectedTypes[$first];
+        }
+        return 'Unknown';
     }
 
     /**
@@ -389,6 +394,94 @@ class Qdc extends AbstractRecord
     public function getPageCount()
     {
         return '';
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    public function getTopics()
+    {
+        return $this->getValues('subject');
+    }
+
+    /**
+     * Get descriptions as an associative array
+     *
+     * @return array
+     */
+    public function getDescriptions(): array
+    {
+        $all = [];
+        $primary = '';
+        $lang = $this->getDriverParam('defaultDisplayLanguage', 'en');
+        foreach ($this->doc->description as $description) {
+            $trimmed = trim((string)$description);
+            if (!preg_match('/(^https?)|(^\d+\.\d+$)/', $trimmed)) {
+                $all[] = (string)$description;
+                if (!$primary) {
+                    $descLang = (string)$description->attributes()->{'lang'};
+                    if ($descLang === $lang) {
+                        $primary = $trimmed;
+                    }
+                }
+            }
+        }
+        if (!$primary && $all) {
+            $primary = $all[0];
+        }
+        return compact('primary', 'all');
+    }
+
+    /**
+     * Get series information
+     *
+     * @return array
+     */
+    public function getSeries()
+    {
+        return [];
+    }
+
+    /**
+     * Get primary authors
+     *
+     * @return array
+     */
+    protected function getPrimaryAuthors()
+    {
+        $result = [];
+        foreach ($this->getValues('creator') as $author) {
+            $result[]
+                = $this->metadataUtils->stripTrailingPunctuation($author);
+        }
+        return $result;
+    }
+
+    /**
+     * Get secondary authors
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthors()
+    {
+        $result = [];
+        foreach ($this->getValues('contributor') as $contributor) {
+            $result[]
+                = $this->metadataUtils->stripTrailingPunctuation($contributor);
+        }
+        return $result;
+    }
+
+    /**
+     * Get corporate authors
+     *
+     * @return array
+     */
+    protected function getCorporateAuthors()
+    {
+        return [];
     }
 
     /**
@@ -472,44 +565,6 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get topics.
-     *
-     * @return array
-     */
-    public function getTopics()
-    {
-        return $this->getValues('subject');
-    }
-
-    /**
-     * Get descriptions as an associative array
-     *
-     * @return array
-     */
-    public function getDescriptions(): array
-    {
-        $all = [];
-        $primary = '';
-        $lang = $this->getDriverParam('defaultDisplayLanguage', 'en');
-        foreach ($this->doc->description as $description) {
-            $trimmed = trim((string)$description);
-            if (!preg_match('/(^https?)|(^\d+\.\d+$)/', $trimmed)) {
-                $all[] = (string)$description;
-                if (!$primary) {
-                    $descLang = (string)$description->attributes()->{'lang'};
-                    if ($descLang === $lang) {
-                        $primary = $trimmed;
-                    }
-                }
-            }
-        }
-        if (!$primary && $all) {
-            $primary = $all[0];
-        }
-        return compact('primary', 'all');
-    }
-
-    /**
      * Get xml field values
      *
      * @param string $tag        Field name
@@ -529,16 +584,6 @@ class Qdc extends AbstractRecord
             $values[] = trim((string)$element);
         }
         return $values;
-    }
-
-    /**
-     * Get series information
-     *
-     * @return array
-     */
-    public function getSeries()
-    {
-        return [];
     }
 
     /**

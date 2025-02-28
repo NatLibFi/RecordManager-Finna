@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Deduplication handler factory
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Deduplication;
 
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
@@ -64,7 +66,7 @@ class DedupHandlerFactory implements \Laminas\ServiceManager\Factory\FactoryInte
     public function __invoke(
         ContainerInterface $container,
         $requestedName,
-        array $options = null
+        ?array $options = null
     ) {
         $configReader = $container->get(\RecordManager\Base\Settings\Ini::class);
         $config = $configReader->get('recordmanager.ini');

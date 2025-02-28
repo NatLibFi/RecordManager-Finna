@@ -53,4 +53,15 @@
     <date>20221212-20221214</date>
     <date>20221210</date>
     <date>2 028----00 05</date>
+
+    <!-- Dates and places in coverage -->
+    <coverage>Undefined coverage type</coverage>
+    <coverage type="temporal">2010</coverage>
+    <coverage type="temporal"> 2010-luku.</coverage>
+    <coverage type="spatial">Helsinki.</coverage>
+    <coverage type="spatial">Vantaa</coverage>
+    <coverage type="spatial">63.0,27.0</coverage>
+    <coverage type="geocoding" format="lat,lon">63.5694237,27.1826451</coverage>
+    <coverage type="geocoding" format="lon,lat">20.0,60.0</coverage>
+    <coverage type="geocoding" format="lat,lon">Iisalmi</coverage>
 </dc>

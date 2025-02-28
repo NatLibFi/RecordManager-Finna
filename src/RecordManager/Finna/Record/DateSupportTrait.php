@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Date handling support trait.
  *
@@ -25,7 +26,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
+
+use function in_array;
 
 /**
  * Date handling support trait.
@@ -38,6 +42,20 @@ namespace RecordManager\Finna\Record;
  */
 trait DateSupportTrait
 {
+    /**
+     * Minimum year allowed
+     *
+     * @var int
+     */
+    protected int $minYear = -9999;
+
+    /**
+     * Maximum year allowed
+     *
+     * @var int
+     */
+    protected int $maxYear = 9999;
+
     /**
      * Convert a date range to a Solr date range string,
      * e.g. [1970-01-01 TO 1981-01-01]
@@ -53,10 +71,59 @@ trait DateSupportTrait
             return '';
         }
         $oldTZ = date_default_timezone_get();
+        $invalidFunction = function () use ($oldTZ) {
+            $this->storeWarning('invalid converted date range');
+            date_default_timezone_set($oldTZ);
+            return '';
+        };
         try {
             date_default_timezone_set('UTC');
-            $start = date('Y-m-d', strtotime($range[0]));
-            $end = date('Y-m-d', strtotime($range[1]));
+            $final = [];
+            for ($i = 0; $i < 2; $i++) {
+                $date = $range[$i] ?? false;
+                if (!$date) {
+                    return $invalidFunction();
+                }
+                [
+                    'year' => $year,
+                    'month' => $month,
+                    'day' => $day,
+                    'error_count' => $error_count,
+                    'warning_count' => $warning_count
+                ] = date_parse($date);
+                if (
+                    $error_count ||
+                    $warning_count ||
+                    in_array(
+                        false,
+                        [
+                            $year ?? false,
+                            $month ?? false,
+                            $day ?? false,
+                        ],
+                        true
+                    )
+                ) {
+                    return $invalidFunction();
+                }
+                $modified = null;
+                if ($year < $this->minYear) {
+                    $modified = implode('-', [$this->minYear, $month, $day]);
+                }
+                if ($year > $this->maxYear) {
+                    $modified = implode('-', [$this->maxYear, $month, $day]);
+                }
+                $modified ??= $date;
+                if (!$modified) {
+                    return $invalidFunction();
+                }
+                $final[$i] = date('Y-m-d', strtotime($modified));
+            }
+            [0 => $start, 1 => $end] = $final;
+            // Compare dates after they have been converted to UTC yyyy-mm-dd.
+            if (strtotime($start) > strtotime($end)) {
+                return $invalidFunction();
+            }
         } catch (\Exception $e) {
             date_default_timezone_set($oldTZ);
             throw $e;
@@ -73,23 +140,39 @@ trait DateSupportTrait
      *
      * @return array [startYear, endYear] or empty array if not found.
      */
-    protected function getYearsFromString(string $dateString): array
+    protected function getYearRangeFromString(string $dateString): array
     {
-        if (preg_match_all(
-            '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
-            $dateString,
-            $matches
-        )
-        ) {
+        if ($years = $this->getYearsFromString($dateString)) {
             $result = [
-                'startYear' => $matches[1][0],
-                'endYear' => $matches[1][1] ?? $matches[1][0]
+                'startYear' => $years[0],
+                'endYear' => $years[1] ?? $years[0],
             ];
             // Turn the years into numbers and compare them.
             if ((int)$result['startYear'] > (int)$result['endYear']) {
                 $result['endYear'] = $result['startYear'];
             }
             return $result;
+        }
+        return [];
+    }
+
+    /**
+     * Get years from a string. Returns array containing all found 4 digit years.
+     *
+     * @param string $dateString String to check for years.
+     *
+     * @return array
+     */
+    protected function getYearsFromString(string $dateString): array
+    {
+        if (
+            preg_match_all(
+                '/(-?\b\d{4})\b-?\d{0,2}\b-?\b\d{0,2}\b/',
+                $dateString,
+                $matches
+            )
+        ) {
+            return $matches[1];
         }
         return [];
     }

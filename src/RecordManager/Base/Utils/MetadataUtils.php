@@ -1,10 +1,11 @@
 <?php
+
 /**
  * MetadataUtils Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2022.
+ * Copyright (C) The National Library of Finland 2011-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,9 +26,17 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
 
 use RecordManager\Base\Record\AbstractRecord;
+
+use function assert;
+use function count;
+use function in_array;
+use function is_array;
+use function is_object;
+use function strlen;
 
 /**
  * MetadataUtils Class
@@ -84,7 +93,7 @@ class MetadataUtils
      *
      * @var array
      */
-    protected $articles = null;
+    protected $articles = [];
 
     /**
      * Non-electronic article formats
@@ -139,7 +148,7 @@ class MetadataUtils
         'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
         'ð' => 'o', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o',
         'õ' => 'o', 'ö' => 'o', 'ø' => 'o', 'ù' => 'u', 'ú' => 'u',
-        'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'þ' => 'b', 'ÿ' => 'y'
+        'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'þ' => 'b', 'ÿ' => 'y',
     ];
 
     /**
@@ -148,7 +157,7 @@ class MetadataUtils
      * @var string
      */
     protected $keyFoldingRules
-        = ":: NFD; :: lower; :: Latin; :: [^[:letter:] [:number:]] Remove; :: NFKC;";
+        = ':: NFD; :: lower; :: Latin; :: [^[:letter:] [:number:]] Remove; :: NFKC;';
 
     /**
      * Transliterator for folding keys
@@ -163,6 +172,8 @@ class MetadataUtils
      * @param string $basePath Base path for referenced files
      * @param array  $config   Main configuration
      * @param Logger $logger   Logger
+     *
+     * @psalm-suppress DuplicateArrayKey
      */
     public function __construct(
         string $basePath,
@@ -190,22 +201,30 @@ class MetadataUtils
         }
 
         // Read the abbreviations file
-        $this->abbreviations = isset($config['Site']['abbreviations'])
-            ? array_flip(
-                $this->readListFile($config['Site']['abbreviations'])
-            ) : [];
+        $this->abbreviations = array_flip(
+            $this->readListFile($config['Site']['abbreviations'] ?? '')
+        );
 
         // Read the artices file
-        $this->articles = isset($config['Site']['articles'])
-            ? $this->readListFile($config['Site']['articles']) : [];
+        $this->articles = array_map(
+            function ($s) {
+                return [
+                    'article' => mb_strtolower($s, 'UTF-8'),
+                    'length' => mb_strlen($s, 'UTF-8'),
+                ];
+            },
+            $this->readListFile($config['Site']['articles'] ?? '')
+        );
 
-        $this->articleFormats = $config['Solr']['article_formats'] ?? ['Article'];
+        $this->articleFormats
+            = (array)($config['Solr']['article_formats'] ?? ['Article']);
 
-        $this->eArticleFormats = $config['Solr']['earticle_formats'] ?? ['eArticle'];
+        $this->eArticleFormats
+            = (array)($config['Solr']['earticle_formats'] ?? ['eArticle']);
 
         $this->allArticleFormats = [
             ...$this->articleFormats,
-            ...$this->eArticleFormats
+            ...$this->eArticleFormats,
         ];
 
         $this->unicodeNormalizationForm
@@ -303,7 +322,8 @@ class MetadataUtils
             }
             return $dec;
         }
-        if (preg_match('/^([eEwWnNsS])?(\d{3})(\d{2}\.\d+)/', $value, $matches)
+        if (
+            preg_match('/^([eEwWnNsS])?(\d{3})(\d{2}\.\d+)/', $value, $matches)
         ) {
             $dec = (float)$matches[2] + (float)$matches[3] / 60;
             if (in_array($matches[1], ['w', 'W', 's', 'S'])) {
@@ -311,7 +331,8 @@ class MetadataUtils
             }
             return $dec;
         }
-        if (preg_match('/^([eEwWnNsS+-])?(\d+\.\d+)/', $value, $matches)
+        if (
+            preg_match('/^([eEwWnNsS+-])?(\d+\.\d+)/', $value, $matches)
         ) {
             $dec = (float)$matches[2];
             if (in_array($matches[1], ['w', 'W', 's', 'S', '-'])) {
@@ -351,8 +372,9 @@ class MetadataUtils
         if ($this->fullTitlePrefixes) {
             $normalTitle = $this->normalizeKey($title);
             foreach ($this->fullTitlePrefixes as $prefix) {
-                if ($prefix
-                    && strncmp($normalTitle, $prefix, strlen($prefix)) === 0
+                if (
+                    $prefix
+                    && str_starts_with($normalTitle, $prefix)
                 ) {
                     $full = true;
                     break;
@@ -408,24 +430,6 @@ class MetadataUtils
             $str = $this->normalizeUnicode($str, $form);
         }
         return mb_strtolower(trim($str), 'UTF-8');
-    }
-
-    /**
-     * Get the transliterator for folding keys
-     *
-     * @return ?\Transliterator
-     */
-    protected function getKeyFoldingTransliterator(): ?\Transliterator
-    {
-        if (!$this->keyFoldingRules) {
-            return null;
-        }
-        if (null === $this->keyFoldingTransliterator) {
-            $this->keyFoldingTransliterator = \Transliterator::createFromRules(
-                $this->keyFoldingRules
-            );
-        }
-        return $this->keyFoldingTransliterator;
     }
 
     /**
@@ -510,9 +514,9 @@ class MetadataUtils
             --$i;
         }
         $c = $str[$i];
-        $punctuation = strpos('/:;,=([', $c) !== false;
+        $punctuation = str_contains('/:;,=([', $c);
         if (!$punctuation) {
-            $punctuation = substr($str, -1) == '.' && !substr($str, -3, 1) != ' ';
+            $punctuation = str_ends_with($str, '.') && substr($str, -3, 1) !== ' ';
         }
         return $punctuation;
     }
@@ -533,7 +537,7 @@ class MetadataUtils
         ?string $punctuation = null,
         bool $preservePunctuationOnly = true
     ) {
-        $punctuation = $punctuation ?? "[\\t\\p{P}=´`” ̈]+";
+        $punctuation ??= '[\\t\\p{P}=´`” ̈]+';
         // Use preg_replace for multibyte support
         $result = preg_replace(
             '/' . $punctuation . '/u',
@@ -601,8 +605,9 @@ class MetadataUtils
             } else {
                 $lastWord = substr($str, 0, -1);
             }
-            if (!is_numeric($lastWord)
-                && !isset($this->abbreviations[strtolower($lastWord)])
+            if (
+                !is_numeric($lastWord)
+                && !isset($this->abbreviations[mb_strtolower($lastWord, 'UTF-8')])
             ) {
                 $str = substr($str, 0, -1);
             }
@@ -613,8 +618,9 @@ class MetadataUtils
         // Remove trailing parenthesis and square backets if they don't have
         // counterparts
         $last = substr($str, -1);
-        if (($last == ')' && strpos($str, '(') === false)
-            || ($last == ']' && strpos($str, '[') === false)
+        if (
+            ($last == ')' && !str_contains($str, '('))
+            || ($last == ']' && !str_contains($str, '['))
         ) {
             $str = substr($str, 0, -1);
         }
@@ -641,7 +647,7 @@ class MetadataUtils
         ?string $punctuation = null,
         bool $preservePunctuationOnly = true
     ) {
-        $punctuation = $punctuation ?? " \t\\#*!¡?/:;.,=(['\"´`” ̈";
+        $punctuation ??= " \t\\#*!¡?/:;.,=(['\"´`” ̈";
         // Use preg_replace for multibyte support
         $result = preg_replace(
             '/^[' . preg_quote($punctuation, '/') . ']*/u',
@@ -671,14 +677,37 @@ class MetadataUtils
      */
     public function stripLeadingArticle($str)
     {
+        $str = mb_strtolower($str, 'UTF-8');
         foreach ($this->articles as $article) {
-            $len = strlen($article);
-            if (strncasecmp($article, $str, $len) == 0) {
-                $str = substr($str, $len);
+            if (mb_substr($str, 0, $article['length']) === $article['article']) {
+                $str = mb_substr($str, $article['length']);
                 break;
             }
         }
         return $str;
+    }
+
+    /**
+     * Create a sort title
+     *
+     * @param string $title        Title
+     * @param bool   $stripArticle Whether to strip any leading article
+     *
+     * @return string
+     */
+    public function createSortTitle(string $title, bool $stripArticle = true): string
+    {
+        if ($stripArticle) {
+            $title = $this->stripLeadingArticle($title);
+        }
+        $titleStart = mb_substr($title, 0, 1, 'UTF-8');
+        $title = $this->stripPunctuation($title);
+        // Strip article again just in case punctuation made a difference:
+        if ($stripArticle && mb_substr($title, 0, 1, 'UTF-8') !== $titleStart) {
+            $title = $this->stripLeadingArticle($title);
+        }
+        $title = mb_strtolower($title, 'UTF-8');
+        return $title;
     }
 
     /**
@@ -723,19 +752,18 @@ class MetadataUtils
      *
      * @param string $date Date to validate
      *
-     * @return boolean|int False if invalid, resulting time otherwise
+     * @return false|int False if invalid, resulting unix time otherwise
      */
     public function validateDate($date)
     {
-        $found = preg_match(
-            '/^(\-?\d{4})-(\d{2})-(\d{2})$/',
-            $date,
-            $parts
-        );
-        if (!$found) {
+        if (!$date || strlen($date) !== 10) {
             return false;
         }
-        if ($parts[2] < 1 || $parts[2] > 12
+        if (!preg_match('/^(\-?\d{4})-(\d{2})-(\d{2})$/', $date, $parts)) {
+            return false;
+        }
+        if (
+            $parts[2] < 1 || $parts[2] > 12
             || $parts[3] < 1 || $parts[3] > 31
         ) {
             return false;
@@ -764,7 +792,8 @@ class MetadataUtils
         if (!$found) {
             return false;
         }
-        if ($parts[2] < 1 || $parts[2] > 12
+        if (
+            $parts[2] < 1 || $parts[2] > 12
             || $parts[3] < 1 || $parts[3] > 31
             || $parts[4] < 0 || $parts[4] > 23
             || $parts[5] < 0 || $parts[5] > 59
@@ -907,66 +936,6 @@ class MetadataUtils
     }
 
     /**
-     * Split title to main title and description. Tries to find the first sentence
-     * break where the title can be split.
-     *
-     * @param string $title Title to split
-     *
-     * @return null|string Null if title was not split, otherwise the initial
-     * title part
-     */
-    public function splitTitle($title)
-    {
-        $i = 0;
-        $parenLevel = 0;
-        $bracketLevel = 0;
-        // Make sure the title has single spaces for whitespace
-        $title = preg_replace('/\s+/', ' ', $title);
-        $titleWords = explode(' ', $title);
-        foreach ($titleWords as $word) {
-            ++$i;
-            $parenLevel += substr_count($word, '(');
-            $parenLevel -= substr_count($word, ')');
-            $bracketLevel += substr_count($word, '[');
-            $bracketLevel -= substr_count($word, ']');
-            if ($parenLevel == 0 && $bracketLevel == 0) {
-                // Try to avoid splitting at short words or the very beginning
-                if (substr($word, -1) == '.' && strlen($word) > 2
-                    && ($i > 1 || strlen($word) > 4)
-                ) {
-                    // Verify that the word is strippable (not abbreviation etc.)
-                    $leadStripped = $this->stripLeadingPunctuation(
-                        $word
-                    );
-                    $stripped = $this->stripTrailingPunctuation(
-                        $leadStripped
-                    );
-                    $nextFirst = isset($titleWords[$i])
-                        ? substr($titleWords[$i], 0, 1)
-                        : '';
-                    // 1.) There has to be something following this word.
-                    // 2.) The trailing period must be strippable or end with a year.
-                    // 3.) Next word has to start with a capital or digit
-                    // 4.) Not something like 12-p.
-                    // 5.) Not initials like A.N.
-                    if ($nextFirst
-                        && ($leadStripped != $stripped
-                        || preg_match('/^\d{4}\.$/', $word))
-                        && (is_numeric($nextFirst) || !ctype_lower($nextFirst))
-                        && !preg_match('/.+\-\w{1,2}\.$/', $word)
-                        && !preg_match('/^\w\.\w\.$/', $word) // initials
-                    ) {
-                        return $this->stripTrailingPunctuation(
-                            implode(' ', array_splice($titleWords, 0, $i))
-                        );
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Determine if a record is a hidden component part
      *
      * @param array          $settings       Data source settings
@@ -980,7 +949,8 @@ class MetadataUtils
         if (isset($record['host_record_id'])) {
             if ($settings['componentParts'] == 'merge_all') {
                 return true;
-            } elseif ($settings['componentParts'] == 'merge_non_articles'
+            } elseif (
+                $settings['componentParts'] == 'merge_non_articles'
                 || $settings['componentParts'] == 'merge_non_earticles'
             ) {
                 $format = $metadataRecord->getFormat();
@@ -1250,10 +1220,28 @@ class MetadataUtils
             $result .= ' ' . $smushPers;
         }
         // Now we have initials separate and together
-        if (!trim($result) !== $smushAll) {
+        if (trim($result) !== $smushAll) {
             $result .= " $smushAll";
         }
         return trim($result);
+    }
+
+    /**
+     * Get the transliterator for folding keys
+     *
+     * @return ?\Transliterator
+     */
+    protected function getKeyFoldingTransliterator(): ?\Transliterator
+    {
+        if (!$this->keyFoldingRules) {
+            return null;
+        }
+        if (null === $this->keyFoldingTransliterator) {
+            $this->keyFoldingTransliterator = \Transliterator::createFromRules(
+                $this->keyFoldingRules
+            );
+        }
+        return $this->keyFoldingTransliterator;
     }
 
     /**
@@ -1265,6 +1253,9 @@ class MetadataUtils
      */
     protected function readListFile($filename)
     {
+        if ('' === $filename) {
+            return [];
+        }
         $filename = $this->basePath . "/conf/$filename";
         $lines = file($filename, FILE_IGNORE_NEW_LINES);
         if ($lines === false) {
@@ -1273,7 +1264,17 @@ class MetadataUtils
         array_walk(
             $lines,
             function (&$value) {
-                $value = trim($value, "'");
+                $start = 0;
+                $end = null;
+                if (str_starts_with($value, "'")) {
+                    $start = 1;
+                }
+                if (str_ends_with($value, "'")) {
+                    $end = -1;
+                }
+                if ($start || $end) {
+                    $value = substr($value, $start, $end);
+                }
             }
         );
 

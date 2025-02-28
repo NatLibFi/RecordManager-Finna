@@ -1,13 +1,14 @@
 <?php
+
 /**
  * OAI-PMH Harvesting Class
  *
  * Based on harvest-oai.php in VuFind
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (c) Demian Katz 2010.
- * Copyright (c) The National Library of Finland 2011-2021.
+ * Copyright (c) The National Library of Finland 2011-2024.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -29,9 +30,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
+use GuzzleHttp\Exception\GuzzleException;
 use RecordManager\Base\Exception\HttpRequestException;
+
+use function call_user_func;
+use function count;
+use function strlen;
 
 /**
  * OaiPmh Class
@@ -170,9 +177,7 @@ class OaiPmh extends AbstractBase
         $this->granularity = $settings['dateGranularity'] ?? 'auto';
         $this->debugLog = $settings['debuglog'] ?? '';
         $this->preXslt = [];
-        foreach ((array)($settings['oaipmhTransformation'] ?? [])
-            as $transformation
-        ) {
+        foreach ((array)($settings['oaipmhTransformation'] ?? []) as $transformation) {
             $style = new \DOMDocument();
             $xsltPath = RECMAN_BASE_PATH . "/transformations/$transformation";
             $loadResult = $style->load($xsltPath);
@@ -256,7 +261,7 @@ class OaiPmh extends AbstractBase
         // Make the OAI-PMH request:
         $params = [
             'metadataPrefix' => $this->metadataPrefix,
-            'identifier' => $id
+            'identifier' => $id,
         ];
         $this->xml = $this->sendRequest('GetRecord', $params);
 
@@ -321,10 +326,9 @@ class OaiPmh extends AbstractBase
     protected function safeguard($resumptionToken)
     {
         if ($this->lastResumptionToken === $resumptionToken) {
-            if (++$this->sameResumptionTokenCount >= $this->sameResumptionTokenLimit
-            ) {
+            if (++$this->sameResumptionTokenCount >= $this->sameResumptionTokenLimit) {
                 throw new \Exception(
-                    "Same resumptionToken received"
+                    'Same resumptionToken received'
                     . " {$this->sameResumptionTokenCount} times, aborting"
                 );
             }
@@ -386,50 +390,46 @@ class OaiPmh extends AbstractBase
      *
      * @return \DOMDocument Response as DOM
      * @throws \Exception
-     * @throws \HTTP_Request2_LogicException
+     * @throws GuzzleException
      */
     protected function sendRequest($verb, $params = [])
     {
         // Set up the request:
-        $request = $this->httpClientManager->createClient(
+        $client = $this->httpService->createClient(
             $this->baseURL,
-            \HTTP_Request2::METHOD_GET
+            ['auth' => $this->httpAuth, 'headers' => $this->httpHeaders]
         );
-
-        // Load request parameters:
-        $url = $request->getURL();
         $params['verb'] = $verb;
-        $url->setQueryVariables(array_merge($url->getQueryVariables(), $params));
+        $url = $this->httpService->appendQueryParams($this->baseURL, $params);
 
-        $urlStr = $url->getURL();
         if ($this->debugLog) {
             file_put_contents(
                 $this->debugLog,
-                date('Y-m-d H:i:s') . ' [' . getmypid() . "] Request:\n$urlStr\n",
+                date('Y-m-d H:i:s') . ' [' . getmypid() . "] Request:\n$url\n",
                 FILE_APPEND
             );
         }
 
         // Perform request and throw an exception on error:
         for ($try = 1; $try <= $this->maxTries; $try++) {
-            $this->infoMsg("Sending request: $urlStr");
+            $this->infoMsg("Sending request: $url");
             try {
-                $response = $request->send();
-                $code = $response->getStatus();
+                $response = $client->get($url);
+                $code = $response->getStatusCode();
                 if ($code >= 300) {
                     if ($try < $this->maxTries) {
                         $this->warningMsg(
-                            "Request '$urlStr' failed ($code), retrying in "
+                            "Request '$url' failed ($code), retrying in "
                             . "{$this->retryWait} seconds..."
                         );
                         sleep($this->retryWait);
                         continue;
                     }
-                    $this->fatalMsg("Request '$urlStr' failed: $code");
+                    $this->fatalMsg("Request '$url' failed: $code");
                     throw new HttpRequestException("Request failed: $code", $code);
                 }
 
-                $responseStr = $response->getBody();
+                $responseStr = (string)$response->getBody();
                 if ($this->debugLog) {
                     file_put_contents(
                         $this->debugLog,
@@ -448,7 +448,7 @@ class OaiPmh extends AbstractBase
             } catch (\Exception $e) {
                 if ($try < $this->maxTries) {
                     $this->warningMsg(
-                        "Request '$urlStr' failed (" . $e->getMessage()
+                        "Request '$url' failed (" . $e->getMessage()
                         . "), retrying in {$this->retryWait} seconds..."
                     );
                     sleep($this->retryWait);
@@ -480,7 +480,7 @@ class OaiPmh extends AbstractBase
             file_put_contents($tempfile, $xml);
             $this->errorMsg("Invalid XML stored in $tempfile");
             throw new \Exception(
-                "Failed to parse XML response: " . $e->getMessage()
+                'Failed to parse XML response: ' . $e->getMessage()
             );
         }
 
@@ -488,9 +488,7 @@ class OaiPmh extends AbstractBase
         $error = $this->getSingleNode($result, 'error');
         if ($error) {
             $code = $error->getAttribute('code');
-            if (($resumption && !$this->ignoreNoRecordsMatch)
-                || $code != 'noRecordsMatch'
-            ) {
+            if (($resumption && !$this->ignoreNoRecordsMatch) || $code != 'noRecordsMatch') {
                 $value = $result->saveXML($error);
                 $this->errorMsg("OAI-PMH server returned error $code ($value)");
                 throw new \Exception(
@@ -506,14 +504,14 @@ class OaiPmh extends AbstractBase
     /**
      * Extract the ID from a record object (support method for processRecords()).
      *
-     * @param \DOMNode $record XML record header
+     * @param \DOMElement $record XML record header
      *
      * @return string The ID value
      */
     protected function extractIDFromDom($record)
     {
         // Normalize to string:
-        $id = $this->getSingleNode($record, 'identifier')->nodeValue;
+        $id = $this->getSingleNode($record, 'identifier')->nodeValue ?? '';
 
         // Strip prefix if found:
         if (substr($id, 0, strlen($this->idPrefix)) == $this->idPrefix) {
@@ -753,15 +751,15 @@ class OaiPmh extends AbstractBase
         if ($nodes->length == 0) {
             return false;
         }
-        return $nodes->item(0);
+        return $nodes->item(0) ?? false;
     }
 
     /**
      * Traverse all children and collect those nodes that
      * have the tagname specified in $tagName. Non-recursive
      *
-     * @param \DOMElement $element DOM Element
-     * @param string      $tagName Tag to get
+     * @param \DOMNode $element DOM Element
+     * @param string   $tagName Tag to get
      *
      * @return array
      */

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * QDC Record Driver Test Class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2023.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Record;
 
 use RecordManager\Base\Record\Qdc;
@@ -38,7 +40,7 @@ use RecordManager\Base\Record\Qdc;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class QdcTest extends RecordTest
+class QdcTest extends RecordTestBase
 {
     /**
      * Test QQDC record handling
@@ -52,7 +54,7 @@ class QdcTest extends RecordTest
             'qdc1.xml',
             [],
             'Base',
-            [$this->createMock(\RecordManager\Base\Http\ClientManager::class)]
+            [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
         );
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
@@ -78,6 +80,9 @@ class QdcTest extends RecordTest
                 '2021-06-16T06:31:44Z',
                 '2021',
                 'Article',
+                'okm_type',
+                'okm_type_2',
+                'other_type',
                 'Eeva-Liisa Viskari, Suvi Lehtoranta, Riikka Malila. Urine : The'
                     . ' potential, value chain and its sustainable management. '
                     . 'Sanitation Value Chain (2021) 5, 1, pages 10-12. '
@@ -175,19 +180,51 @@ class QdcTest extends RecordTest
                     [
                         'type' => 'title',
                         'value' => 'urine the potential value chain and its'
-                            . ' sustainable management'
+                            . ' sustainable management',
                     ],
                     [
                         'type' => 'title',
                         'value' => 'Urine : The potential, value chain and its'
-                            . ' sustainable management'
+                            . ' sustainable management',
                     ],
                 ],
                 'titlesAltScript' => [
                 ],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
+    }
+
+    /**
+     * Test format
+     *
+     * @return void
+     */
+    public function testFormat()
+    {
+        $expected = [
+            'okm' => 'okm_type',
+            'okm,other' => 'okm_type',
+            'finna,other' => 'other_type',
+            'finna' => 'Article',
+        ];
+        foreach ($expected as $preferredTypes => $format) {
+            $record = $this->createRecord(
+                Qdc::class,
+                'qdc1.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            "preferredFormatTypes=$preferredTypes",
+                        ],
+                    ],
+                ],
+                'Base',
+                [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
+            );
+            $fields = $record->toSolrArray();
+            $this->assertEquals($format, $fields['format']);
+        }
     }
 }

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Tests for SolrUpdater
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2020-2023.
  *
@@ -25,10 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Solr;
 
 use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Settings\Ini;
@@ -68,7 +70,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             '*_keys_*' => 20,
             'title_sh*' => 30,
             '*sort' => 40,
-        ]
+        ],
     ];
 
     /**
@@ -80,7 +82,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         'test' => [
             'institution' => 'Test',
             'format' => 'marc',
-        ]
+        ],
     ];
 
     /**
@@ -127,7 +129,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         $this->assertIsArray($result['deleted']);
         $this->assertEmpty($result['deleted']);
         $this->assertIsArray($result['records']);
-        $this->assertEquals(1, count($result['records']));
+        $this->assertCount(1, $result['records']);
         $this->assertEquals(0, $result['mergedComponents']);
         $this->assertIsArray($result['records'][0]);
 
@@ -152,40 +154,88 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
      *
      * @return array
      */
-    public function processSingleRecordProvider(): array
+    public static function processSingleRecordProvider(): array
     {
         return [
-            [
+            'copy non-existent field' => [
                 [
-                    'copy foo newfield'
+                    'copy foo newfield',
                 ],
-                []
+                [],
             ],
-            [
+            'copy non-existent field with default' => [
                 [
-                    'copy foo newfield DEFAULT'
+                    'copy foo newfield DEFAULT VALUE',
                 ],
                 [
-                    'newfield' => 'DEFAULT',
-                ]
+                    'newfield' => 'DEFAULT VALUE',
+                ],
             ],
-            [
+            'copy non-existent field with param defaul' => [
                 [
-                    'copy institution newfield'
+                    'copy foo newfield default="DEFAULT FIELD"',
+                ],
+                [
+                    'newfield' => 'DEFAULT FIELD',
+                ],
+            ],
+            'copy field' => [
+                [
+                    'copy institution newfield',
                 ],
                 [
                     'newfield' => 'Test',
-                ]
+                ],
             ],
-            [
+            'copy field matching value' => [
                 [
-                    'delete institution'
+                    'copy institution newfield match="Test"',
+                ],
+                [
+                    'newfield' => 'Test',
+                ],
+            ],
+            'copy field matching regex' => [
+                [
+                    'copy institution newfield match="/^Test$/"',
+                ],
+                [
+                    'newfield' => 'Test',
+                ],
+            ],
+            'copy field matching case-insensitive regex' => [
+                [
+                    'copy institution newfield match="/^test$/i"',
+                ],
+                [
+                    'newfield' => 'Test',
+                ],
+            ],
+            'copy field not matching regex' => [
+                [
+                    'copy institution newfield match="/test/" ',
+                ],
+                [
+                    'newfield' => null,
+                ],
+            ],
+            'delete field' => [
+                [
+                    'delete institution',
                 ],
                 [
                     'institution' => null,
-                ]
+                ],
             ],
-            [
+            'delete field matching Test' => [
+                [
+                    'delete institution match="Test"',
+                ],
+                [
+                    'institution' => null,
+                ],
+            ],
+            'copy and delete' => [
                 [
                     'copy institution newfield',
                     'copy record_format newfield',
@@ -197,12 +247,12 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                         'marc',
                     ],
                     'institution' => null,
-                ]
+                ],
             ],
-            [
+            'move twice' => [
                 [
                     'move institution newfield DEFAULT',
-                    'move institution newfield DEFAULT2',
+                    'move institution newfield DEFAULT2 ',
                 ],
                 [
                     'newfield' => [
@@ -210,7 +260,76 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                         'DEFAULT2',
                     ],
                     'institution' => null,
-                ]
+                ],
+            ],
+            'copy multivalued' => [
+                [
+                    'copy topic newtopic match="/^tutkimus/"',
+                ],
+                [
+                    'newtopic' => [
+                        'tutkimusrahoitus',
+                        'tutkimuspolitiikka',
+                        'tutkimustyö',
+                        'tutkimus',
+                    ],
+                    'topic' => [
+                        'oppaat',
+                        'ft: kirjoittaminen',
+                        'apurahat',
+                        'tutkimusrahoitus',
+                        'tutkimuspolitiikka',
+                        'opinnäytteet',
+                        'tiedonhaku',
+                        'kielioppaat',
+                        'tutkimustyö',
+                        'tutkimus',
+                    ],
+                ],
+            ],
+            'move multivalued' => [
+                [
+                    'move topic newtopic match="/^tutkimus/"',
+                ],
+                [
+                    'newtopic' => [
+                        'tutkimusrahoitus',
+                        'tutkimuspolitiikka',
+                        'tutkimustyö',
+                        'tutkimus',
+                    ],
+                    'topic' => [
+                        'oppaat',
+                        'ft: kirjoittaminen',
+                        'apurahat',
+                        'opinnäytteet',
+                        'tiedonhaku',
+                        'kielioppaat',
+                    ],
+                ],
+            ],
+            'delete multivalued' => [
+                [
+                    'delete topic',
+                ],
+                [
+                    'topic' => null,
+                ],
+            ],
+            'delete multivalued matching' => [
+                [
+                    'delete topic match="/^tutkimus/"',
+                ],
+                [
+                    'topic' => [
+                        'oppaat',
+                        'ft: kirjoittaminen',
+                        'apurahat',
+                        'opinnäytteet',
+                        'tiedonhaku',
+                        'kielioppaat',
+                    ],
+                ],
             ],
         ];
     }
@@ -237,7 +356,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
 
         $record = $this->createMarcRecord(
             \RecordManager\Base\Record\Marc::class,
-            'marc-broken.xml'
+            'marc1.xml'
         );
 
         $date = strtotime('2020-10-20 13:01:00');
@@ -308,7 +427,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             $logger,
             $recordPM,
             $this->createMock(EnrichmentPluginManager::class),
-            $this->createMock(HttpClientManager::class),
+            $this->createMock(HttpService::class),
             $this->createMock(Ini::class),
             $fieldMapper,
             $metadataUtils,

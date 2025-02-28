@@ -1,10 +1,11 @@
 <?php
+
 /**
- * HTTP client manager factory
+ * Aipa record factory
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2021.
+ * Copyright (C) The National Library of Finland 2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -21,11 +22,12 @@
  *
  * @category DataManagement
  * @package  RecordManager
- * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Aleksi Peebles <aleksi.peebles@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-namespace RecordManager\Base\Http;
+
+namespace RecordManager\Finna\Record;
 
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Exception\ServiceNotFoundException;
@@ -33,16 +35,15 @@ use Psr\Container\ContainerExceptionInterface as ContainerException;
 use Psr\Container\ContainerInterface;
 
 /**
- * HTTP client manager factory
+ * Aipa record factory
  *
  * @category DataManagement
  * @package  RecordManager
- * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Aleksi Peebles <aleksi.peebles@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class ClientManagerFactory
-    implements \Laminas\ServiceManager\Factory\FactoryInterface
+class AipaFactory implements \Laminas\ServiceManager\Factory\FactoryInterface
 {
     /**
      * Create an object
@@ -65,12 +66,18 @@ class ClientManagerFactory
     public function __invoke(
         ContainerInterface $container,
         $requestedName,
-        array $options = null
+        ?array $options = null
     ) {
         $configReader = $container->get(\RecordManager\Base\Settings\Ini::class);
 
         return new $requestedName(
-            $configReader->get('recordmanager.ini')
+            $configReader->get('recordmanager.ini'),
+            $configReader->get('datasources.ini'),
+            $container->get(\RecordManager\Base\Utils\Logger::class),
+            $container->get(\RecordManager\Base\Utils\MetadataUtils::class),
+            $container->get(\RecordManager\Base\Http\HttpService::class),
+            $container->get(\RecordManager\Base\Database\AbstractDatabase::class),
+            $container->get(\RecordManager\Base\Record\PluginManager::class)
         );
     }
 }

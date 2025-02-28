@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Finna MARC Record Driver Test Class
  *
@@ -22,9 +23,11 @@
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Marc;
@@ -35,10 +38,11 @@ use RecordManager\Finna\Record\Marc;
  * @category DataManagement
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
+class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test MARC Record handling
@@ -53,13 +57,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [
                 '__unit_test_no_source__' => [
                     'authority' => [
-                        '*' => 'testauth'
+                        '*' => 'testauth',
                     ],
-                ]
+                ],
             ],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -250,7 +254,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             ],
             'callnumber-subject' => 'QC',
             'callnumber-label' => 'QC861',
-            'callnumber-sort' => '38.04',
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
@@ -270,6 +273,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
+            'media_type_str_mv' => [],
+            'major_genre_str_mv' => 'nonfiction',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -300,7 +305,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                     ],
                 ],
                 'titlesAltScript' => [],
-            ]
+            ],
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
@@ -324,7 +329,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -471,6 +476,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -491,7 +497,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Base',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -652,6 +658,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -670,7 +677,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -694,7 +701,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'AMK-opinnäytetyö',
                 'Second Sample Program',
                 'testaus',
-                'AMK-opinnäytetyö'
+                'AMK-opinnäytetyö',
             ],
             'language' => [
                 'fin',
@@ -793,6 +800,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -811,7 +819,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -932,6 +940,127 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
+            'media_type_str_mv' => [],
+        ];
+
+        $this->compareArray($expected, $fields, 'toSolrArray');
+    }
+
+    /**
+     * Test MARC topics
+     *
+     * @return void
+     */
+    public function testMarcTopic()
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-topic.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'authority' => [
+                        '*' => 'testauth',
+                    ],
+                    'authority_id_regex' => [
+                        '*' => '/^\(FI-ASTERI-N\)*/',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        unset($fields['fullrecord']);
+
+        $expected = [
+            'record_format' => 'marc',
+            'building' => [],
+            'lccn' => '',
+            'ctrlnum' => [],
+            'allfields' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+                'finaf',
+            ],
+            'language' => [],
+            'format' => 'Book',
+            'author' => [],
+            'author_role' => [],
+            'author_sort' => '',
+            'author2' => [],
+            'author2_role' => [],
+            'author_corporate' => [],
+            'author_corporate_role' => [],
+            'author2_id_str_mv' => [],
+            'author2_id_role_str_mv' => [],
+            'author_additional' => [],
+            'title' => '',
+            'title_sub' => '',
+            'title_short' => '',
+            'title_full' => '',
+            'title_alt' => [],
+            'title_old' => [],
+            'title_new' => [],
+            'title_sort' => '',
+            'series' => [],
+            'publisher' => [],
+            'publishDateSort' => '2015',
+            'publishDate' => [
+                '2015',
+            ],
+            'physical' => [],
+            'dateSpan' => [],
+            'edition' => '',
+            'contents' => [],
+            'issn' => [],
+            'doi_str_mv' => [],
+            'callnumber-first' => '',
+            'callnumber-raw' => [],
+            'callnumber-sort' => '',
+            'topic' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+            ],
+            'genre' => [],
+            'geographic' => [],
+            'geographic_id_str_mv' => [],
+            'era' => [],
+            'topic_facet' => [
+                'Wiik, Maria',
+                'Berlioz, Hector',
+            ],
+            'genre_facet' => [],
+            'geographic_facet' => [],
+            'era_facet' => [],
+            'url' => [],
+            'illustrated' => 'Illustrated',
+            'main_date_str' => '2015',
+            'main_date' => '2015-01-01T00:00:00Z',
+            'publication_daterange' => '[2015-01-01 TO 2015-12-31]',
+            'search_daterange_mv' => [
+                '[2015-01-01 TO 2015-12-31]',
+            ],
+            'publication_place_txt_mv' => [],
+            'subtitle_lng_str_mv' => [],
+            'original_lng_str_mv' => [],
+            'source_str_mv' => '__unit_test_no_source__',
+            'datasource_str_mv' => [
+                '__unit_test_no_source__',
+            ],
+            'other_issn_str_mv' => [],
+            'other_issn_isn_mv' => [],
+            'linking_issn_str_mv' => [],
+            'holdings_txtP_mv' => [],
+            'author_facet' => [],
+            'format_ext_str_mv' => 'Book',
+            'topic_id_str_mv' => [
+                'testauth.(FI-ASTERI-N)000107840',
+                'testauth.(FI-ASTERI-N)000189739',
+            ],
+            'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -950,7 +1079,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -1041,25 +1170,32 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
+            'media_type_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
     }
 
     /**
-     * Test MARC UDK classification
+     * Test MARC UDK and extra classifications
      *
      * @return void
      */
-    public function testMarcUDK()
+    public function testMarcUDKAndExtraClassifications()
     {
         $record = $this->createMarcRecord(
             Marc::class,
             'marc-udk.xml',
-            [],
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'classifications = "245a=title"',
+                    ],
+                ],
+            ],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -1072,6 +1208,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'udk2 new080-2',
                 'udkx unknown080-1',
                 'udkx unknown080-2',
+                'title Lentolehti',
             ],
             $fields['classification_txt_mv']
         );
@@ -1082,7 +1219,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
      *
      * @return array
      */
-    public function marcAudioBooksProvider(): array
+    public static function marcAudioBooksProvider(): array
     {
         return [
             [
@@ -1127,7 +1264,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
             [],
             'Finna',
             [
-                $this->createMock(\RecordManager\Base\Record\PluginManager::class)
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ]
         );
         $fields = $record->toSolrArray();
@@ -1142,6 +1279,99 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTest
                 'udkx unknown080-2',
             ],
             $fields['classification_txt_mv']
+        );
+    }
+
+    /**
+     * Test MARC media types
+     *
+     * @return void
+     */
+    public function testMarcMediaTypes(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc_media_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'audio/x-wav',
+                'application/pdf',
+            ],
+            $fields['media_type_str_mv']
+        );
+    }
+
+    /**
+     * Test MARC performers
+     *
+     * @return void
+     */
+    public function testMarcPerformers1(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-performers1.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'viulu/viulu (1)',
+                'sello/sello (2)',
+                'piano/piano (3)',
+                'sopraano/sopraano',
+                'kitara/kitara (4)',
+                'basso/basso (6)',
+                'kantele/kantele',
+            ],
+            $fields['performer_str_mv']
+        );
+        $this->assertEquals(
+            [7, 11],
+            $fields['performer_total_int_mv']
+        );
+    }
+
+    /**
+     * Test MARC performers
+     *
+     * @return void
+     */
+    public function testMarcPerformers2(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-performers2.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'viulu/viulu (1)',
+                'sello/sello (2)',
+                'piano/piano (3)',
+                'sopraano/sopraano',
+            ],
+            $fields['performer_str_mv']
+        );
+        $this->assertEquals(
+            [7],
+            $fields['performer_total_int_mv']
         );
     }
 }

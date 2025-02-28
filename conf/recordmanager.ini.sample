@@ -67,11 +67,14 @@ counts = false
 [PDO]
 ; PDO connection string for a MySQL/MariaDB database. Use localhost to connect via
 ; unix socket.
-;connection = "mysql:host=localhost;dbname=recman;charset=UTF8"
+;connection = "mysql:host=localhost;dbname=recman;charset=UTF8MB4"
 ; User name
 ;username = "recman"
 ; Password
 ;password = "topsecret"
+; Whether to use index hints (MySQL/MariaDB). Recommended to keep disbled (default)
+; unless trying to solve performance issues.
+use_index_hints = false
 
 [Solr]
 ; Update URL. Note that RecordManager requires that the json update method be available.
@@ -104,6 +107,8 @@ track_updates_per_update_url = true
 copy_from_parent_record = building
 ; Fields that are added to the merged record if they don't already exist
 ;single_fields = title,publishDateSort
+; Fields that are summed together when creating the merged record
+;summed_fields = items_int,orders_int
 ; Fields that are used for scoring when selecting the base record for a merged record
 ;scored_fields = title,author,publisher,topic
 ; Fields that are handled as containing building data (e.g. affected by the
@@ -168,6 +173,7 @@ unicode_normalization_form = NFKC
 ; unlimited. * may be used in the beginning or end as a wildcard.
 [Solr Field Limits]
 __default__ = 1024
+allfields = 32766
 fullrecord = 0
 fulltext = 0
 fulltext_unstemmed = 0
@@ -200,7 +206,7 @@ result_limit = 1000
 id_prefix = "oai:base.address:"
 
 [Enrichment]
-; Maximum lifetime of cached entries in minutes. Default is 10080 (1 week)
+; Maximum lifetime of cached entries in minutes. Default is 10080 (1 week).
 ;cache_expiration = 10080
 
 [Log]
@@ -222,12 +228,22 @@ store_message_level = -1
 
 
 ; The following section contains parameters passed to the HTTP client.
-; See https://pear.php.net/manual/en/package.http.http-request2.config.php for
-; documentation on the valid parameters.
+; See https://docs.guzzlephp.org/en/latest/request-options.html for documentation on
+; additional parameters.
 [HTTP]
-;follow_redirects = true
-;adapter = "HTTP_Request2_Adapter_Curl"
-;ssl_verify_peer = false
+; By default redirects (HTTP status 302) are not followed to avoid silent redirect
+; for each request, but they can be enabled by uncommenting the setting below:
+;allow_redirects = true
+; Handler to use. Available options are Curl (default) and Stream.
+;handler = "Curl"
+; Whether to verify the server certificate (normally left enabled):
+;verify = true
+; Whether to enable TCP keep-alive (required for some slow servers to avoid the
+; connection getting closed or hung until timeout). Default is false. Only available
+; with the Curl adapter.
+;tcp_keepalive = false
+; TCP keep-alive interval (default is 60 seconds):
+;tcp_keepalive_interval = 60
 ; Socks proxy:
 ;proxy = "socks5://localhost:1099"
 ; Hosts for which proxy is disabled
@@ -261,6 +277,7 @@ dewey-tens = dewey_tens.map
 dewey-ones = dewey_ones.map
 ;usage_rights_str_mv = usage_rights.map
 ;language = language_codes.map
+;media_type_str_mv = media_type_default.map
 
 [NominatimGeocoder]
 ; Please see http://wiki.openstreetmap.org/wiki/Nominatim_usage_policy before using
@@ -304,6 +321,9 @@ dewey-ones = dewey_ones.map
 ; Term transformations regular expressions applied if a match is not found
 search[] = '([^\s]+ st)\.'
 replace[] = '\1 street'
+; Maximum lifetime of cached entries in minutes. Default is taken from the Enrichment
+; section.
+;cache_expiration = 10080
 
 ; Skosmos enrichment settings
 [SkosmosEnrichment]
@@ -319,6 +339,10 @@ replace[] = '\1 street'
 ; Solr field that contains centroids for the locations. Set to empty if no suitable
 ; field is available. The field should be a LatLonPointSpatialField.
 ;solr_center_field = center_coords_mv
+; Properties that cause location data of a node to be ignored. The setting key is the
+; property type to check, and value is a list containing all the IDs to ignore.
+;excluded_location_matches[http://www.yso.fi/onto/yso-meta/mmlPlaceType] = "mmlPlaceTypeExclude.lst"
+;excluded_location_matches[http://www.yso.fi/onto/yso-meta/wikidataPlaceType] = "wikidataPlaceTypeExclude.lst"
 ; Allowed languages in enriched data. Default is to allow everything.
 ;languages[] = "en"
 ;languages[] = "fi"
@@ -338,8 +362,13 @@ replace[] = '\1 street'
 ; Note that you need to add the following line to any data source in datasources.ini
 ; for it to actually use the enrichment:
 ; enrichments[] = MusicBrainzEnrichment
+; or the following in Solr section of this file:
+; enrichment[] = MusicBrainzEnrichment
 ; Base url for the MusicBrainz server.
 ;url = "http://localhost:5000"
+; Maximum lifetime of cached entries in minutes. Default is taken from the Enrichment
+; section.
+;cache_expiration = 10080
 
 ; Settings for connecting to an authority database for enrichment.
 ; Settings defined in Database section are used if these are not defined.

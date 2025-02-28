@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Dc record class
  *
@@ -25,9 +26,12 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function array_slice;
 
 /**
  * Dc record class
@@ -47,12 +51,11 @@ class Dc extends \RecordManager\Base\Record\Dc
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
 

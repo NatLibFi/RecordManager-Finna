@@ -1,8 +1,9 @@
 <?php
+
 /**
  * XSL Transformation Handler
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2012.
  *
@@ -25,7 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function is_array;
+use function is_string;
 
 /**
  * XslTransformation Class
@@ -185,7 +190,7 @@ class XslTransformation
         $transformedDoc = $this->xslt->transformToDoc($doc);
         if ($transformedDoc === false) {
             throw new \Exception(
-                "XslTransformation: failed transformation: "
+                'XslTransformation: failed transformation: '
                 . print_r(libxml_get_last_error(), true)
             );
         }

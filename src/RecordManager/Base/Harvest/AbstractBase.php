@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Harvesting Base Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (c) The National Library of Finland 2011-2023.
+ * Copyright (c) The National Library of Finland 2011-2024.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,12 +26,15 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Harvest;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function get_class;
 
 /**
  * Harvesting Base Class
@@ -60,11 +64,11 @@ abstract class AbstractBase
     protected $log;
 
     /**
-     * HTTP client manager
+     * HTTP aervice
      *
-     * @var HttpClientManager
+     * @var HttpService
      */
-    protected $httpClientManager;
+    protected $httpService;
 
     /**
      * Metadata utilities
@@ -93,6 +97,20 @@ abstract class AbstractBase
      * @var string
      */
     protected $baseURL = null;
+
+    /**
+     * HTTP authentication settings
+     *
+     * @var ?array
+     */
+    protected $httpAuth = null;
+
+    /**
+     * HTTP headers to send with each request
+     *
+     * @var array
+     */
+    protected $httpHeaders = [];
 
     /**
      * Source ID
@@ -200,13 +218,12 @@ abstract class AbstractBase
     /**
      * Constructor.
      *
-     * @param array             $config           Main configuration
-     * @param array             $dataSourceConfig Data source configuration
-     * @param Database          $db               Database
-     * @param Logger            $logger           The Logger object used for logging
-     *                                            messages
-     * @param HttpClientManager $httpManager      HTTP client manager
-     * @param MetadataUtils     $metadataUtils    Metadata utilities
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source configuration
+     * @param Database      $db               Database
+     * @param Logger        $logger           The Logger object used for logging messages
+     * @param HttpService   $httpService      HTTP service
+     * @param MetadataUtils $metadataUtils    Metadata utilities
      *
      * @throws \Exception
      */
@@ -215,14 +232,14 @@ abstract class AbstractBase
         array $dataSourceConfig,
         Database $db,
         Logger $logger,
-        HttpClientManager $httpManager,
+        HttpService $httpService,
         MetadataUtils $metadataUtils
     ) {
         $this->config = $config;
         $this->dataSourceConfig = $dataSourceConfig;
         $this->db = $db;
         $this->log = $logger;
-        $this->httpClientManager = $httpManager;
+        $this->httpService = $httpService;
         $this->metadataUtils = $metadataUtils;
     }
 
@@ -251,6 +268,13 @@ abstract class AbstractBase
             throw new \Exception('Missing base URL');
         }
         $this->baseURL = $settings['url'];
+
+        if (($username = $settings['username'] ?? null) && ($password = $settings['password'] ?? null)) {
+            $type = $settings['authType'] ?? 'basic';
+            $this->httpAuth = [$username, $password, $type];
+        }
+
+        $this->httpHeaders = (array)($settings['headers'] ?? []);
 
         if (!empty($settings['preTransformation'])) {
             foreach ((array)$settings['preTransformation'] as $transformation) {
@@ -414,7 +438,7 @@ abstract class AbstractBase
      */
     protected function isModified($record)
     {
-        $status = substr($record->leader, 5, 1);
+        $status = substr((string)$record->leader, 5, 1);
         return $status != 'd';
     }
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Record storage trait
  *
@@ -6,7 +7,7 @@
  * - MetadataUtils as $this->metadataUtils
  * - Logger as $this->logger
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -29,7 +30,10 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command;
+
+use function count;
 
 /**
  * Record storage trait
@@ -64,11 +68,12 @@ trait StoreRecordTrait
      * @param string $oaiID      ID of the record as received from OAI-PMH
      * @param bool   $deleted    Whether the record is to be deleted
      * @param string $recordData Record metadata
+     * @param array  $extraData  Extra metadata
      *
      * @throws \Exception
      * @return integer Number of records processed (can be > 1 for split records)
      */
-    public function storeRecord($sourceId, $oaiID, $deleted, $recordData)
+    public function storeRecord($sourceId, $oaiID, $deleted, $recordData, $extraData = [])
     {
         if (null === $this->dedupHandler) {
             throw new \Exception('Dedup handler missing');
@@ -137,7 +142,8 @@ trait StoreRecordTrait
                     $settings['normalizationXSLT']
                         ->transform($data, ['oai_id' => $oaiID]),
                     $oaiID,
-                    $sourceId
+                    $sourceId,
+                    $extraData
                 );
                 $metadataRecord->normalize();
                 $normalizedData = $metadataRecord->serialize();
@@ -145,14 +151,16 @@ trait StoreRecordTrait
                     $settings['format'],
                     $data,
                     $oaiID,
-                    $sourceId
+                    $sourceId,
+                    $extraData
                 )->serialize();
             } else {
                 $metadataRecord = $this->createRecord(
                     $settings['format'],
                     $data,
                     $oaiID,
-                    $sourceId
+                    $sourceId,
+                    $extraData
                 );
                 $originalData = $metadataRecord->serialize();
                 $metadataRecord->normalize();
@@ -181,9 +189,11 @@ trait StoreRecordTrait
             }
             $hostIDs = $metadataRecord->getHostRecordIDs();
             $dbRecord = $this->db->getRecord($id);
+            $wasDeleted = false;
             if ($dbRecord) {
                 $dbRecord['updated'] = $this->db->getTimestamp();
                 $this->logger->writelnDebug("Updating record $id");
+                $wasDeleted = $dbRecord['deleted'];
             } else {
                 $dbRecord = [];
                 $dbRecord['source_id'] = $sourceId;
@@ -212,6 +222,11 @@ trait StoreRecordTrait
             $dbRecord['format'] = $settings['format'];
             $dbRecord['original_data'] = $originalData;
             $dbRecord['normalized_data'] = $normalizedData;
+            if ($extraData) {
+                $dbRecord['extra_data'] = json_encode($extraData);
+            } else {
+                unset($dbRecord['extra_data']);
+            }
             $hostSourceIds = !empty($settings['__hostRecordSourceId'])
                 ? $settings['__hostRecordSourceId'] : [$sourceId];
             if ($settings['dedup']) {
@@ -229,16 +244,17 @@ trait StoreRecordTrait
                     // If this is a component part, mark its host record to be
                     // deduplicated.
                     if (!$hostIDs) {
-                        $dbRecord['update_needed']
-                            = $this->dedupHandler->updateDedupCandidateKeys(
-                                $dbRecord,
-                                $metadataRecord
-                            );
+                        $this->dedupHandler->updateDedupCandidateKeys(
+                            $dbRecord,
+                            $metadataRecord
+                        );
+                        $dbRecord['update_needed'] = true;
                     } else {
                         $this->db->updateRecords(
                             [
                                 'source_id' => ['$in' => $hostSourceIds],
-                                'linking_id' => ['$in' => (array)$hostIDs]
+                                'linking_id' => ['$in' => (array)$hostIDs],
+                                'deleted' => false,
                             ],
                             ['update_needed' => true]
                         );
@@ -262,7 +278,7 @@ trait StoreRecordTrait
                     $this->db->updateRecords(
                         [
                             'source_id' => ['$in' => $hostSourceIds],
-                            'linking_id' => ['$in' => (array)$hostIDs]
+                            'linking_id' => ['$in' => (array)$hostIDs],
                         ],
                         ['updated' => $this->db->getTimestamp()]
                     );
@@ -288,7 +304,7 @@ trait StoreRecordTrait
                 [
                     'deleted' => true,
                     'updated' => $this->db->getTimestamp(),
-                    'update_needed' => false
+                    'update_needed' => false,
                 ]
             );
         }
@@ -327,12 +343,7 @@ trait StoreRecordTrait
         // Mark host records updated too
         $sourceId = $record['source_id'];
         $settings = $this->dataSourceConfig[$sourceId];
-        $metadataRecord = $this->createRecord(
-            $record['format'],
-            $this->metadataUtils->getRecordData($record, true),
-            $record['oai_id'],
-            $sourceId
-        );
+        $metadataRecord = $this->createRecordFromDbRecord($record);
         $hostIDs = $metadataRecord->getHostRecordIDs();
         if ($hostIDs) {
             $hostSourceIds = !empty($settings['__hostRecordSourceId'])
@@ -340,8 +351,8 @@ trait StoreRecordTrait
             $this->db->updateRecords(
                 [
                     'source_id' => ['$in' => $hostSourceIds],
-                    'linking_id' => ['$in' => (array)$hostIDs],
-                    'deleted' => false
+                    'linking_id' => ['$in' => $hostIDs],
+                    'deleted' => false,
                 ],
                 $deferHostUpdate
                     ? ['update_needed' => true]
@@ -369,7 +380,7 @@ trait StoreRecordTrait
         if (null !== $dateThreshold) {
             $params['date'] = [
                 '$lt' =>
-                    $this->db->getTimestamp($dateThreshold)
+                    $this->db->getTimestamp($dateThreshold),
             ];
         }
         $this->db->iterateRecords(

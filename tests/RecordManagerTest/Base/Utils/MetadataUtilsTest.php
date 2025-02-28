@@ -1,10 +1,11 @@
 <?php
+
 /**
  * MetadataUtils tests
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2015-2022
+ * Copyright (C) The National Library of Finland 2015-2023
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,10 +26,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Utils;
 
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
+
+use function ini_get;
+use function is_string;
 
 /**
  * MetadataUtils tests
@@ -57,7 +62,11 @@ class MetadataUtilsTest extends \PHPUnit\Framework\TestCase
     {
         $this->metadataUtils = new MetadataUtils(
             RECMAN_BASE_PATH,
-            [],
+            [
+                'Site' => [
+                    'articles' => 'articles.lst',
+                ],
+            ],
             $this->createMock(\RecordManager\Base\Utils\Logger::class)
         );
     }
@@ -127,7 +136,7 @@ class MetadataUtilsTest extends \PHPUnit\Framework\TestCase
      *
      * @return array
      */
-    public function stripPunctuationProvider(): array
+    public static function stripPunctuationProvider(): array
     {
         return [
             ['123', '.123',],
@@ -233,6 +242,43 @@ class MetadataUtilsTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * Data provider for testHasTrailingPunctuation
+     *
+     * @return array
+     */
+    public static function hasTrailingPunctuationProvider(): array
+    {
+        return [
+            [true, '123.'],
+            [false, 'Mattila P.'],
+            [true, 'foo /'],
+            [false, '1979© '],
+            [false, 'foo--'],
+            [true, 'bar /:;,=(['],
+        ];
+    }
+
+    /**
+     * Test hasTrailingPunctuation
+     *
+     * @param bool   $expected Expected result
+     * @param string $str      String to process
+     *
+     * @dataProvider hasTrailingPunctuationProvider
+     *
+     * @return void
+     */
+    public function testHasTrailingPunctuation(
+        bool $expected,
+        string $str
+    ): void {
+        $this->assertEquals(
+            $expected,
+            $this->metadataUtils->hasTrailingPunctuation($str),
+        );
+    }
+
+    /**
      * Test coordinate conversion
      *
      * @return void
@@ -263,7 +309,7 @@ class MetadataUtilsTest extends \PHPUnit\Framework\TestCase
 
         // Test by rounding to lowest precision for PHP 8 compatibility
         // (see https://github.com/php/php-src/blob/PHP-8.0/UPGRADING#L584#L587):
-        $precision = min(ini_get('precision'), ini_get('serialize_precision')) ?: 15;
+        $precision = (int)(min(ini_get('precision'), ini_get('serialize_precision')) ?: 15);
         foreach ($values as $from => $to) {
             $this->assertEquals(
                 is_string($to) ? $to : round($to, $precision),
@@ -324,6 +370,46 @@ class MetadataUtilsTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(
             '9789514920981',
             $this->metadataUtils->normalizeISBN('978-951-492098-1')
+        );
+    }
+
+    /**
+     * Data provider for testCreateSortTitle
+     *
+     * @return array
+     */
+    public static function createSortTitleProvider(): array
+    {
+        return [
+            ['', '', true],
+            ['Theme is this', 'theme is this', true],
+            ['The Me', 'me', true],
+            ['The Me', 'the me', false],
+            ['"The Others"', 'others', true],
+            ["L'Avion", 'avion', true],
+            ["Ll'Avion", 'll avion', true],
+        ];
+    }
+
+    /**
+     * Tests for cretateSortTitle
+     *
+     * @param string $title        Title
+     * @param string $expected     Expected result
+     * @param bool   $stripArticle Whether to strip any article from the beginning
+     *
+     * @return void
+     *
+     * @dataProvider createSortTitleProvider
+     */
+    public function testCreateSortTitle(
+        string $title,
+        string $expected,
+        bool $stripArticle
+    ): void {
+        $this->assertEquals(
+            $expected,
+            $this->metadataUtils->createSortTitle($title, $stripArticle)
         );
     }
 }

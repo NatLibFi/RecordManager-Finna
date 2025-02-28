@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Base module configuration
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2022.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Module\Config;
 
 use Laminas\ServiceManager\Factory\InvokableFactory;
@@ -123,6 +125,7 @@ return [
             'record' => [
                 'factories' => [
                     \RecordManager\Base\Record\Dc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
+                    \RecordManager\Base\Record\Doaj::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Base\Record\Eaccpf::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Base\Record\Ead::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Base\Record\Ead3::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
@@ -137,6 +140,7 @@ return [
                 ],
                 'aliases' => [
                     'dc' => \RecordManager\Base\Record\Dc::class,
+                    'doaj' => \RecordManager\Base\Record\Doaj::class,
                     'eaccpf' => \RecordManager\Base\Record\Eaccpf::class,
                     'ead' => \RecordManager\Base\Record\Ead::class,
                     'ead3' => \RecordManager\Base\Record\Ead3::class,
@@ -174,7 +178,7 @@ return [
             \RecordManager\Base\Harvest\Sfx::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
             \RecordManager\Base\Harvest\SierraApi::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
             \RecordManager\Base\Harvest\PluginManager::class => \RecordManager\Base\ServiceManager\AbstractPluginManagerFactory::class,
-            \RecordManager\Base\Http\ClientManager::class => \RecordManager\Base\Http\ClientManagerFactory::class,
+            \RecordManager\Base\Http\HttpService::class => \RecordManager\Base\Http\HttpServiceFactory::class,
             \RecordManager\Base\Record\Marc\FormatCalculator::class => InvokableFactory::class,
             \RecordManager\Base\Record\PluginManager::class => \RecordManager\Base\ServiceManager\AbstractPluginManagerFactory::class,
             \RecordManager\Base\Settings\Ini::class => InvokableFactory::class,

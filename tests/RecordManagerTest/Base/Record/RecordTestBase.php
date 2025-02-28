@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Generic Record Driver test class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) Eero Heikkinen 2013.
  *
@@ -25,9 +26,12 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Record;
 
 use RecordManagerTest\Base\Feature\FixtureTrait;
+
+use function array_key_exists;
 
 /**
  * Generic Record Driver Test Class
@@ -38,7 +42,7 @@ use RecordManagerTest\Base\Feature\FixtureTrait;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-abstract class RecordTest extends \PHPUnit\Framework\TestCase
+abstract class RecordTestBase extends \PHPUnit\Framework\TestCase
 {
     use FixtureTrait;
     use CreateSampleRecordTrait;

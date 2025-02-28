@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Finna module configuration
  *
@@ -25,14 +26,31 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Module\Config;
 
 return [
     'recordmanager' => [
         'plugin_managers' => [
+            'enrichment' => [
+                'factories' => [
+                    \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class => \RecordManager\Base\Enrichment\AuthEnrichmentFactory::class,
+                ],
+                'aliases' => [
+                    'MarcAuthEnrichment' => \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class,
+                ],
+            ],
+            'harvest' => [
+                'factories' => [
+                    \RecordManager\Finna\Harvest\SierraApi::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
+                ],
+                'aliases' => [
+                    \RecordManager\Base\Harvest\SierraApi::class => \RecordManager\Finna\Harvest\SierraApi::class,
+                ],
+            ],
             'record' => [
                 'factories' => [
-                    \RecordManager\Finna\Record\Aipa::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
+                    \RecordManager\Finna\Record\Aipa::class => \RecordManager\Finna\Record\AipaFactory::class,
                     \RecordManager\Finna\Record\Dc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                     \RecordManager\Finna\Record\Eaccpf::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
                     \RecordManager\Finna\Record\Ead::class => \RecordManager\Base\Record\AbstractRecordFactory::class,
@@ -46,6 +64,7 @@ return [
                     \RecordManager\Finna\Record\Qdc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                 ],
                 'aliases' => [
+                    \RecordManager\Base\Enrichment\MarcAuthEnrichment::class => \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class,
                     \RecordManager\Base\Record\Dc::class => \RecordManager\Finna\Record\Dc::class,
                     \RecordManager\Base\Record\Eaccpf::class => \RecordManager\Finna\Record\Eaccpf::class,
                     \RecordManager\Base\Record\Ead::class => \RecordManager\Finna\Record\Ead::class,
@@ -69,10 +88,12 @@ return [
     ],
     'service_manager' => [
         'factories' => [
+            \RecordManager\Finna\Solr\SolrUpdater::class => \RecordManager\Base\Solr\SolrUpdaterFactory::class,
             \RecordManager\Finna\Utils\FieldMapper::class => \RecordManager\Base\Utils\FieldMapperFactory::class,
         ],
         'aliases' => [
-            \RecordManager\Base\Utils\FieldMapper::class => \RecordManager\Finna\Utils\FieldMapper::class
+            \RecordManager\Base\Solr\SolrUpdater::class => \RecordManager\Finna\Solr\SolrUpdater::class,
+            \RecordManager\Base\Utils\FieldMapper::class => \RecordManager\Finna\Utils\FieldMapper::class,
         ],
     ],
 ];

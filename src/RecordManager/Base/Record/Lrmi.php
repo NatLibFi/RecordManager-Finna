@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Lrmi record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2020.
  *
@@ -26,9 +27,12 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+
+use function in_array;
 
 /**
  * Lrmi record class
@@ -54,12 +58,11 @@ class Lrmi extends Qdc
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray();
         $data['record_format'] = 'lrmi';
@@ -83,9 +86,7 @@ class Lrmi extends Qdc
     {
         $title = (string)$this->doc->title;
         if ($forFiling) {
-            $title = $this->metadataUtils->stripPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         }
         return $title;
     }
@@ -112,6 +113,26 @@ class Lrmi extends Qdc
     }
 
     /**
+     * Get topics.
+     *
+     * @return array
+     */
+    public function getTopics()
+    {
+        return $this->getTopicData(false);
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicData(true);
+    }
+
+    /**
      * Get primary authors
      *
      * @return array
@@ -130,14 +151,10 @@ class Lrmi extends Qdc
     protected function getSecondaryAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->person)) {
-                    foreach ($author->person as $person) {
-                        if (isset($person->name)) {
-                            $result[] = trim((string)$person->name);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->person ?? [] as $person) {
+                if (isset($person->name)) {
+                    $result[] = trim((string)$person->name);
                 }
             }
         }
@@ -152,39 +169,15 @@ class Lrmi extends Qdc
     protected function getCorporateAuthors()
     {
         $result = [];
-        if (isset($this->doc->author)) {
-            foreach ($this->doc->author as $author) {
-                if (isset($author->organization)) {
-                    foreach ($author->organization as $organization) {
-                        if (isset($organization->legalName)) {
-                            $result[]
-                                = trim((string)$organization->legalName);
-                        }
-                    }
+        foreach ($this->doc->author ?? [] as $author) {
+            foreach ($author->organization ?? [] as $organization) {
+                if (isset($organization->legalName)) {
+                    $result[]
+                        = trim((string)$organization->legalName);
                 }
             }
         }
         return $result;
-    }
-
-    /**
-     * Get topics.
-     *
-     * @return array
-     */
-    public function getTopics()
-    {
-        return $this->getTopicData(false);
-    }
-
-    /**
-     * Get all topic identifiers (for enrichment)
-     *
-     * @return array
-     */
-    public function getRawTopicIds(): array
-    {
-        return $this->getTopicData(true);
     }
 
     /**

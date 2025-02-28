@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Field value mapper
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2012-2023.
  *
@@ -25,7 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Utils;
+
+use function is_array;
+use function is_string;
 
 /**
  * Field value mapper
@@ -122,7 +127,7 @@ class FieldMapper
                     }
                     $this->settings[$source]['mappingFiles'][$field][] = [
                         'type' => $type,
-                        'map' => &self::$mapCache[$filename]
+                        'map' => &self::$mapCache[$filename],
                     ];
                 }
             }
@@ -168,7 +173,7 @@ class FieldMapper
     {
         $settings = $this->settings[$source];
         foreach ($settings['mappingFiles'] as $field => $mappingFile) {
-            if (isset($data[$field]) && !empty($data[$field])) {
+            if (!empty($data[$field])) {
                 if (is_array($data[$field])) {
                     $newValues = [];
                     foreach ($data[$field] as $value) {
@@ -254,7 +259,7 @@ class FieldMapper
                             $count
                         );
                         if ($count > 0) {
-                            $newValues[] = $newValue;
+                            $newValues[] = (string)$newValue;
                             $matches = true;
                         } else {
                             // No matches, stop the loop
@@ -276,7 +281,7 @@ class FieldMapper
                         if (!$all) {
                             return $newValue;
                         }
-                        $newValues[] = $newValue;
+                        $newValues[] = (string)$newValue;
                     }
                 }
             }
@@ -322,16 +327,22 @@ class FieldMapper
             }
             if (!isset($parts[1])) {
                 fclose($handle);
-                throw new \Exception(
-                    "Unable to parse mapping file '$filename' line "
-                    . "(no ' = ' found): ($lineno) $line"
-                );
+                throw new \Exception("Unable to parse mapping file $filename: no ' = ' found on line $lineno: $line");
             }
             $key = trim($parts[0]);
             $value = trim($parts[1]);
             if (substr($key, -2) == '[]') {
-                $mappings[substr($key, 0, -2)][] = $value;
+                $key = substr($key, 0, -2);
+                if (is_string($mappings[$key] ?? null)) {
+                    throw new \Exception("$key already defined as a single value in $filename line $lineno: $line");
+                }
+                $mappings[$key][] = $value;
             } else {
+                if (is_array($mappings[$key] ?? null)) {
+                    throw new \Exception(
+                        "$key already defined as an array of values in $filename line $lineno: $line"
+                    );
+                }
                 $mappings[$key] = $value;
             }
         }

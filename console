@@ -5,7 +5,7 @@ ini_set('display_errors', '1');
 if (function_exists('pcntl_async_signals')) {
     pcntl_async_signals(true);
 } else {
-    declare(ticks = 1);
+    declare(ticks=1);
 }
 
 require __DIR__ . '/vendor/autoload.php';
@@ -33,7 +33,7 @@ $basepath = null;
 $overrides = [];
 $remainingArgs = [];
 foreach ($_SERVER['argv'] as $parameter) {
-    if (strncmp('--', $parameter, 2) !== 0 || strpos($parameter, '=') === false) {
+    if (!str_starts_with($parameter, '--') || !str_contains($parameter, '=')) {
         $remainingArgs[] = $parameter;
         continue;
     }

@@ -1,12 +1,13 @@
 <?php
+
 /**
  * Trait for handling full text
  *
  * Prerequisites:
- * - HTTP\ClientManager as $this->httpClientManager
+ * - HTTP\HttpService as $this->httpService
  * - Database as $this->db
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2020-2022.
  *
@@ -29,9 +30,14 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
+use GuzzleHttp\Client;
 use RecordManager\Base\Exception\HttpRequestException;
+
+use function get_class;
+use function strlen;
 
 /**
  * Trait for handling full text
@@ -45,11 +51,11 @@ use RecordManager\Base\Exception\HttpRequestException;
 trait FullTextTrait
 {
     /**
-     * HTTP Request class
+     * HTTP client
      *
-     * @var ?\HTTP_Request2
+     * @var ?Client
      */
-    protected $urlRequest = null;
+    protected ?Client $httpClient = null;
 
     /**
      * Number of requests handled per host
@@ -137,7 +143,7 @@ trait FullTextTrait
         $maxTries = $this->config['FullTextEnrichment']['max_tries'] ?? 90;
         $retryWait = $this->config['FullTextEnrichment']['retry_wait'] ?? 5;
         $httpOptions = [
-            'follow_redirects' => true
+            'follow_redirects' => true,
         ];
 
         if ($maxCacheAge && null !== $this->db) {
@@ -145,8 +151,8 @@ trait FullTextTrait
                 [
                     '_id' => $url,
                     'timestamp' => [
-                        '$gt' => $this->db->getTimestamp(time() - $maxCacheAge)
-                    ]
+                        '$gt' => $this->db->getTimestamp(time() - $maxCacheAge),
+                    ],
                 ]
             );
             if (null !== $cached) {
@@ -163,21 +169,21 @@ trait FullTextTrait
         $response = null;
         $body = '';
         for ($try = 1; $try <= $maxTries; $try++) {
-            if (!isset($this->request)) {
-                $this->urlRequest = $this->httpClientManager->createClient(
+            if (!isset($this->httpClient)) {
+                $this->httpClient = $this->httpService->createClient(
                     $url,
-                    \HTTP_Request2::METHOD_GET,
-                    $httpOptions
+                    $httpOptions + [
+                        'headers' => [
+                            'Connection' => 'Keep-Alive',
+                        ],
+                    ]
                 );
-                $this->urlRequest->setHeader('Connection', 'Keep-Alive');
-            } else {
-                $this->urlRequest->setUrl($url);
             }
 
             $duration = 0;
             try {
                 $startTime = microtime(true);
-                $response = $this->urlRequest->send();
+                $response = $this->httpClient->get($url);
                 $duration = microtime(true) - $startTime;
             } catch (\Exception $e) {
                 if ($try < $maxTries) {
@@ -190,21 +196,21 @@ trait FullTextTrait
                         "HTTP request for '$url' failed (" . $e->getMessage()
                             . "), retrying in {$retryWait} seconds (retry $try)..."
                     );
-                    $this->urlRequest = null;
+                    $this->httpClient = null;
                     sleep($retryWait);
                     continue;
                 }
                 throw HttpRequestException::fromException($e);
             }
             if ($try < $maxTries) {
-                $code = $response->getStatus();
+                $code = $response->getStatusCode();
                 if ($code >= 300 && $code != 404) {
                     $this->logger->logWarning(
                         'getUrl',
                         "HTTP request for '$url' failed ($code), retrying "
                             . "in {$retryWait} seconds (retry $try)..."
                     );
-                    $this->urlRequest = null;
+                    $this->httpClient = null;
                     sleep($retryWait);
                     continue;
                 }
@@ -215,7 +221,7 @@ trait FullTextTrait
                     "HTTP request for '$url' completed on attempt $try"
                 );
             }
-            $body = $response->getBody();
+            $body = (string)$response->getBody();
             if (isset(static::$requestsHandled[$host])) {
                 static::$requestsHandled[$host]++;
                 static::$requestsDuration[$host] += $duration;
@@ -242,7 +248,7 @@ trait FullTextTrait
             break;
         }
 
-        $code = null === $response ? 999 : $response->getStatus();
+        $code = null === $response ? 999 : $response->getStatusCode();
         if ($code >= 300 && $code != 404) {
             throw new HttpRequestException(
                 "Failed to fetch full text url '$url': $code",
@@ -262,7 +268,7 @@ trait FullTextTrait
                     'timestamp' => $this->db->getTimestamp(),
                     'url' => $url,
                     'headers' => [],
-                    'data' => $body
+                    'data' => $body,
                 ]
             );
         }

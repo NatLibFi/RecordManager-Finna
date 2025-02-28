@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Authority Enrichment factory
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Enrichment;
 
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
@@ -41,8 +43,7 @@ use Psr\Container\ContainerInterface;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class AuthEnrichmentFactory
-    implements \Laminas\ServiceManager\Factory\FactoryInterface
+class AuthEnrichmentFactory implements \Laminas\ServiceManager\Factory\FactoryInterface
 {
     /**
      * Create an object
@@ -65,7 +66,7 @@ class AuthEnrichmentFactory
     public function __invoke(
         ContainerInterface $container,
         $requestedName,
-        array $options = null
+        ?array $options = null
     ) {
         $configReader = $container->get(\RecordManager\Base\Settings\Ini::class);
 
@@ -74,7 +75,7 @@ class AuthEnrichmentFactory
             $container->get(\RecordManager\Base\Database\AbstractDatabase::class),
             $container->get(\RecordManager\Base\Utils\Logger::class),
             $container->get(\RecordManager\Base\Record\PluginManager::class),
-            $container->get(\RecordManager\Base\Http\ClientManager::class),
+            $container->get(\RecordManager\Base\Http\HttpService::class),
             $container->get(\RecordManager\Base\Utils\MetadataUtils::class),
             $container
                 ->get(\RecordManager\Base\Database\AbstractAuthorityDatabase::class)

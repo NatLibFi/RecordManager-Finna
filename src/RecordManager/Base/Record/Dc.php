@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Dublin Core record class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2023.
  *
@@ -25,10 +26,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
@@ -58,11 +60,11 @@ class Dc extends AbstractRecord
     protected $doc = null;
 
     /**
-     * HTTP client manager for FullTextTrait
+     * HTTP service for FullTextTrait
      *
-     * @var HttpClientManager
+     * @var HttpService
      */
-    protected $httpClientManager;
+    protected $httpService;
 
     /**
      * Database for FullTextTrait
@@ -72,46 +74,57 @@ class Dc extends AbstractRecord
     protected $db;
 
     /**
+     * Record namespace identifier
+     *
+     * @var string
+     */
+    protected $recordNs = 'http://www.openarchives.org/OAI/2.0/oai_dc/';
+
+    /**
      * Constructor
      *
-     * @param array             $config           Main configuration
-     * @param array             $dataSourceConfig Data source settings
-     * @param Logger            $logger           Logger
-     * @param MetadataUtils     $metadataUtils    Metadata utilities
-     * @param HttpClientManager $httpManager      HTTP client manager
-     * @param ?Database         $db               Database
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param HttpService   $httpService      HTTP service
+     * @param ?Database     $db               Database
      */
     public function __construct(
         $config,
         $dataSourceConfig,
         Logger $logger,
         MetadataUtils $metadataUtils,
-        HttpClientManager $httpManager,
-        Database $db = null
+        HttpService $httpService,
+        ?Database $db = null
     ) {
         parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils);
-        $this->httpClientManager = $httpManager;
+        $this->httpService = $httpService;
         $this->db = $db;
     }
 
     /**
      * Set record data
      *
-     * @param string $source Source ID
-     * @param string $oaiID  Record ID received from OAI-PMH (or empty string for
-     *                       file import)
-     * @param string $data   Metadata
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
      *
      * @return void
      */
-    public function setData($source, $oaiID, $data)
+    public function setData($source, $oaiID, $data, $extraData)
     {
-        $this->XmlTraitSetData($source, $oaiID, $data);
+        $this->XmlTraitSetData($source, $oaiID, $data, $extraData);
 
-        if (empty($this->doc->recordID)) {
-            $p = strpos($oaiID, ':');
-            $p = strpos($oaiID, ':', $p + 1);
-            $this->doc->addChild('recordID', substr($oaiID, $p + 1));
+        if (
+            empty($this->doc->recordID)
+            && empty($this->doc->children($this->recordNs)->recordID)
+        ) {
+            $parts = explode(':', $oaiID, 3);
+            $id = ('oai' === $parts[0] && !empty($parts[2])) ? $parts[2] : $oaiID;
+            $this->doc->addChild('recordID', $id);
         }
     }
 
@@ -122,18 +135,21 @@ class Dc extends AbstractRecord
      */
     public function getID()
     {
-        return (string)$this->doc->recordID[0];
+        $id = (string)$this->doc->recordID[0];
+        if ('' === $id) {
+            $id = (string)$this->doc->children($this->recordNs)->recordID[0];
+        }
+        return $id;
     }
 
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
-     * @return array<string, string|array<int, string>>
+     * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = $this->getFullTextFields($this->doc);
 
@@ -178,7 +194,7 @@ class Dc extends AbstractRecord
         $data['publisher'] = [
             $this->metadataUtils->stripTrailingPunctuation(
                 trim((string)$doc->publisher)
-            )
+            ),
         ];
         $data['publishDate'] = $this->getPublicationYear();
 
@@ -227,9 +243,7 @@ class Dc extends AbstractRecord
     {
         $title = trim((string)$this->doc->title);
         if ($forFiling) {
-            $title = $this->metadataUtils->stripPunctuation($title);
-            $title = $this->metadataUtils->stripLeadingArticle($title);
-            $title = mb_strtolower($title, 'UTF-8');
+            $title = $this->metadataUtils->createSortTitle($title);
         } else {
             $title
                 = $this->metadataUtils->stripTrailingPunctuation($title, '', true);

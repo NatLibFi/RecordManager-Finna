@@ -1,11 +1,12 @@
 <?php
+
 /**
  * Finna LIDO Record Driver Test Class
  *
  * PHP version 7
  *
  * Copyright (C) Eero Heikkinen 2013.
- * Copyright (C) The National Library of Finland 2017-2022.
+ * Copyright (C) The National Library of Finland 2017-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -24,9 +25,11 @@
  * @package  RecordManager
  * @author   Eero Heikkinen <eero.heikkinen@gmail.com>
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Finna\Record;
 
 use RecordManager\Finna\Record\Lido;
@@ -38,10 +41,11 @@ use RecordManager\Finna\Record\Lido;
  * @package  RecordManager
  * @author   Eero Heikkinen <eero.heikkinen@gmail.com>
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
+class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
 {
     /**
      * Test Musketti LIDO record handling
@@ -79,6 +83,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('porolappalaiset', $fields['topic']);
         $this->assertContains('pannut', $fields['topic']);
         $this->assertContains('kahvipannut', $fields['topic']);
+        $this->assertContains('Toimija, Toini', $fields['topic']);
 
         $this->assertEquals('kahvipannu', $fields['title']);
 
@@ -113,6 +118,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('Utsjoki, Lappi', $fields['allfields']);
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -131,7 +137,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'title_full' => 'Imatrankoski',
             'title_short' => 'Imatrankoski',
             'title' => 'Imatrankoski',
-            'title_sort' => 'Imatrankoski',
+            'title_sort' => 'imatrankoski',
             'title_alt' => [],
             'format' => 'kuva',
             'institution' => 'Museoviraston kuva-arkisto/',
@@ -146,22 +152,32 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'material' => [],
             'material_str_mv' => [],
             'era_facet' => [
-                '1897', '1898'
+                '1897', '1898',
             ],
             'era' => [
-                '1897', '1898'
+                '1897', '1898',
             ],
             'geographic_facet' => [
                 'Ruokolahti',
                 'Imatrankoski, Ruokolahti',
+                'Kalasatama',
+                'Capellanranta 1 ja 3 välillä',
+                'Helsinki',
                 'Imatrankoski',
                 'Ruokolahti',
             ],
             'geographic' => [
                 'Ruokolahti',
                 'Imatrankoski, Ruokolahti',
+                'Kalasatama',
+                'Capellanranta 1 ja 3 välillä',
+                'Helsinki',
             ],
-            'geographic_id_str_mv' => [],
+            'geographic_id_str_mv' => [
+                '(prt)Prt',
+                '(kiinteistötunnus)Kiinteistötunnus',
+                'http://www.yso.fi/onto/yso/p94413',
+            ],
             'collection' => 'Kansatieteen kuvakokoelma',
             'thumbnail' => 'http://muisti.nba.fi/m/4878_1/00013199.jpg',
             'allfields' => [
@@ -180,6 +196,15 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 '33,1. Imatra.',
                 'Museoviraston kuva-arkisto/',
                 '4878:1',
+                'Repository Location 1',
+                'Repository Location 2',
+                'Prt',
+                'Kiinteistötunnus',
+                'http://www.yso.fi/onto/yso/p94413',
+                'Tarkempi paikka veden äärellä',
+                'Kalasatama',
+                'Capellanranta 1 ja 3 välillä',
+                'Helsinki',
                 'valmistus',
                 'Hintze Harry',
                 '1897',
@@ -202,6 +227,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 '4878:1',
                 'Museovirasto/MV',
                 'Museovirasto/MV',
+                'Kansatieteen kuvakokoelma',
                 'Museovirasto/MV',
             ],
             'identifier' => '4878:1',
@@ -254,7 +280,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                 'Kansatieteen kuvakokoelma',
             ],
             'category_str_mv' => [
-                'Luonto'
+                'Luonto',
             ],
             'ctrlnum' => [],
             'isbn' => [],
@@ -262,8 +288,22 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'language' => [
                 'fi',
                 'sv',
-                'en'
-            ]
+                'en',
+            ],
+            'media_type_str_mv' => [
+                'image/jpeg',
+            ],
+            'identifier_txtP_mv' => [
+                '4878:1',
+                'Prt',
+                'Kiinteistötunnus',
+                '111222',
+            ],
+            'description' => '',
+            'file_identifier_str_mv' => [
+                '111222',
+                'mau.jpg',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -299,6 +339,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains(
             'pituus 65 cm, leveys 55 cm, korkeus enimmillään 26 cm',
             $fields['measurements']
+        );
+        $this->assertEquals(
+            [
+                'image/tiff',
+                'image/png',
+            ],
+            $fields['media_type_str_mv']
         );
     }
 
@@ -340,6 +387,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1911-01-01 TO 1911-12-31]',
             $fields['creation_daterange']
         );
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -412,6 +460,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             '[1930-01-01 TO 1930-12-31]',
             $fields['creation_daterange']
         );
+        $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
     }
 
     /**
@@ -437,6 +486,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
         $this->assertContains('ruostumaton teräs', $fields['material']);
 
         $this->assertEquals('Designmuseo', $fields['institution']);
+
+        $this->assertEquals([], $fields['media_type_str_mv']);
     }
 
     /**
@@ -455,18 +506,14 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
                     ['type' => 'title', 'value' => 'Shore Stones'],
                 ],
                 'authors' => [
-                    ['type' => 'author', 'value' => 'Halonen, Pekka']
+                    ['type' => 'author', 'value' => 'Halonen, Pekka'],
                 ],
                 'titlesAltScript' => [],
-                'authorsAltScript' => []
-            ]
+                'authorsAltScript' => [],
+            ],
         ];
 
-        $this->compareArray(
-            $expected,
-            $record->getWorkIdentificationData(),
-            'getWorkIdentificationData'
-        );
+        $this->compareArray($expected, $record->getWorkIdentificationData(), 'getWorkIdentificationData');
     }
 
     /**
@@ -492,7 +539,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'allfields' => [
                 'M123',
                 'lierihattu',
-                ''
+                '',
             ],
             'measurements' => [
                 'korkeus 8.50 cm',
@@ -507,11 +554,98 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTest
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => '__unit_test_no_source__',
             'format_ext_str_mv' => [
-                ''
-            ]
+                '',
+            ],
         ];
 
         $result = array_filter($record->toSolrArray());
         $this->compareArray($expected, $result, 'Measurements');
+    }
+
+    /**
+     * Test getOtherIdentifiers function
+     *
+     * @return void
+     */
+    public function testIdentifiers(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_identifiers.xml',
+            [],
+            'Finna'
+        );
+
+        $data = $record->toSolrArray();
+        $this->compareArray(
+            [
+                'this is a proper issn',
+            ],
+            $data['issn'],
+            'issnCompare'
+        );
+        $this->compareArray(
+            [
+                '9783161484100',
+            ],
+            $data['isbn'],
+            'isbnCompare'
+        );
+        $this->assertEquals('ID for identifier field', $data['identifier']);
+        $this->compareArray(
+            [
+                'ID for identifier field',
+                'Kissat kehdossa',
+                'Hopealusikka',
+                'Kattila',
+                'Catila',
+                'Kissala',
+                'Kollila',
+                'Manulila',
+            ],
+            $data['identifier_txtP_mv'],
+            'OtherIdentifiers'
+        );
+    }
+
+    /**
+     * Test hierarchical locations from lido.
+     *
+     * @return void
+     */
+    public function testHierarchicalLocations(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_locations.xml',
+            [],
+            'Finna'
+        );
+        $result = ($record instanceof Lido) ? $record->getLocations() : [];
+        $expected = [
+            'primary' => [
+                'Pohjantie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Kaivontie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Männiköntie, Karjaa, Etelä-Uusimaa, Suomi',
+                'Suomi, Hamina',
+                'Suomi, Mäntyharju',
+                'S-market Mäntyharju',
+            ],
+            'secondary' => [
+                'Håkansbölen kartano, Hakunila, Vantaa, Suomi',
+                'Vaasa',
+                'Ristimäenkatu 5, Mikkeli, Etelä-Savo, Suomi',
+                'Ahmatie 1, Helsinki',
+            ],
+        ];
+        $this->compareArray($expected, $result, 'Locations');
+
+        $result = ($record instanceof Lido) ? $record->getRawGeographicTopicIds() : [];
+        $expected = [
+            'http://www.yso.fi/onto/yso/p94191',
+            'http://www.yso.fi/onto/yso/p94124',
+            'http://www.yso.fi/onto/yso/p94137',
+        ];
+        $this->compareArray($expected, $result, 'RawGeographicTopicIds');
     }
 }

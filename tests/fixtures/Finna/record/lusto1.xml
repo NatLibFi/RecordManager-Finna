@@ -127,10 +127,10 @@
             <resourceWrap>
                 <resourceSet>
                     <resourceRepresentation>
-                        <linkResource>http://www.kantapuu.fi/fi/viewimage.php?objimg=true&amp;id=151051&amp;imgres=lres</linkResource>
+                        <linkResource formatResource="image/tiff">http://www.kantapuu.fi/fi/viewimage.php?objimg=true&amp;id=151051&amp;imgres=lres</linkResource>
                     </resourceRepresentation>
                     <resourceRepresentation>
-                        <linkResource>http://www.kantapuu.fi/fi/viewimage.php?objimg=true&amp;id=242929&amp;imgres=lres</linkResource>
+                        <linkResource formatResource="png">http://www.kantapuu.fi/fi/viewimage.php?objimg=true&amp;id=242929&amp;imgres=lres</linkResource>
                     </resourceRepresentation>
                 </resourceSet>
             </resourceWrap>

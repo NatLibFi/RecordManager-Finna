@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Harvest
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2023.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Command\Records;
 
 use RecordManager\Base\Command\AbstractBase;
@@ -40,6 +42,11 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function count;
+use function in_array;
+use function is_callable;
+use function is_string;
 
 /**
  * Harvest
@@ -98,6 +105,29 @@ class Harvest extends AbstractBase
         );
 
         $this->harvesterPluginManager = $harvesterManager;
+    }
+
+    /**
+     * Mark a record "seen". Used by OAI-PMH harvesting when deletions are not
+     * supported.
+     *
+     * @param string $sourceId Source ID
+     * @param string $oaiId    ID of the record as received from OAI-PMH
+     * @param bool   $deleted  Whether the record is to be deleted
+     *
+     * @throws \Exception
+     * @return void
+     */
+    public function markRecordSeen($sourceId, $oaiId, $deleted)
+    {
+        if ($deleted) {
+            // Don't mark deleted records...
+            return;
+        }
+        $this->db->updateRecords(
+            ['source_id' => $sourceId, 'oai_id' => $oaiId],
+            ['date' => $this->db->getTimestamp()]
+        );
     }
 
     /**
@@ -279,17 +309,17 @@ class Harvest extends AbstractBase
                     } else {
                         $this->logger->logWarning(
                             'harvest',
-                            "[$source] " . get_class($harvester) . ' does not'
+                            "[$source] " . $harvester::class . ' does not'
                             . ' support overriding of start position'
                         );
                     }
                 }
-                if (isset($harvestFromDate)) {
+                if (null !== $harvestFromDate) {
                     $harvester->setStartDate(
                         $harvestFromDate == '-' ? null : $harvestFromDate
                     );
                 }
-                if (isset($harvestUntilDate)) {
+                if (null !== $harvestUntilDate) {
                     $harvester->setEndDate($harvestUntilDate);
                 }
 
@@ -318,23 +348,20 @@ class Harvest extends AbstractBase
                             $this->db->updateRecords(
                                 [
                                     'source_id' => $source,
-                                    'update_needed' => true
+                                    'update_needed' => true,
                                 ],
                                 [
                                     'updated' => $this->db->getTimestamp(),
-                                    'update_needed' => false
+                                    'update_needed' => false,
                                 ]
                             );
                         }
                     }
                 }
 
-                if (!$reharvest && isset($settings['deletions'])
-                    && strncmp(
-                        $settings['deletions'],
-                        'ListIdentifiers',
-                        15
-                    ) == 0
+                if (
+                    !$reharvest
+                    && str_starts_with($settings['deletions'] ?? '', 'ListIdentifiers')
                 ) {
                     // The repository doesn't support reporting deletions, so
                     // list all identifiers and mark deleted records that were
@@ -342,25 +369,25 @@ class Harvest extends AbstractBase
 
                     if (!is_callable([$harvester, 'listIdentifiers'])) {
                         throw new \Exception(
-                            "[$source] " . get_class($harvester)
+                            "[$source] " . $harvester::class
                             . ' does not support listing identifiers'
                         );
                     }
 
                     $processDeletions = true;
-                    $interval = null;
+                    $daysSinceLast = null;
                     $deletions = explode(':', $settings['deletions']);
-                    if (isset($deletions[1])) {
+                    $deletionInterval = $deletions[1] ?? null;
+                    if (null !== $deletionInterval) {
                         $state = $this->db->getState(
                             "Last Deletion Processing Time $source"
                         );
                         if (null !== $state) {
-                            $interval
-                                = round((time() - $state['value']) / 3600 / 24);
-                            if ($interval < $deletions[1]) {
+                            $daysSinceLast = round((time() - $state['value']) / 3600 / 24);
+                            if ($daysSinceLast < $deletionInterval) {
                                 $this->logger->logInfo(
                                     'harvest',
-                                    "[$source] Not processing deletions, $interval"
+                                    "[$source] Not processing deletions, $daysSinceLast"
                                     . ' days since last time'
                                 );
                                 $processDeletions = false;
@@ -371,8 +398,8 @@ class Harvest extends AbstractBase
                     if ($processDeletions) {
                         $this->logger->logInfo(
                             'harvest',
-                            "[$source] Processing deletions" . (isset($interval)
-                                ? " ($interval days since last time)" : '')
+                            "[$source] Processing deletions"
+                            . (null !== $daysSinceLast ? " ($daysSinceLast days since last time)" : '')
                         );
 
                         $this->logger
@@ -389,7 +416,7 @@ class Harvest extends AbstractBase
 
                         $state = [
                             '_id' => "Last Deletion Processing Time $source",
-                            'value' => time()
+                            'value' => time(),
                         ];
                         // Reset database connection since it could have timed out
                         // during the process:
@@ -421,29 +448,6 @@ class Harvest extends AbstractBase
     }
 
     /**
-     * Mark a record "seen". Used by OAI-PMH harvesting when deletions are not
-     * supported.
-     *
-     * @param string $sourceId Source ID
-     * @param string $oaiId    ID of the record as received from OAI-PMH
-     * @param bool   $deleted  Whether the record is to be deleted
-     *
-     * @throws \Exception
-     * @return void
-     */
-    public function markRecordSeen($sourceId, $oaiId, $deleted)
-    {
-        if ($deleted) {
-            // Don't mark deleted records...
-            return;
-        }
-        $this->db->updateRecords(
-            ['source_id' => $sourceId, 'oai_id' => $oaiId],
-            ['date' => $this->db->getTimestamp()]
-        );
-    }
-
-    /**
      * Set deleted all records that were not "seen" during harvest
      *
      * Uses the 'date' field that only gets updated when a record is received.
@@ -466,8 +470,8 @@ class Harvest extends AbstractBase
                 'deleted' => false,
                 'date' => [
                     '$lt' =>
-                        $this->db->getTimestamp($dateThreshold)
-                ]
+                        $this->db->getTimestamp($dateThreshold),
+                ],
             ],
             [],
             function ($record) use (&$count, $source, $dateThreshold) {

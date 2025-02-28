@@ -1,8 +1,9 @@
 <?php
+
 /**
- * Record factory for records with HTTP client manager
+ * Record factory for records with HTTP service
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Record;
 
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
@@ -33,7 +35,7 @@ use Psr\Container\ContainerExceptionInterface as ContainerException;
 use Psr\Container\ContainerInterface;
 
 /**
- * Record factory for records with HTTP client manager and database
+ * Record factory for records with HTTP service and database
  *
  * @category DataManagement
  * @package  RecordManager
@@ -41,8 +43,7 @@ use Psr\Container\ContainerInterface;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class AbstractRecordWithHttpAndDbFactory
-    implements \Laminas\ServiceManager\Factory\FactoryInterface
+class AbstractRecordWithHttpAndDbFactory implements \Laminas\ServiceManager\Factory\FactoryInterface
 {
     /**
      * Create an object
@@ -65,7 +66,7 @@ class AbstractRecordWithHttpAndDbFactory
     public function __invoke(
         ContainerInterface $container,
         $requestedName,
-        array $options = null
+        ?array $options = null
     ) {
         $configReader = $container->get(\RecordManager\Base\Settings\Ini::class);
 
@@ -74,7 +75,7 @@ class AbstractRecordWithHttpAndDbFactory
             $configReader->get('datasources.ini'),
             $container->get(\RecordManager\Base\Utils\Logger::class),
             $container->get(\RecordManager\Base\Utils\MetadataUtils::class),
-            $container->get(\RecordManager\Base\Http\ClientManager::class),
+            $container->get(\RecordManager\Base\Http\HttpService::class),
             $container->get(\RecordManager\Base\Database\AbstractDatabase::class)
         );
     }

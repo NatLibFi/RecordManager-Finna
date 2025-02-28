@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Field value mapper
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Finna\Utils;
 
 /**
@@ -50,21 +52,24 @@ class FieldMapper extends \RecordManager\Base\Utils\FieldMapper
         parent::initDataSourceConfig($dataSourceConfig);
 
         foreach ($this->settings as &$settings) {
-            if (empty($settings['mappingFiles']['format_ext_str_mv'])
+            if (
+                empty($settings['mappingFiles']['format_ext_str_mv'])
                 && !empty($settings['mappingFiles']['format'])
             ) {
                 $settings['mappingFiles']['format_ext_str_mv']
                     = $settings['mappingFiles']['format'];
             }
 
-            if (empty($settings['mappingFiles']['building_available_str_mv'])
+            if (
+                empty($settings['mappingFiles']['building_available_str_mv'])
                 && !empty($settings['mappingFiles']['building'])
             ) {
                 $settings['mappingFiles']['building_available_str_mv']
                     = $settings['mappingFiles']['building'];
                 $mappings = &$settings['mappingFiles']['building_available_str_mv'];
                 foreach ($mappings as &$mapping) {
-                    if (isset($mapping['map']['##empty'])
+                    if (
+                        isset($mapping['map']['##empty'])
                         || isset($mapping['map']['##emptyarray'])
                     ) {
                         // map is a reference to a shared cache object, break it

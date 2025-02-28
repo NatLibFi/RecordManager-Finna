@@ -1,10 +1,11 @@
 <?php
+
 /**
  * MusicBrainzEnrichment Class
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2019-2022.
+ * Copyright (C) The National Library of Finland 2019-2023.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Enrichment;
 
 /**
@@ -48,6 +50,23 @@ class MusicBrainzEnrichment extends AbstractEnrichment
     protected $baseURL;
 
     /**
+     * Initialize settings
+     *
+     * @return void
+     */
+    public function init()
+    {
+        parent::init();
+
+        // Allow overriding of default cache expiration:
+        $expiration = $this->config['MusicBrainzEnrichment']['cache_expiration']
+            ?? null;
+        if (null !== $expiration) {
+            $this->maxCacheAge = 60 * $expiration;
+        }
+    }
+
+    /**
      * Enrich the record and return any additions in solrArray
      *
      * @param string $sourceId  Source ID
@@ -59,7 +78,8 @@ class MusicBrainzEnrichment extends AbstractEnrichment
     public function enrich($sourceId, $record, &$solrArray)
     {
         $this->baseURL = $this->config['MusicBrainzEnrichment']['url'] ?? '';
-        if (empty($this->baseURL)
+        if (
+            empty($this->baseURL)
             || !($record instanceof \RecordManager\Base\Record\Marc)
         ) {
             return;
@@ -70,18 +90,18 @@ class MusicBrainzEnrichment extends AbstractEnrichment
             $id = $this->sanitizeId($identifier['id']);
             $type = $this->sanitizeId($identifier['type']);
             switch ($type) {
-            case 'isrc':
-                break;
-            case 'upc':
-            case 'ismn':
-            case 'ian':
-                $type = 'catno';
-                break;
-            case 'musicb':
-                $type = 'reid';
-                break;
-            default:
-                continue 2;
+                case 'isrc':
+                    break;
+                case 'upc':
+                case 'ismn':
+                case 'ian':
+                    $type = 'catno';
+                    break;
+                case 'musicb':
+                    $type = 'reid';
+                    break;
+                default:
+                    continue 2;
             }
             $query = "$type:\"" . addcslashes($id, '"\\') . '"';
             if ('catno' === $type) {
@@ -148,7 +168,7 @@ class MusicBrainzEnrichment extends AbstractEnrichment
         // Search for a release
         $params = [
             'query' => $query,
-            'fmt' => 'json'
+            'fmt' => 'json',
         ];
         $url = $this->baseURL . '/ws/2/release?' . http_build_query($params);
         $data = $this->getExternalData($url, $query);

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Tests for CreatePreview controller
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2022.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManagerTest\Base\Controller;
 
 use RecordManager\Base\Controller\CreatePreview;
@@ -61,7 +63,7 @@ class CreatePreviewTest extends \PHPUnit\Framework\TestCase
         'test' => [
             'institution' => 'Test',
             'format' => 'marc',
-        ]
+        ],
     ];
 
     /**
@@ -72,7 +74,7 @@ class CreatePreviewTest extends \PHPUnit\Framework\TestCase
     public function testCreatePreview()
     {
         $record = $this->getFixture('Controller/CreatePreview/preview_marc.xml');
-        $preview = $this->getCreatePreview($record);
+        $preview = $this->getCreatePreview();
 
         $result = $preview->launch(
             $record,

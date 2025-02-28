@@ -1,8 +1,9 @@
 <?php
+
 /**
  * RecordManager controller base class
  *
- * PHP version 7
+ * PHP version 8
  *
  * Copyright (C) The National Library of Finland 2011-2021.
  *
@@ -25,6 +26,7 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Controller;
 
 use RecordManager\Base\Database\DatabaseInterface;
@@ -133,8 +135,8 @@ abstract class AbstractBase
         DedupHandlerInterface $dedupHandler,
         MetadataUtils $metadataUtils
     ) {
-        if (isset($config['Site']['timezone'])) {
-            date_default_timezone_set($config['Site']['timezone']);
+        if ($tz = $config['Site']['timezone'] ?? null) {
+            date_default_timezone_set($tz);
         }
 
         $this->config = $config;

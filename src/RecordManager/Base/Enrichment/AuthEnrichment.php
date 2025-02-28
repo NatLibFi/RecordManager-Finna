@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Enrich biblio records with authority record data.
  *
@@ -26,10 +27,11 @@
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
+
 namespace RecordManager\Base\Enrichment;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Http\ClientManager as HttpClientManager;
+use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Record\AbstractRecord;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
 use RecordManager\Base\Utils\Logger;
@@ -69,7 +71,7 @@ abstract class AuthEnrichment extends AbstractEnrichment
      *                                                 cache)
      * @param Logger              $logger              Logger
      * @param RecordPluginManager $recordPluginManager Record plugin manager
-     * @param HttpClientManager   $httpManager         HTTP client manager
+     * @param HttpService         $httpService         HTTP service
      * @param MetadataUtils       $metadataUtils       Metadata utilities
      * @param Database            $authorityDb         Authority database connection
      */
@@ -78,7 +80,7 @@ abstract class AuthEnrichment extends AbstractEnrichment
         Database $db,
         Logger $logger,
         RecordPluginManager $recordPluginManager,
-        HttpClientManager $httpManager,
+        HttpService $httpService,
         MetadataUtils $metadataUtils,
         Database $authorityDb
     ) {
@@ -87,7 +89,7 @@ abstract class AuthEnrichment extends AbstractEnrichment
             $db,
             $logger,
             $recordPluginManager,
-            $httpManager,
+            $httpService,
             $metadataUtils
         );
         $this->authorityDb = $authorityDb;
@@ -121,13 +123,7 @@ abstract class AuthEnrichment extends AbstractEnrichment
             return;
         }
 
-        $authRecord = $this->createRecord(
-            $data['format'],
-            $this->metadataUtils->getRecordData($data, true),
-            $id,
-            $data['source_id']
-        );
-
+        $authRecord = $this->createRecordFromDbRecord($data);
         if ($altNames = $authRecord->getAlternativeNames()) {
             $solrArray[$solrField]
                 = array_merge($solrArray[$solrField] ?? [], $altNames);
