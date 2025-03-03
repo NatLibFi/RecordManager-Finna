@@ -1560,45 +1560,47 @@ class Marc extends \RecordManager\Base\Record\Marc
                 'UTF-8'
             );
             switch ($dissType) {
-            case 'kandidaatintutkielma':
-            case 'kandidaatintyö':
-            case 'kandidatarbete':
-                return 'BachelorsThesis';
-            case 'pro gradu -tutkielma':
-            case 'pro gradu -työ':
-            case 'pro gradu':
-                return 'ProGradu';
-            case 'laudaturtyö':
-            case 'laudaturavh':
-                return 'LaudaturThesis';
-            case 'lisensiaatintyö':
-            case 'lic.avh':
-            case 'licentiatavhandling':
-                return 'LicentiateThesis';
-            case 'diplomityö':
-            case 'diplomarbete':
-                return 'MastersThesis';
-            case 'erikoistyö':
-            case 'vicenot.ex':
-                return 'Thesis';
-            case 'lopputyö':
-            case 'rättsnot.ex':
-                return 'Thesis';
-            case 'amk-opinnäytetyö':
-            case 'yh-examensarbete':
-                return 'BachelorsThesisPolytechnic';
-            case 'ylempi amk-opinnäytetyö':
-            case 'högre yh-examensarbete':
-                return 'MastersThesisPolytechnic';
-            case 'väitöskirja':
-            case 'monografiaväitöskirja':
-            case 'esseeväitöskirja':
-            case 'artikkeliväitöskirja':
-                return 'Dissertation';
+                case 'kandidaatintutkielma':
+                case 'kandidaatintyö':
+                case 'kandidatarbete':
+                    return 'BachelorsThesis';
+                case 'pro gradu -tutkielma':
+                case 'pro gradu -työ':
+                case 'pro gradu':
+                    return 'ProGradu';
+                case 'laudaturtyö':
+                case 'laudaturavh':
+                    return 'LaudaturThesis';
+                case 'lisensiaatintyö':
+                case 'lic.avh':
+                case 'licentiatavhandling':
+                    return 'LicentiateThesis';
+                case 'diplomityö':
+                case 'diplomarbete':
+                    return 'MastersThesis';
+                case 'erikoistyö':
+                case 'vicenot.ex':
+                    return 'Thesis';
+                case 'lopputyö':
+                case 'rättsnot.ex':
+                    return 'Thesis';
+                case 'amk-opinnäytetyö':
+                case 'yh-examensarbete':
+                    return 'BachelorsThesisPolytechnic';
+                case 'ylempi amk-opinnäytetyö':
+                case 'högre yh-examensarbete':
+                    return 'MastersThesisPolytechnic';
+                case 'väitöskirja':
+                case 'monografiaväitöskirja':
+                case 'esseeväitöskirja':
+                case 'artikkeliväitöskirja':
+                    return 'Dissertation';
             }
-            return 'Thesis';
         }
-
+        if ($dissTypes) {
+            return Thesis;
+        }
+        
         // Get the type of record from leader position 6
         $leader = $this->record->getLeader();
         $typeOfRecord = substr($leader, 6, 1);
