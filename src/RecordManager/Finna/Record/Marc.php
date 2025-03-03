@@ -1598,7 +1598,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
         if ($dissTypes) {
-            return Thesis;
+            return 'Thesis';
         }
 
         // Get the type of record from leader position 6
