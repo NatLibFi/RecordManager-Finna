@@ -1533,7 +1533,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // Dissertations and Thesis
         $dissTypes = [];
         // New combined rule for all thesis types, replaces 920 & 509
-        foreach ($this->record->getFields('502') as $field) { 
+        foreach ($this->record->getFields('502') as $field) {
             if ($sub = $this->record->getSubField($field, 'a')) {
                 $parts = explode("--", $sub);
                 $dissTypes[] = $parts[0];
