@@ -1531,26 +1531,27 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // Dissertations and Thesis
-        $dissType = "";
-        $dissfield = "";
+        $dissTypes = [];
         // New combined rule for all thesis types, replaces 920 & 509
-        if ($dissfield = $this->record->getFieldsSubFields('502', ['a'])) {
-            $parts = explode("--", $dissfield[0]);
-            $dissType = $parts[0];
+        foreach ($this->record->getFields('502') as $field) { 
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $parts = explode("--", $sub);
+                $dissTypes[] = $parts[0];
+            }
         }
-        // Legacy rule for dissertations only
-        if (!$dissType 
-                && $dissfield = $this->record->getFieldsSubFields('509', ['a'])
-           ) {
-            $dissType = $dissfield[0];
+        // Legacy rule
+        foreach ($this->record->getFields('509') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
         }
-        if (!$dissType 
-                && $dissfield = $this->record->getFieldsSubFields('920', ['a'])
-           ) {
-            $dissType = $dissfield[0];
+        foreach ($this->record->getFields('920') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
         }
-        
-        if ($dissType) {
+
+        foreach ($dissTypes as $dissType) {
             $dissType = mb_strtolower(
                 $this->metadataUtils->normalizeUnicode(
                     $this->metadataUtils->stripTrailingPunctuation($dissType),
