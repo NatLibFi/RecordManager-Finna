@@ -1600,7 +1600,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ($dissTypes) {
             return Thesis;
         }
-        
+
         // Get the type of record from leader position 6
         $leader = $this->record->getLeader();
         $typeOfRecord = substr($leader, 6, 1);
