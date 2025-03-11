@@ -1531,55 +1531,73 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // Dissertations and Thesis
-        if ($this->record->getField('502')) {
-            return 'Dissertation';
+        $dissTypes = [];
+        // New combined rule for all thesis types, replaces 920 & 509
+        foreach ($this->record->getFields('502') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $parts = explode('--', $sub);
+                $dissTypes[] = $parts[0];
+            }
         }
-        $dissTypes = $this->record->getFieldsSubfields('509', ['a']);
-        if (!$dissTypes) {
-            $dissTypes = $this->record->getFieldsSubfields('920', ['a']);
+        // Legacy rule
+        foreach ($this->record->getFields('509') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
+        }
+        foreach ($this->record->getFields('920') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
+        }
+
+        foreach ($dissTypes as $dissType) {
+            $dissType = mb_strtolower(
+                $this->metadataUtils->normalizeUnicode(
+                    $this->metadataUtils->stripTrailingPunctuation($dissType),
+                    'NFKC'
+                ),
+                'UTF-8'
+            );
+            switch ($dissType) {
+                case 'kandidaatintutkielma':
+                case 'kandidaatintyö':
+                case 'kandidatarbete':
+                    return 'BachelorsThesis';
+                case 'pro gradu -tutkielma':
+                case 'pro gradu -työ':
+                case 'pro gradu':
+                    return 'ProGradu';
+                case 'laudaturtyö':
+                case 'laudaturavh':
+                    return 'LaudaturThesis';
+                case 'lisensiaatintyö':
+                case 'lic.avh':
+                case 'licentiatavhandling':
+                    return 'LicentiateThesis';
+                case 'diplomityö':
+                case 'diplomarbete':
+                    return 'MastersThesis';
+                case 'erikoistyö':
+                case 'vicenot.ex':
+                    return 'Thesis';
+                case 'lopputyö':
+                case 'rättsnot.ex':
+                    return 'Thesis';
+                case 'amk-opinnäytetyö':
+                case 'yh-examensarbete':
+                    return 'BachelorsThesisPolytechnic';
+                case 'ylempi amk-opinnäytetyö':
+                case 'högre yh-examensarbete':
+                    return 'MastersThesisPolytechnic';
+                case 'väitöskirja':
+                case 'monografiaväitöskirja':
+                case 'esseeväitöskirja':
+                case 'artikkeliväitöskirja':
+                    return 'Dissertation';
+            }
         }
         if ($dissTypes) {
-            foreach ($dissTypes as $dissType) {
-                $dissType = mb_strtolower(
-                    $this->metadataUtils->normalizeUnicode(
-                        $this->metadataUtils->stripTrailingPunctuation($dissType),
-                        'NFKC'
-                    ),
-                    'UTF-8'
-                );
-                switch ($dissType) {
-                    case 'kandidaatintutkielma':
-                    case 'kandidaatintyö':
-                    case 'kandidatarbete':
-                        return 'BachelorsThesis';
-                    case 'pro gradu -tutkielma':
-                    case 'pro gradu -työ':
-                    case 'pro gradu':
-                        return 'ProGradu';
-                    case 'laudaturtyö':
-                    case 'laudaturavh':
-                        return 'LaudaturThesis';
-                    case 'lisensiaatintyö':
-                    case 'lic.avh':
-                    case 'licentiatavhandling':
-                        return 'LicentiateThesis';
-                    case 'diplomityö':
-                    case 'diplomarbete':
-                        return 'MastersThesis';
-                    case 'erikoistyö':
-                    case 'vicenot.ex':
-                        return 'Thesis';
-                    case 'lopputyö':
-                    case 'rättsnot.ex':
-                        return 'Thesis';
-                    case 'amk-opinnäytetyö':
-                    case 'yh-examensarbete':
-                        return 'BachelorsThesisPolytechnic';
-                    case 'ylempi amk-opinnäytetyö':
-                    case 'högre yh-examensarbete':
-                        return 'MastersThesisPolytechnic';
-                }
-            }
             return 'Thesis';
         }
 
