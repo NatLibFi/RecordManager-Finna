@@ -86,8 +86,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
-     * Related work relation types reflecting the terminology in the particular LIDO
-     * records.
+     * Related work relation types for collections.
      *
      * @var array
      */
@@ -96,8 +95,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
-     * Related work relation types reflecting the terminology in the particular LIDO
-     * records.
+     * Related work relation types for collections and other entities
      *
      * @var array
      */
@@ -106,6 +104,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         'Alakokoelma', 'alakokoelma', 'Erityiskokoelma', 'erityiskokoelma',
         'Hankintaerä', 'hankintaerä',
     ];
+
+    /**
+     * Related work relation types for related ISBNs.
+     *
+     * @var array
+     */
+    protected $relatedISBNRelationTypes = ['is reproduced in', 'julkaisu'];
 
     /**
      * Description types to exclude from title
