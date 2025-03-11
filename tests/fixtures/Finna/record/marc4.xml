@@ -1,6 +1,5 @@
 <collection xmlns="http://www.loc.gov/MARC21/slim">
 <record>
-  <!-- Can be used for other tests, currently used fields are 001 and 999 -->
   <leader>01195cam a22004094i 4500</leader>
   <controlfield tag="001">123</controlfield>
   <controlfield tag="003">FI-MELINDA</controlfield>
