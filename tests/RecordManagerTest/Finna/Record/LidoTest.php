@@ -285,6 +285,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'ctrlnum' => [],
             'isbn' => [],
             'issn' => [],
+            'related_isbn_isn_mv' => [],
             'language' => [
                 'fi',
                 'sv',
