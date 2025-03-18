@@ -670,24 +670,19 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Some locations might have redundancy, which causes problems.
         // Try to detect them and discard them from the results
         foreach ($splitted as $value) {
-            $value = trim($value);
-            $splitted = explode(' ', $value);
-
-            // If there is only one location then it can be really difficult
-            // to really determine where it should be located i.e Pohja or i.e lakes
-            // so in this case, skip the result
-            if (count($splitted) === 1) {
-                continue;
+            if ($value = trim($value)) {
+                $locationParts = explode(' ', $value);
+                array_walk($locationParts, function (&$part) {
+                    $part = trim($part, ', ');
+                });
+                // If there is only one unique name then it can be really difficult
+                // to really determine where it should be located i.e Pohja or i.e lakes
+                // so in this case, skip the result
+                if (count(array_unique($locationParts)) === 1) {
+                    continue;
+                }
+                $results[] = $value;
             }
-            array_walk($splitted, function (&$part) {
-                $part = trim($part, ', ');
-            });
-            // If the result would be something like Mäntyharju, Mäntyharju skip it as it
-            // is too redundant
-            if (count(array_unique($splitted)) !== count($splitted)) {
-                continue;
-            }
-            $results[] = $value;
         }
         return $results;
     }
