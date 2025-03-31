@@ -956,8 +956,24 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ($date = $this->metadataUtils->validateDate($this->extraData['catalogDate'] ?? null)) {
             $data['catalog_date'] = date('Y-m-d', $date) . 'T00:00:00Z';
         }
-
+        $data['linking_id_str_mv'] = $this->getLinkingIDs();
         return $data;
+    }
+
+    /**
+     * Return record linking IDs (typically same as ID) used for links
+     * between records in the data source
+     *
+     * @return array
+     */
+    public function getLinkingIDs()
+    {
+        $results = parent::getLinkingIDs();
+        if ($this->getDriverParam('idIn999', false) && $id = $this->getFieldSubfield('999', 'c')) {
+            // Koha style ID fallback
+            $results[] = $this->createLinkingId($id);
+        }
+        return array_values(array_unique(array_filter($results)));
     }
 
     /**
