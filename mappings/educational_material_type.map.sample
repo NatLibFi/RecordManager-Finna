@@ -63,6 +63,9 @@ wiki = 0/Wiki/
 
 aipa[] = 0/AIPA/
 aipa[] = 1/AIPA/AIPA/
-aipa:education[] = 0/AIPA/
-aipa:education[] = 1/AIPA/AIPA/
-aipa:education[] = 1/AIPA/Education/
+aipa-education[] = 0/AIPA/
+aipa-education[] = 1/AIPA/AIPA/
+aipa-education[] = 1/AIPA/Education/
+aipa-research[] = 0/AIPA/
+aipa-research[] = 1/AIPA/AIPA/
+aipa-research[] = 1/AIPA/Research/
