@@ -115,9 +115,7 @@ class Aipa extends Qdc
         $data = parent::toSolrArray($db);
 
         $data['record_format'] = 'aipa';
-        foreach ($this->doc->type as $type) {
-            $data['educational_material_type_str_mv'][] = (string)$type;
-        }
+        $data['educational_material_type_str_mv'] = $this->getFormat();
 
         // Merge fields from encapsulated records.
         foreach ($this->doc->item as $item) {
@@ -153,7 +151,7 @@ class Aipa extends Qdc
      */
     public function getFormat()
     {
-        return 'AIPA';
+        return (string)($this->doc->type);
     }
 
     /**
