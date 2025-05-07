@@ -62,5 +62,5 @@ weblog = Weblog
 wiki = Wiki
 
 aipa = AIPA
-aipa-education[] = AIPA/Education
-aipa-research[] = AIPA/Research
+aipa-education = AIPA/Education
+aipa-research = AIPA/Research
