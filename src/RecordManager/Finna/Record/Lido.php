@@ -2041,11 +2041,20 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         if ($this->getDriverParam('indexHierarchies', false)) {
             parent::getHierarchyFields($data);
-            return;
         }
-        $fields = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended);
-        if ($fields) {
-            $data['hierarchy_parent_title'] = $fields;
+        // Add additional related work titles
+        if ($furtherTitles = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended)) {
+            // Check that number of indexed parent titles and ids match
+            if (
+                count((array)($data['hierarchy_parent_title'] ?? []))
+                !== count((array)($data['hierarchy_parent_id'] ?? []))
+            ) {
+                return;
+            }
+            $data['hierarchy_parent_title'] = [
+                ...(array)($data['hierarchy_parent_title'] ?? []),
+                ...$furtherTitles,
+            ];
         }
     }
 
