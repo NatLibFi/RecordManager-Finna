@@ -34,7 +34,6 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 
-use function array_slice;
 use function boolval;
 use function count;
 use function in_array;
@@ -2052,16 +2051,10 @@ class Lido extends \RecordManager\Base\Record\Lido
             ) {
                 return;
             }
-            $allTitles = [
+            $data['hierarchy_parent_title'] = [
                 ...(array)($data['hierarchy_parent_title'] ?? []),
                 ...$furtherTitles,
             ];
-            // Check that adding further titles does not change original values or their order
-            $compare = array_slice($allTitles, 0, count((array)($data['hierarchy_parent_title'] ?? [])), true);
-            if (array_diff_assoc($compare, (array)($data['hierarchy_parent_title'] ?? []))) {
-                return;
-            }
-            $data['hierarchy_parent_title'] = $allTitles;
         }
     }
 
