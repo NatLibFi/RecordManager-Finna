@@ -1453,7 +1453,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 ],
                 [
                     '(FI-MELINDA)123',
-                    '(FI-MELINDA)010101',
+                    '010101',
                 ],
             ],
             'koha datasource with duplicate values in both' => [

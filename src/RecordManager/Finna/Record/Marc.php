@@ -968,10 +968,23 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function getLinkingIDs()
     {
-        $results = parent::getLinkingIDs();
-        if ($this->getDriverParam('idIn999', false) && $id = $this->getFieldSubfield('999', 'c')) {
-            // Koha style ID fallback
+        $results = [];
+        if ($id = $this->record->getControlField('001')) {
             $results[] = $this->createLinkingId($id);
+        }
+        $idIn999 = $this->getFieldSubfield('999', 'c');
+        if ($idIn999 && $this->getDriverParam('idIn999', false) && $id !== $idIn999) {
+            // Do not prepend prefix to id from 999 field if it does not match with 001
+            $results[] = $idIn999;
+        }
+
+        $cns = $this->getFieldsSubfields(
+            [
+                [MarcHandler::GET_NORMAL, '035', ['a']],
+            ]
+        );
+        if ($cns) {
+            $results = [...$results, ...$cns];
         }
         return array_values(array_unique(array_filter($results)));
     }
