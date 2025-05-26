@@ -1437,7 +1437,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
                 [
-                    '(FI-MELINDA)010101',
+                    '010101',
                 ],
             ],
             'koha datasource with id in 999 and 001' => [
@@ -1452,7 +1452,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
                 [
-                    '(FI-MELINDA)123',
                     '010101',
                 ],
             ],
@@ -1468,7 +1467,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
                 [
-                    '(FI-MELINDA)555555',
+                    '555555',
                 ],
             ],
             'koha datasource with an empty spaced value' => [
@@ -1482,9 +1481,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         ],
                     ],
                 ],
-                [
-                    '(FI-MELINDA)555555',
-                ],
+                [],
             ],
         ];
     }

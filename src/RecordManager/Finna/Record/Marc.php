@@ -969,14 +969,10 @@ class Marc extends \RecordManager\Base\Record\Marc
     public function getLinkingIDs()
     {
         $results = [];
-        if ($id = $this->record->getControlField('001')) {
-            $results[] = $this->createLinkingId($id);
-        }
+
+        $idIn001 = $this->record->getControlField('001');
         $idIn999 = $this->getFieldSubfield('999', 'c');
-        if ($idIn999 && $this->getDriverParam('idIn999', false) && $id !== $idIn999) {
-            // Do not prepend prefix to id from 999 field if it does not match with 001
-            $results[] = $idIn999;
-        }
+        $results[] = $this->getDriverParam('idIn999', false) ? $idIn999 : $idIn001;
 
         $cns = $this->getFieldsSubfields(
             [
