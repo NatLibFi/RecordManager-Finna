@@ -155,7 +155,6 @@
 ;format_mapping[] = sub_format.map,regexp
 ;dedup = true
 ;driverParams[] = "idIn999=true"
-;driverParams[] = "linking_id_fields=001,999|c"
 ;driverParams[] = "003InLinkingID=true"
 ;driverParams[] = "kohaNormalization=true"
 ;enrichments[] = MarcAuthEnrichment,final
