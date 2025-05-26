@@ -1452,7 +1452,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
                 [
-                    '010101',
+                    '123',
                 ],
             ],
             'koha datasource with duplicate values in both' => [
@@ -1481,7 +1481,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         ],
                     ],
                 ],
-                [],
+                [
+                    '555555',
+                ],
             ],
         ];
     }

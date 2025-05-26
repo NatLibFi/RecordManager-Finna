@@ -970,9 +970,9 @@ class Marc extends \RecordManager\Base\Record\Marc
     {
         $results = [];
 
-        $idIn001 = $this->record->getControlField('001');
-        $idIn999 = $this->getFieldSubfield('999', 'c');
-        $results[] = $this->getDriverParam('idIn999', false) ? $idIn999 : $idIn001;
+        if ($idIn001 = $this->record->getControlField('001')) {
+            $results[] = $idIn001;
+        }
 
         $cns = $this->getFieldsSubfields(
             [
