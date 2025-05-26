@@ -972,6 +972,9 @@ class Marc extends \RecordManager\Base\Record\Marc
 
         if ($idIn001 = $this->record->getControlField('001')) {
             $results[] = $idIn001;
+            // Koha style fallback, use only if id in 001 is empty
+        } elseif ($this->getDriverParam('idIn999', false)) {
+            $results[] = $this->getFieldSubfield('999', 'c');
         }
 
         $cns = $this->getFieldsSubfields(
