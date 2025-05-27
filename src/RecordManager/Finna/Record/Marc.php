@@ -969,22 +969,28 @@ class Marc extends \RecordManager\Base\Record\Marc
     public function getLinkingIDs()
     {
         $results = [];
+        $linkingIds = $this->getDriverParam('recordLinkingIdFields', '001,035,999');
+        $linkingIds = array_filter(explode(',', $linkingIds));
 
-        if ($idIn001 = $this->record->getControlField('001')) {
+        if (in_array('001', $linkingIds) && $idIn001 = $this->record->getControlField('001')) {
             $results[] = $idIn001;
-            // Koha style fallback, use only if id in 001 is empty
-        } elseif ($this->getDriverParam('idIn999', false)) {
-            $results[] = $this->getFieldSubfield('999', 'c');
         }
 
-        $cns = $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_NORMAL, '035', ['a']],
-            ]
-        );
-        if ($cns) {
-            $results = [...$results, ...$cns];
+        if (in_array('999', $linkingIds) && $idIn999 = $this->getFieldSubfield('999', 'c')) {
+            $results[] = $idIn999;
         }
+
+        if (in_array('035', $linkingIds)) {
+            $cns = $this->getFieldsSubfields(
+                [
+                    [MarcHandler::GET_NORMAL, '035', ['a']],
+                ]
+            );
+            if ($cns) {
+                $results = [...$results, ...$cns];
+            }
+        }
+
         return array_values(array_unique(array_filter($results)));
     }
 

@@ -1431,7 +1431,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],
@@ -1446,8 +1445,23 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
+                        ],
+                    ],
+                ],
+                [
+                    '123',
+                    '010101',
+                ],
+            ],
+            'koha datasource with id in 999 and 001 but configurated to 001' => [
+                'marc6.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            'recordLinkingIdFields=001,035',
                         ],
                     ],
                 ],
@@ -1461,7 +1475,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],
@@ -1476,7 +1489,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],

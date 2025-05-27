@@ -1,0 +1,4 @@
+; Finna specific datasource settings
+;[koha]
+;Which fields to include as a linking id for record as comma separated list. Default 001,035,999.
+;driverParams[] = "recordLinkingIdFields=001,035,999"
