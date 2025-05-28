@@ -1,4 +1,8 @@
 ; Finna specific datasource settings
 ;[marc]
-;Which fields to include as a linking id for record as comma separated list. Default 001,035,999.
-;driverParams[] = "recordLinkingIdFields=001,035,999"
+;Which fields to index as a linking id for record as comma separated list.
+; 0|001|a
+; 0 = If prefix from 003 has to be prepended for this id. 1 yes, 0 no. Required.
+; 001 = Field to obtain the id from. Required.
+; a = Get id from fields subfield. Optional.
+;driverParams[] = "recordLinkingIdFields=0|001,0|035|a,0|999|c"

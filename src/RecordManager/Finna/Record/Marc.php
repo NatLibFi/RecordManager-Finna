@@ -42,6 +42,7 @@ use RecordManager\Base\Utils\MetadataUtils;
 use function boolval;
 use function in_array;
 use function is_array;
+use function is_string;
 use function strlen;
 
 /**
@@ -113,6 +114,13 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @var mixed
      */
     protected $cachedFormat = null;
+
+    /**
+     * Default configuration for fields to be indexed as linking ids
+     *
+     * @var string
+     */
+    protected string $recordLinkingIdFields = '';
 
     /**
      * Patterns for matching publication date ranges (case-insentive)
@@ -195,6 +203,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             $recordCallback,
             $formatCalculator
         );
+        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '0|001,0|035|a,0|999|c';
 
         $this->recordPluginManager = $recordPluginManager;
         $this->initMediaTypeTrait($config);
@@ -969,25 +978,46 @@ class Marc extends \RecordManager\Base\Record\Marc
     public function getLinkingIDs()
     {
         $results = [];
-        $linkingIds = $this->getDriverParam('recordLinkingIdFields', '001,035,999');
+        $linkingIds = $this->getDriverParam('recordLinkingIdFields', $this->recordLinkingIdFields);
         $linkingIds = array_filter(explode(',', $linkingIds));
+        $prefixIn003 = $this->metadataUtils->stripTrailingPunctuation($this->record->getControlField('003'));
 
-        if (in_array('001', $linkingIds) && $idIn001 = $this->record->getControlField('001')) {
-            $results[] = $idIn001;
-        }
+        foreach ($linkingIds as $idPiped) {
+            $checks = explode('|', $idPiped);
+            $prefix = $checks[0] ?? null;
+            $field = $checks[1] ?? null;
+            $subField = $checks[2] ?? null;
+            if (null === $field || null === $prefix) {
+                $this->logger->logDebug(
+                    'Marc',
+                    'Missing field or prefix from recordIdLinkingFields for source: ' . $this->source,
+                    true
+                );
+                continue;
+            }
+            $ids = [];
 
-        if (in_array('999', $linkingIds) && $idIn999 = $this->getFieldSubfield('999', 'c')) {
-            $results[] = $idIn999;
-        }
+            $formatId = fn ($id) => trim($prefix && $prefixIn003 ? "($prefixIn003)$id" : $id);
 
-        if (in_array('035', $linkingIds)) {
-            $cns = $this->getFieldsSubfields(
-                [
-                    [MarcHandler::GET_NORMAL, '035', ['a']],
-                ]
+            $fields = $this->record->getFields($field, (array)$subField);
+            $ids = array_map(
+                function ($field) use ($formatId) {
+                    if (is_string($field)) {
+                        return (array)$formatId($field);
+                    }
+                    if (is_array($field)) {
+                        return array_map(
+                            fn ($subValue) => $formatId($subValue),
+                            array_column($field['subfields'], 'data'),
+                        );
+                    }
+                    return [];
+                },
+                $fields
             );
-            if ($cns) {
-                $results = [...$results, ...$cns];
+
+            if ($ids = array_filter(array_merge(...array_values($ids)))) {
+                $results = [...$results, ...$ids];
             }
         }
 

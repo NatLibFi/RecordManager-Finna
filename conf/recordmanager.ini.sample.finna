@@ -11,3 +11,11 @@
 ; The following section excludes certain location places
 ; Compares to: ...namePlaceSet->appellationValue->attributes()->label
 ;excluded_location_labels[] = "Torin nurkkaus etäällä"
+
+[MarcRecord]
+;Base setting for which fields to index as a linking id for record as comma separated list.
+; 0|001|a
+; 0 = If prefix from 003 has to be prepended for this id. 1 yes, 0 no. Required.
+; 001 = Field to obtain the id from. Required.
+; a = Get id from fields subfield. Optional.
+;record_linking_id_fields[] = "0|001,0|035|a,0|999|c"

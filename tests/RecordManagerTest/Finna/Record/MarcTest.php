@@ -1446,11 +1446,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         'driverParams' => [
                             'idIn999=true',
                             'kohaNormalization=true',
+                            'recordLinkingIdFields="1|001,0|035|a,0|999|c"',
                         ],
                     ],
                 ],
                 [
-                    '123',
+                    '(FI-MELINDA)123',
                     '010101',
                 ],
             ],
@@ -1461,12 +1462,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         'driverParams' => [
                             'idIn999=true',
                             'kohaNormalization=true',
-                            'recordLinkingIdFields=001,035',
+                            'recordLinkingIdFields="1|001,0|035|a"',
                         ],
                     ],
                 ],
                 [
-                    '123',
+                    '(FI-MELINDA)123',
                 ],
             ],
             'koha datasource with duplicate values in both' => [
