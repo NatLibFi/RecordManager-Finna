@@ -1162,6 +1162,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
+        $recordFormat = $this->getFormat();
+
         return compact(
             'title',
             'uniformTitle',
@@ -1175,7 +1177,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             'originalLanguages',
             'subtitleLanguages',
             'identifiers',
-            'textIncipits'
+            'textIncipits',
+            'recordFormat'
         );
     }
 
@@ -1278,7 +1281,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             foreach ($data['authorIds'] as $identifier) {
                 $newField['subfields'][] = ['l' => $identifier];
             }
-
+            $newField['subfields'][] = ['m' => $data['recordFormat']];
             $key = $this->metadataUtils->createIdSortKey($id);
             $parts["$key $count"] = $newField;
             ++$count;

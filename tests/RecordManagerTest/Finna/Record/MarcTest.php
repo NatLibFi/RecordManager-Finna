@@ -30,6 +30,11 @@
 
 namespace RecordManagerTest\Finna\Record;
 
+use ArrayIterator;
+use RecordManager\Base\Marc\Marc as MarcMarc;
+use RecordManager\Base\Record\Marc\FormatCalculator;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Finna\Record\Marc;
 
 /**
@@ -1513,5 +1518,99 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $record->normalize();
         $fields = $record->toSolrArray();
         $this->assertEquals($expected, $fields['linking_id_str_mv']);
+    }
+
+    /**
+     * Test merging component parts
+     *
+     * @return void
+     */
+    public function testMergeComponentParts(): void
+    {
+        $mockMarc = $this->getMockBuilder(Marc::class)->disableOriginalConstructor()->getMock();
+
+        $recordPluginManager = $this->getMockBuilder(\RecordManager\Base\Record\PluginManager::class)
+            ->disableOriginalConstructor()->getMock();
+        $recordPluginManager->expects($this->any())->method('get')->willReturn($mockMarc);
+
+        $metaDataUtils = $this->getMockBuilder(MetadataUtils::class)->onlyMethods([])
+            ->disableOriginalConstructor()->getMock();
+
+        $hostRecord = $this->getMockBuilder(Marc::class)->onlyMethods(['createRecord'])->setConstructorArgs([
+            [],
+            [],
+            $this->createMock(Logger::class),
+            $metaDataUtils,
+            fn ($metadata) => new MarcMarc($metadata),
+            $this->createMock(FormatCalculator::class),
+            $recordPluginManager,
+        ])->getMock();
+
+        $hostRecord->expects($this->any())->method('createRecord')->willReturnCallback(
+            function ($format, $data, $oaiID, $source, $extraData = []) use ($hostRecord) {
+                $cloneRecord = clone $hostRecord;
+                $cloneRecord->setData($source, $oaiID, $data, $extraData);
+                return $cloneRecord;
+            }
+        );
+        $componentParts = new ArrayIterator([
+            [
+                'original_data' => $this->getFixture('record/marc5.xml', 'Finna'),
+                '_id' => 'part_1',
+            ],
+            [
+                'original_data' => $this->getFixture('record/marc6.xml', 'Finna'),
+                '_id' => 'part_2',
+            ],
+        ]);
+        $hostFixture = $this->getFixture('record/marc4.xml', 'Finna');
+        $hostRecord->setData('test', 'hostoai1', $hostFixture, []);
+        $hostRecord->normalize();
+
+        $changeDate = null;
+
+        $hostRecord->mergeComponentParts($componentParts, $changeDate);
+        $expected = [
+            [
+                'tag' => '979',
+                'i1' => ' ',
+                'i2' => ' ',
+                'subfields' => [
+                    [
+                        'code' => 'a',
+                        'data' => 'part_1',
+                    ],
+                    [
+                        'code' => 'h',
+                        'data' => 'fin',
+                    ],
+                    [
+                        'code' => 'm',
+                        'data' => 'Book',
+                    ],
+                ],
+            ],
+            [
+                'tag' => '979',
+                'i1' => ' ',
+                'i2' => ' ',
+                'subfields' => [
+                    [
+                        'code' => 'a',
+                        'data' => 'part_2',
+                    ],
+                    [
+                        'code' => 'h',
+                        'data' => 'fin',
+                    ],
+                    [
+                        'code' => 'm',
+                        'data' => 'Collection',
+                    ],
+                ],
+            ],
+        ];
+
+        $this->assertEquals($expected, $hostRecord->getRecord()->getFields('979'));
     }
 }
