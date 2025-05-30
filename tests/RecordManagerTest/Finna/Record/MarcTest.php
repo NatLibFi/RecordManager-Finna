@@ -1527,11 +1527,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testMergeComponentParts(): void
     {
-        $mockMarc = $this->getMockBuilder(Marc::class)->disableOriginalConstructor()->getMock();
-
         $recordPluginManager = $this->getMockBuilder(\RecordManager\Base\Record\PluginManager::class)
             ->disableOriginalConstructor()->getMock();
-        $recordPluginManager->expects($this->any())->method('get')->willReturn($mockMarc);
 
         $metaDataUtils = $this->getMockBuilder(MetadataUtils::class)->onlyMethods([])
             ->disableOriginalConstructor()->getMock();
@@ -1556,11 +1553,17 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $componentParts = new ArrayIterator([
             [
                 'original_data' => $this->getFixture('record/marc5.xml', 'Finna'),
+                'normalized_data' => '',
                 '_id' => 'part_1',
+                'format' => 'Marc',
+                'date' => '2025-01-01',
             ],
             [
                 'original_data' => $this->getFixture('record/marc6.xml', 'Finna'),
                 '_id' => 'part_2',
+                'normalized_data' => '',
+                'format' => 'Marc',
+                'date' => '2025-01-01',
             ],
         ]);
         $hostFixture = $this->getFixture('record/marc4.xml', 'Finna');
