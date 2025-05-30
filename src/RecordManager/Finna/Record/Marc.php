@@ -1282,6 +1282,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $newField['subfields'][] = ['l' => $identifier];
             }
             $newField['subfields'][] = ['m' => $data['recordFormat']];
+
             $key = $this->metadataUtils->createIdSortKey($id);
             $parts["$key $count"] = $newField;
             ++$count;
