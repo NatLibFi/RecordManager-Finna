@@ -1446,7 +1446,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         'driverParams' => [
                             'idIn999=true',
                             'kohaNormalization=true',
-                            'recordLinkingIdFields="1|001,0|035|a,0|999|c"',
+                            'recordLinkingIdFields="001,1:035a:999c"',
                         ],
                     ],
                 ],
@@ -1462,7 +1462,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                         'driverParams' => [
                             'idIn999=true',
                             'kohaNormalization=true',
-                            'recordLinkingIdFields="1|001,0|035|a"',
+                            'recordLinkingIdFields="001,1|035a,0"',
                         ],
                     ],
                 ],

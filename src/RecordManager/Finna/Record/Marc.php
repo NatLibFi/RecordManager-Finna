@@ -203,7 +203,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             $recordCallback,
             $formatCalculator
         );
-        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '0|001,0|035|a,0|999|c';
+        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c';
 
         $this->recordPluginManager = $recordPluginManager;
         $this->initMediaTypeTrait($config);
@@ -979,15 +979,15 @@ class Marc extends \RecordManager\Base\Record\Marc
     {
         $results = [];
         $linkingIds = $this->getDriverParam('recordLinkingIdFields', $this->recordLinkingIdFields);
-        $linkingIds = array_filter(explode(',', $linkingIds));
+        $linkingIds = array_filter(explode(':', $linkingIds));
         $prefixIn003 = $this->metadataUtils->stripTrailingPunctuation($this->record->getControlField('003'));
 
         foreach ($linkingIds as $idPiped) {
-            $checks = explode('|', $idPiped);
-            $prefix = $checks[0] ?? null;
-            $field = $checks[1] ?? null;
-            $subField = $checks[2] ?? null;
-            if (null === $field || null === $prefix) {
+            $fieldSpec = explode(',', $idPiped, 2);
+            $field = substr($fieldSpec[0], 0, 3);
+            $subField = $fieldSpec[0][3] ?? null;
+            $prefix = $fieldSpec[1] ?? null;
+            if (!$field) {
                 $this->logger->logDebug(
                     'Marc',
                     'Missing field or prefix from recordIdLinkingFields for source: ' . $this->source,
