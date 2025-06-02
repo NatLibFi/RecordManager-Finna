@@ -990,7 +990,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             if (!$field) {
                 $this->logger->logDebug(
                     'Marc',
-                    'Missing field or prefix from recordIdLinkingFields for source: ' . $this->source,
+                    'Missing field from recordIdLinkingFields for source: ' . $this->source,
                     true
                 );
                 continue;
