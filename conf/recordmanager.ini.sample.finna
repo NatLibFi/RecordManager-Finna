@@ -13,9 +13,10 @@
 ;excluded_location_labels[] = "Torin nurkkaus etäällä"
 
 [MarcRecord]
-;Which fields to index as a linking id for record as colon separated list.
-; 001,0:035a,1
-; 001 = field to get value from
-; 1 = prepend prefix from 003, 0 no, 1 yes. Optional. Default is 0.
-; 035a = get ids from fields 035 subfields a
+; A colon-separated list of MARC fields to index as a linking ids for record.
+; Format:
+; field,prepend:field,prepent
+; field = field code, and subfield code for variable fields
+; prepend = whether to prepend 003 to the field. 0 = no (default), 1 = yes.
+; Example:
 ;record_linking_id_fields = "001,1:035a,0:999c,0"
