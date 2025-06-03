@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<qualifieddc schemaLocation="http://kk/1.0/qdcfinna.xsd">
+  <recordID>10000_12345</recordID>
+  <source type="identifier">original/id</source>
+  <source type="other">other id</source>
+</qualifieddc>

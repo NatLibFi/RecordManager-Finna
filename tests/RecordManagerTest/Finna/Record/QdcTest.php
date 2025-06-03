@@ -219,4 +219,31 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'LanguageCheckAfterWarnings'
         );
     }
+
+    /**
+     * Test original identifiers
+     *
+     * @return void
+     */
+    public function testOriginalIds(): void
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_original_ids.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+
+        $this->assertEquals(
+            [
+                '10000_12345',
+                'original/id',
+            ],
+            $fields['ctrlnum']
+        );
+    }
 }
