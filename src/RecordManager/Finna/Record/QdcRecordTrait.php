@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2019-2023.
+ * Copyright (C) The National Library of Finland 2019-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -168,6 +168,10 @@ trait QdcRecordTrait
         $data['author_facet'] = [...$a, ...$a2, ...$ac];
 
         $data['format_ext_str_mv'] = $data['format'];
+
+        if ($originalIds = $this->getValues('source', ['type' => 'identifier'])) {
+            $data['original_id_str_mv'] = $originalIds;
+        }
 
         return $data;
     }
