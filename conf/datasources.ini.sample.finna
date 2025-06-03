@@ -2,7 +2,7 @@
 ;[marc]
 ; A colon-separated list of MARC fields to index as a linking ids for record.
 ; Format:
-; field,prepend:field,prepent
+; field,prepend:field,prepend
 ; field = field code, and subfield code for variable fields
 ; prepend = whether to prepend 003 to the field. 0 = no (default), 1 = yes.
 ; Example: 
