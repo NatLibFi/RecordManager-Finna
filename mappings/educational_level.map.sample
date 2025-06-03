@@ -1,173 +1,194 @@
-varhaiskasvatus = 0/EarlyChildhoodEducation/
-småbarnsfostran = 0/EarlyChildhoodEducation/
-early childhood education = 0/EarlyChildhoodEducation/
+varhaiskasvatus = EarlyChildhoodEducation
+småbarnsfostran = EarlyChildhoodEducation
+småbarnspedagogik = EarlyChildhoodEducation
+early childhood education = EarlyChildhoodEducation
 
-esiopetus = 0/PrePrimaryEducation/
-förskoleundervisning = 0/PrePrimaryEducation/
-pre-primary education = 0/PrePrimaryEducation/
+esiopetus = PrePrimaryEducation
+förskoleundervisning = PrePrimaryEducation
+pre-primary education = PrePrimaryEducation
 
-perusopetus[] = 0/BasicEducation/
-perusopetus[] = 1/BasicEducation/BasicEducation/
-perusopetuksen vuosiluokat 1-2[] = 0/BasicEducation/
-perusopetuksen vuosiluokat 3-4[] = 0/BasicEducation/
-perusopetuksen vuosiluokat 5-6[] = 0/BasicEducation/
-perusopetuksen vuosiluokat 7-9[] = 0/BasicEducation/
-perusopetuksen lisäopetus (10-luokka)[] = 0/BasicEducation/
+perusopetus[] = BasicEducation
+perusopetus[] = BasicEducation/BasicEducation
+perusopetuksen vuosiluokat 1-2[] = BasicEducation
+perusopetuksen vuosiluokat 3-4[] = BasicEducation
+perusopetuksen vuosiluokat 5-6[] = BasicEducation
+perusopetuksen vuosiluokat 7-9[] = BasicEducation
+perusopetuksen lisäopetus (10-luokka)[] = BasicEducation
 
-perusopetuksen vuosiluokat 1-2[] = 1/BasicEducation/BasicEducation/
-perusopetuksen vuosiluokat 3-4[] = 1/BasicEducation/BasicEducation/
-perusopetuksen vuosiluokat 5-6[] = 1/BasicEducation/BasicEducation/
-perusopetuksen vuosiluokat 7-9[] = 1/BasicEducation/BasicEducation/
-perusopetuksen lisäopetus (10-luokka)[] = 1/BasicEducation/BasicEducation/
+perusopetuksen vuosiluokat 1-2[] = BasicEducation/BasicEducation
+perusopetuksen vuosiluokat 3-4[] = BasicEducation/BasicEducation
+perusopetuksen vuosiluokat 5-6[] = BasicEducation/BasicEducation
+perusopetuksen vuosiluokat 7-9[] = BasicEducation/BasicEducation
+perusopetuksen lisäopetus (10-luokka)[] = BasicEducation/BasicEducation
 
-perusopetuksen vuosiluokat 1-2[] = 1/BasicEducation/BasicEducation1-2/
-perusopetuksen vuosiluokat 3-4[] = 1/BasicEducation/BasicEducation3-4/
-perusopetuksen vuosiluokat 5-6[] = 1/BasicEducation/BasicEducation5-6/
-perusopetuksen vuosiluokat 7-9[] = 1/BasicEducation/BasicEducation7-9/
-perusopetuksen lisäopetus (10-luokka)[] = 1/BasicEducation/BasicEducationAdditional/
+perusopetuksen vuosiluokat 1-2[] = BasicEducation/BasicEducation1-2
+perusopetuksen vuosiluokat 3-4[] = BasicEducation/BasicEducation3-4
+perusopetuksen vuosiluokat 5-6[] = BasicEducation/BasicEducation5-6
+perusopetuksen vuosiluokat 7-9[] = BasicEducation/BasicEducation7-9
+perusopetuksen lisäopetus (10-luokka)[] = BasicEducation/BasicEducationAdditional
 
-grundläggande utbildning[] = 0/BasicEducation/
-grundläggande utbildning[] = 1/BasicEducation/BasicEducation/
-grundläggande utbildning årskurs 1-2[] = 0/BasicEducation/
-grundläggande utbildning årskurs 3-4[] = 0/BasicEducation/
-grundläggande utbildning årskurs 5-6[] = 0/BasicEducation/
-grundläggande utbildning årskurs 7-9[] = 0/BasicEducation/
-påbyggnadsundervisning efter den grundläggande utbildningen[] = 0/BasicEducation/
+grundläggande utbildning[] = BasicEducation
+grundläggande utbildning[] = BasicEducation/BasicEducation
+grundläggande utbildning årskurs 1-2[] = BasicEducation
+grundläggande utbildning årskurs 3-4[] = BasicEducation
+grundläggande utbildning årskurs 5-6[] = BasicEducation
+grundläggande utbildning årskurs 7-9[] = BasicEducation
+påbyggnadsundervisning efter den grundläggande utbildningen[] = BasicEducation
 
-grundläggande utbildning årskurs 1-2[] = 1/BasicEducation/BasicEducation/
-grundläggande utbildning årskurs 3-4[] = 1/BasicEducation/BasicEducation/
-grundläggande utbildning årskurs 5-6[] = 1/BasicEducation/BasicEducation/
-grundläggande utbildning årskurs 7-9[] = 1/BasicEducation/BasicEducation/
-påbyggnadsundervisning efter den grundläggande utbildningen[] = 1/BasicEducation/BasicEducation/
+grundläggande utbildning årskurs 1-2[] = BasicEducation/BasicEducation
+grundläggande utbildning årskurs 3-4[] = BasicEducation/BasicEducation
+grundläggande utbildning årskurs 5-6[] = BasicEducation/BasicEducation
+grundläggande utbildning årskurs 7-9[] = BasicEducation/BasicEducation
+påbyggnadsundervisning efter den grundläggande utbildningen[] = BasicEducation/BasicEducation
 
-grundläggande utbildning årskurs 1-2[] = 1/BasicEducation/BasicEducation1-2/
-grundläggande utbildning årskurs 3-4[] = 1/BasicEducation/BasicEducation3-4/
-grundläggande utbildning årskurs 5-6[] = 1/BasicEducation/BasicEducation5-6/
-grundläggande utbildning årskurs 7-9[] = 1/BasicEducation/BasicEducation7-9/
-påbyggnadsundervisning efter den grundläggande utbildningen[] = 1/BasicEducation/BasicEducationAdditional/
-
-
-basic education[] = 0/BasicEducation/
-basic education[] = 1/BasicEducation/BasicEducation/
-basic education grades 1-2[] = 0/BasicEducation/
-basic education grades 3-4[] = 0/BasicEducation/
-basic education grades 5-6[] = 0/BasicEducation/
-basic education grades 7-9[] = 0/BasicEducation/
-voluntary additional basic education[] = 0/BasicEducation/
-
-basic education grades 1-2[] = 1/BasicEducation/BasicEducation/
-basic education grades 3-4[] = 1/BasicEducation/BasicEducation/
-basic education grades 5-6[] = 1/BasicEducation/BasicEducation/
-basic education grades 7-9[] = 1/BasicEducation/BasicEducation/
-voluntary additional basic education[] = 1/BasicEducation/BasicEducation/
-
-basic education grades 1-2[] = 1/BasicEducation/BasicEducation1-2/
-basic education grades 3-4[] = 1/BasicEducation/BasicEducation3-4/
-basic education grades 5-6[] = 1/BasicEducation/BasicEducation5-6/
-basic education grades 7-9[] = 1/BasicEducation/BasicEducation7-9/
-voluntary additional basic education[] = 1/BasicEducation/BasicEducationAdditional/
+grundläggande utbildning årskurs 1-2[] = BasicEducation/BasicEducation1-2
+grundläggande utbildning årskurs 3-4[] = BasicEducation/BasicEducation3-4
+grundläggande utbildning årskurs 5-6[] = BasicEducation/BasicEducation5-6
+grundläggande utbildning årskurs 7-9[] = BasicEducation/BasicEducation7-9
+påbyggnadsundervisning efter den grundläggande utbildningen[] = BasicEducation/BasicEducationAdditional
 
 
-lukiokoulutus[] = 0/UpperSecondary/
-lukiokoulutus[] = 1/UpperSecondary/UpperSecondary/
+basic education[] = BasicEducation
+basic education[] = BasicEducation/BasicEducation
+basic education grades 1-2[] = BasicEducation
+basic education grades 3-4[] = BasicEducation
+basic education grades 5-6[] = BasicEducation
+basic education grades 7-9[] = BasicEducation
+voluntary additional basic education[] = BasicEducation
 
-lukiokoulutukseen valmistava koulutus, LUVA[] = 0/UpperSecondary/
-lukiokoulutukseen valmistava koulutus, LUVA[] = 1/UpperSecondary/UpperSecondary/
-lukiokoulutukseen valmistava koulutus, LUVA[] = 1/UpperSecondary/LUVA/
+basic education grades 1-2[] = BasicEducation/BasicEducation
+basic education grades 3-4[] = BasicEducation/BasicEducation
+basic education grades 5-6[] = BasicEducation/BasicEducation
+basic education grades 7-9[] = BasicEducation/BasicEducation
+voluntary additional basic education[] = BasicEducation/BasicEducation
 
-gymnasieutbildning[] = 0/UpperSecondary/
-gymnasieutbildning[] = 1/UpperSecondary/UpperSecondary/
-
-utbildning som förbereder för gymnasieutbildning[] = 0/UpperSecondary/
-utbildning som förbereder för gymnasieutbildning[] = 1/UpperSecondary/UpperSecondary/
-utbildning som förbereder för gymnasieutbildning[] = 1/UpperSecondary/LUVA/
-
-upper secondary school[] = 0/UpperSecondary/
-upper secondary school[] = 1/UpperSecondary/UpperSecondary/
-
-instruction preparing for general upper secondary education[] = 0/UpperSecondary/
-instruction preparing for general upper secondary education[] = 1/UpperSecondary/UpperSecondary/
-instruction preparing for general upper secondary education[] = 1/UpperSecondary/LUVA/
-
-
-ammatillinen koulutus[] = 0/VocationalEducation/
-ammatillinen koulutus[] = 1/VocationalEducation/VocationalEducation/
-
-ammatilliseen koulutukseen valmentava koulutus, VALMA[] = 0/VocationalEducation/
-ammatilliseen koulutukseen valmentava koulutus, VALMA[] = 1/VocationalEducation/VocationalEducation/
-ammatilliseen koulutukseen valmentava koulutus, VALMA[] = 1/VocationalEducation/VALMA/
-
-työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = 0/VocationalEducation/
-työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = 1/VocationalEducation/VocationalEducation/
-työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = 1/VocationalEducation/TELMA/
-
-yrkesutbildning[] = 0/VocationalEducation/
-yrkesutbildning[] = 1/VocationalEducation/VocationalEducation/
-utbildning som handleder för yrkesutbildning[] = 0/VocationalEducation/
-utbildning som handleder för yrkesutbildning[] = 1/VocationalEducation/VocationalEducation/
-utbildning som handleder för yrkesutbildning[] = 1/VocationalEducation/VALMA/
-
-utbildning som handleder för arbete och ett självständigt liv[] = 0/VocationalEducation/
-utbildning som handleder för arbete och ett självständigt liv[] = 1/VocationalEducation/VocationalEducation/
-utbildning som handleder för arbete och ett självständigt liv[] = 1/VocationalEducation/TELMA/
-
-vocational education[] = 0/VocationalEducation/
-vocational education[] = 1/VocationalEducation/VocationalEducation/
-preparatory education for vocational training[] = 0/VocationalEducation/
-preparatory education for vocational training[] = 1/VocationalEducation/VocationalEducation/
-preparatory education for vocational training[] = 1/VocationalEducation/VALMA/
-
-preparatory education for work and independent living[] = 0/VocationalEducation/
-preparatory education for work and independent living[] = 1/VocationalEducation/VocationalEducation/
-preparatory education for work and independent living[] = 1/VocationalEducation/TELMA/
+basic education grades 1-2[] = BasicEducation/BasicEducation1-2
+basic education grades 3-4[] = BasicEducation/BasicEducation3-4
+basic education grades 5-6[] = BasicEducation/BasicEducation5-6
+basic education grades 7-9[] = BasicEducation/BasicEducation7-9
+voluntary additional basic education[] = BasicEducation/BasicEducationAdditional
 
 
-omaehtoinen osaamisen kehittäminen = 0/SelfMotivated/
-självständig utveckling av kompetens = 0/SelfMotivated/
-self-motivated competence development = 0/SelfMotivated/
+tutkintoon valmentava koulutus, TUVA[] = TUVA
+utbildning som handleder för examensutbildning, HUX[] = TUVA
+preparatory education for an upper secondary education qualification, TUVA = TUVA
 
-korkeakoulutus[] = 0/HigherEducation/
-korkeakoulutus[] = 1/HigherEducation/HigherEducation/
-alemman korkeakouluasteen tutkinto[] = 0/HigherEducation/
-alemman korkeakouluasteen tutkinto[] = 1/HigherEducation/HigherEducation/
-alemman korkeakouluasteen tutkinto[] = 1/HigherEducation/BachelorsDegree/
 
-ylemmän korkeakouluasteen tutkinto[] = 0/HigherEducation/
-ylemmän korkeakouluasteen tutkinto[] = 1/HigherEducation/HigherEducation/
-ylemmän korkeakouluasteen tutkinto[] = 1/HigherEducation/MastersDegree/
+lukiokoulutus[] = UpperSecondary
+lukiokoulutus[] = UpperSecondary/UpperSecondary
 
-tutkijakoulutusasteen tutkinto[] = 0/HigherEducation/
-tutkijakoulutusasteen tutkinto[] = 1/HigherEducation/HigherEducation/
-tutkijakoulutusasteen tutkinto[] = 1/HigherEducation/ThirdCycleDegree/
+lukiokoulutukseen valmistava koulutus, LUVA[] = UpperSecondary
+lukiokoulutukseen valmistava koulutus, LUVA[] = UpperSecondary/UpperSecondary
+lukiokoulutukseen valmistava koulutus, LUVA[] = UpperSecondary/LUVA
 
-högskoleutbildning[] = 0/HigherEducation/
-högskoleutbildning[] = 1/HigherEducation/HigherEducation/
+gymnasieutbildning[] = UpperSecondary
+gymnasieutbildning[] = UpperSecondary/UpperSecondary
 
-lägre högskoleexamen[] = 0/HigherEducation/
-lägre högskoleexamen[] = 1/HigherEducation/HigherEducation/
-lägre högskoleexamen[] = 1/HigherEducation/BachelorsDegree/
+utbildning som förbereder för gymnasieutbildning[] = UpperSecondary
+utbildning som förbereder för gymnasieutbildning[] = UpperSecondary/UpperSecondary
+utbildning som förbereder för gymnasieutbildning[] = UpperSecondary/LUVA
 
-högre högskoleexamen[] = 0/HigherEducation/
-högre högskoleexamen[] = 1/HigherEducation/HigherEducation/
-högre högskoleexamen[] = 1/HigherEducation/MastersDegree/
+upper secondary school[] = UpperSecondary
+upper secondary school[] = UpperSecondary/UpperSecondary
 
-forskarutbildning[] = 0/HigherEducation/
-forskarutbildning[] = 1/HigherEducation/HigherEducation/
-forskarutbildning[] = 1/HigherEducation/ThirdCycleDegree/
+instruction preparing for general upper secondary education[] = UpperSecondary
+instruction preparing for general upper secondary education[] = UpperSecondary/UpperSecondary
+instruction preparing for general upper secondary education[] = UpperSecondary/LUVA
 
-higher education[] = 0/HigherEducation/
-higher education[] = 1/HigherEducation/HigherEducation/
 
-bachelor's degree[] = 0/HigherEducation/
-bachelor's degree[] = 1/HigherEducation/HigherEducation/
-bachelor's degree[] = 1/HigherEducation/BachelorsDegree/
+ammatillinen koulutus[] = VocationalEducation
+ammatillinen koulutus[] = VocationalEducation/VocationalEducation
 
-master's degree[] = 0/HigherEducation/
-master's degree[] = 1/HigherEducation/HigherEducation/
-master's degree[] = 1/HigherEducation/MastersDegree/
+ammatilliseen koulutukseen valmentava koulutus, VALMA[] = VocationalEducation
+ammatilliseen koulutukseen valmentava koulutus, VALMA[] = VocationalEducation/VocationalEducation
+ammatilliseen koulutukseen valmentava koulutus, VALMA[] = VocationalEducation/VALMA
 
-third cycle degree[] = 0/HigherEducation/
-third cycle degree[] = 1/HigherEducation/HigherEducation/
-third cycle degree[] = 1/HigherEducation/ThirdCycleDegree/
+työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = VocationalEducation
+työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = VocationalEducation/VocationalEducation
+työhön ja itsenäiseen elämään valmentava koulutus, TELMA[] = VocationalEducation/TELMA
 
-;##default = 0/Other/
+yrkesutbildning[] = VocationalEducation
+yrkesutbildning[] = VocationalEducation/VocationalEducation
+utbildning som handleder för yrkesutbildning[] = VocationalEducation
+utbildning som handleder för yrkesutbildning[] = VocationalEducation/VocationalEducation
+utbildning som handleder för yrkesutbildning[] = VocationalEducation/VALMA
+
+utbildning som handleder för arbete och ett självständigt liv[] = VocationalEducation
+utbildning som handleder för arbete och ett självständigt liv[] = VocationalEducation/VocationalEducation
+utbildning som handleder för arbete och ett självständigt liv[] = VocationalEducation/TELMA
+
+vocational education[] = VocationalEducation
+vocational education[] = VocationalEducation/VocationalEducation
+preparatory education for vocational training[] = VocationalEducation
+preparatory education for vocational training[] = VocationalEducation/VocationalEducation
+preparatory education for vocational training[] = VocationalEducation/VALMA
+
+preparatory education for work and independent living[] = VocationalEducation
+preparatory education for work and independent living[] = VocationalEducation/VocationalEducation
+preparatory education for work and independent living[] = VocationalEducation/TELMA
+
+
+omaehtoinen osaamisen kehittäminen[] = SelfMotivated
+omaehtoinen osaamisen kehittäminen[] = SelfMotivated/SelfMotivated
+vapaa sivistystyö[] = SelfMotivated/LiberalAdultEducation
+kotoutumiskoulutus[] = SelfMotivated/IntegrationTraining
+taiteen perusopetus[] = SelfMotivated/BasicEducationInTheArts
+
+självständig utveckling av kompetens[] = SelfMotivated
+självständig utveckling av kompetens[] = SelfMotivated/SelfMotivated
+fritt bildningsarbete[] = SelfMotivated/LiberalAdultEducation
+integrationsutbildning[] = SelfMotivated/IntegrationTraining
+grundläggande konstundervisning[] = SelfMotivated/BasicEducationInTheArts
+
+self-motivated competence development[] = SelfMotivated
+self-motivated competence development[] = SelfMotivated/SelfMotivated
+liberal adult education[] = SelfMotivated/LiberalAdultEducation
+integration training[] = SelfMotivated/IntegrationTraining
+basic education in the arts[] = SelfMotivated/BasicEducationInTheArts
+
+
+korkeakoulutus[] = HigherEducation
+korkeakoulutus[] = HigherEducation/HigherEducation
+alemman korkeakouluasteen tutkinto[] = HigherEducation
+alemman korkeakouluasteen tutkinto[] = HigherEducation/HigherEducation
+alemman korkeakouluasteen tutkinto[] = HigherEducation/BachelorsDegree
+
+ylemmän korkeakouluasteen tutkinto[] = HigherEducation
+ylemmän korkeakouluasteen tutkinto[] = HigherEducation/HigherEducation
+ylemmän korkeakouluasteen tutkinto[] = HigherEducation/MastersDegree
+
+tutkijakoulutusasteen tutkinto[] = HigherEducation
+tutkijakoulutusasteen tutkinto[] = HigherEducation/HigherEducation
+tutkijakoulutusasteen tutkinto[] = HigherEducation/ThirdCycleDegree
+
+högskoleutbildning[] = HigherEducation
+högskoleutbildning[] = HigherEducation/HigherEducation
+
+lägre högskoleexamen[] = HigherEducation
+lägre högskoleexamen[] = HigherEducation/HigherEducation
+lägre högskoleexamen[] = HigherEducation/BachelorsDegree
+
+högre högskoleexamen[] = HigherEducation
+högre högskoleexamen[] = HigherEducation/HigherEducation
+högre högskoleexamen[] = HigherEducation/MastersDegree
+
+forskarutbildning[] = HigherEducation
+forskarutbildning[] = HigherEducation/HigherEducation
+forskarutbildning[] = HigherEducation/ThirdCycleDegree
+
+higher education[] = HigherEducation
+higher education[] = HigherEducation/HigherEducation
+
+bachelor's degree[] = HigherEducation
+bachelor's degree[] = HigherEducation/HigherEducation
+bachelor's degree[] = HigherEducation/BachelorsDegree
+
+master's degree[] = HigherEducation
+master's degree[] = HigherEducation/HigherEducation
+master's degree[] = HigherEducation/MastersDegree
+
+third cycle degree[] = HigherEducation
+third cycle degree[] = HigherEducation/HigherEducation
+third cycle degree[] = HigherEducation/ThirdCycleDegree
+
+##default =
