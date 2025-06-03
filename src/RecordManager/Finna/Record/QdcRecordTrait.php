@@ -170,7 +170,10 @@ trait QdcRecordTrait
         $data['format_ext_str_mv'] = $data['format'];
 
         if ($originalIds = $this->getValues('source', ['type' => 'identifier'])) {
-            $data['original_id_str_mv'] = $originalIds;
+            $data['ctrlnum'] = [
+                ...(array)($data['ctrlnum'] ?? []),
+                ...$originalIds,
+            ];
         }
 
         return $data;

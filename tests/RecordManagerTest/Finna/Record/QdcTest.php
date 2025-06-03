@@ -221,7 +221,7 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
-     * Test media types
+     * Test original identifiers
      *
      * @return void
      */
@@ -240,9 +240,10 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $this->assertEquals(
             [
+                '10000_12345',
                 'original/id',
             ],
-            $fields['original_id_str_mv']
+            $fields['ctrlnum']
         );
     }
 }
