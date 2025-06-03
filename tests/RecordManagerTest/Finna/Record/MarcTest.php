@@ -1431,13 +1431,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],
                 ],
                 [
-                    '(FI-MELINDA)010101',
+                    '010101',
                 ],
             ],
             'koha datasource with id in 999 and 001' => [
@@ -1446,14 +1445,29 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
+                            'recordLinkingIdFields="001,1:035a:999c"',
                         ],
                     ],
                 ],
                 [
                     '(FI-MELINDA)123',
-                    '(FI-MELINDA)010101',
+                    '010101',
+                ],
+            ],
+            'koha datasource with id in 999 and 001 but configurated to 001' => [
+                'marc6.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            'recordLinkingIdFields="001,1|035a,0"',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)123',
                 ],
             ],
             'koha datasource with duplicate values in both' => [
@@ -1462,13 +1476,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],
                 ],
                 [
-                    '(FI-MELINDA)555555',
+                    '555555',
                 ],
             ],
             'koha datasource with an empty spaced value' => [
@@ -1477,13 +1490,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '__unit_test_no_source__' => [
                         'driverParams' => [
                             'idIn999=true',
-                            '003InLinkingID=true',
                             'kohaNormalization=true',
                         ],
                     ],
                 ],
                 [
-                    '(FI-MELINDA)555555',
+                    '555555',
                 ],
             ],
         ];
