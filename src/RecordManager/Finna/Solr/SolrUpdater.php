@@ -70,4 +70,48 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             }
         }
     }
+
+    /**
+     * Merge component parts to record
+     *
+     * @param AbstractRecord $metadataRecord Record to merge component parts to
+     * @param array          $record         Database record
+     * @param \Traversable   $components     Component parts to merge
+     * @param string         $source         Source ID
+     *
+     * @return int Amount of merged component parts
+     */
+    protected function mergeComponentParts(
+        AbstractRecord $metadataRecord,
+        array &$record,
+        \Traversable $components,
+        string $source
+    ): int {
+        $changeDate = null;
+        $mergedComponents = $metadataRecord->mergeComponentPartsCallback(
+            $components,
+            $changeDate,
+            function ($field) use ($source) {
+                if (empty($field['subfields'])) {
+                    return $field;
+                }
+                $field['subfields'] = array_map(
+                    function ($subfield) use ($source) {
+                        if ($formatField = $subfield['m'] ?? false) {
+                            $mappedFormat = $this->fieldMapper->mapFormat($source, [$formatField]);
+                            $subfield['m'] = reset($mappedFormat);
+                        }
+                        return $subfield;
+                    },
+                    $field['subfields'] ?? []
+                );
+                return $field;
+            }
+        );
+        // Use latest date as the host record date
+        if (null !== $changeDate && $changeDate > $record['date']) {
+            $record['date'] = $changeDate;
+        }
+        return $mergedComponents;
+    }
 }

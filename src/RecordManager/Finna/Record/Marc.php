@@ -32,6 +32,7 @@ namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Marc\Marc as MarcHandler;
+use RecordManager\Base\Record\AbstractRecord;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
@@ -1210,6 +1211,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
+        $format = $this->getFormat();
+
         return compact(
             'title',
             'uniformTitle',
@@ -1223,8 +1226,56 @@ class Marc extends \RecordManager\Base\Record\Marc
             'originalLanguages',
             'subtitleLanguages',
             'identifiers',
-            'textIncipits'
+            'textIncipits',
+            'format'
         );
+    }
+
+    /**
+     * Merge a single component record to this record
+     *
+     * @param \Traversable $componentParts Component part to be merged
+     * @param mixed        $changeDate     Latest database timestamp for the component part set
+     * @param ?callable    $callback       Callback for processing component part fields
+     *
+     * @return int Count of records merged
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    public function mergeComponentPartsCallback(
+        \Traversable $componentParts,
+        mixed &$changeDate,
+        ?callable $callback = null
+    ): int {
+        $count = 0;
+        $parts = [];
+        foreach ($componentParts as $componentPart) {
+            if (null === $changeDate || $changeDate < $componentPart['date']) {
+                $changeDate = $componentPart['date'];
+            }
+
+            $componentRecord = $this->createRecord(
+                $componentPart['format'],
+                $this->metadataUtils->getRecordData($componentPart, true),
+                '',
+                $this->source
+            );
+
+            $id = $componentPart['_id'];
+            $newField = $this->createFieldFromComponentRecord($id, $componentRecord);
+
+            if (null !== $callback) {
+                $newField = $callback($newField);
+            }
+            $key = $this->metadataUtils->createIdSortKey($id);
+            $parts["$key $count"] = $newField;
+            ++$count;
+        }
+        ksort($parts);
+        foreach ($parts as $part) {
+            $this->record->addField('979', ' ', ' ', $part['subfields']);
+        }
+        return $count;
     }
 
     /**
@@ -1240,102 +1291,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function mergeComponentParts($componentParts, &$changeDate)
     {
-        $count = 0;
-        $parts = [];
-        foreach ($componentParts as $componentPart) {
-            if (null === $changeDate || $changeDate < $componentPart['date']) {
-                $changeDate = $componentPart['date'];
-            }
-
-            $componentRecord = $this->createRecord(
-                $componentPart['format'],
-                $this->metadataUtils->getRecordData($componentPart, true),
-                '',
-                $this->source
-            );
-
-            $data = $componentRecord->getComponentPartMetadata();
-            if ($data['textIncipits']) {
-                $this->extraFields['allfields'] = [
-                    ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['textIncipits'],
-                ];
-                // Text incipit is treated as an alternative title
-                $this->extraFields['title_alt'] = [
-                    ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['textIncipits'],
-                ];
-            }
-            if ($data['varyingTitles']) {
-                $this->extraFields['allfields'] = [
-                    ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['varyingTitles'],
-                ];
-                $this->extraFields['title_alt'] = [
-                    ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['varyingTitles'],
-                ];
-            }
-
-            $id = $componentPart['_id'];
-            $newField = [
-                'subfields' => [
-                    ['a' => $id],
-                ],
-            ];
-
-            if ($data['title']) {
-                $newField['subfields'][] = ['b' => $data['title']];
-            }
-            if ($data['authors']) {
-                $newField['subfields'][] = ['c' => array_shift($data['authors'])];
-                foreach ($data['authors'] as $author) {
-                    $newField['subfields'][] = ['d' => $author];
-                }
-            }
-            foreach ($data['additionalAuthors'] as $addAuthor) {
-                $newField['subfields'][] = ['d' => $addAuthor];
-            }
-            if ($data['uniformTitle']) {
-                $newField['subfields'][] = ['e' => $data['uniformTitle']];
-            }
-            if ($data['durations']) {
-                $newField['subfields'][] = ['f' => reset($data['durations'])];
-            }
-            foreach ($data['additionalTitles'] as $addTitle) {
-                $newField['subfields'][] = ['g' => $addTitle];
-            }
-            foreach ($data['languages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['h' => $language];
-                }
-            }
-            foreach ($data['originalLanguages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['i' => $language];
-                }
-            }
-            foreach ($data['subtitleLanguages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['j' => $language];
-                }
-            }
-            foreach ($data['identifiers'] as $identifier) {
-                $newField['subfields'][] = ['k' => $identifier];
-            }
-            foreach ($data['authorIds'] as $identifier) {
-                $newField['subfields'][] = ['l' => $identifier];
-            }
-
-            $key = $this->metadataUtils->createIdSortKey($id);
-            $parts["$key $count"] = $newField;
-            ++$count;
-        }
-        ksort($parts);
-        foreach ($parts as $part) {
-            $this->record->addField('979', ' ', ' ', $part['subfields']);
-        }
-        return $count;
+        return $this->mergeComponentPartsCallback($componentParts, $changeDate);
     }
 
     /**
@@ -1445,6 +1401,92 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         $this->resultCache[__METHOD__] = $result;
         return $result;
+    }
+
+    /**
+     * Create field data from a component record
+     *
+     * @param string         $componentId     Component database id
+     * @param AbstractRecord $componentRecord Component part to be merged
+     *
+     * @return array Field data from component
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function createFieldFromComponentRecord(string $componentId, AbstractRecord $componentRecord): array
+    {
+        $data = $componentRecord->getComponentPartMetadata();
+        if ($data['textIncipits']) {
+            $this->extraFields['allfields'] = [
+                ...(array)($this->extraFields['allfields'] ?? []),
+                ...(array)$data['textIncipits'],
+            ];
+            // Text incipit is treated as an alternative title
+            $this->extraFields['title_alt'] = [
+                ...(array)($this->extraFields['title_alt'] ?? []),
+                ...(array)$data['textIncipits'],
+            ];
+        }
+        if ($data['varyingTitles']) {
+            $this->extraFields['allfields'] = [
+                ...(array)($this->extraFields['allfields'] ?? []),
+                ...(array)$data['varyingTitles'],
+            ];
+            $this->extraFields['title_alt'] = [
+                ...(array)($this->extraFields['title_alt'] ?? []),
+                ...(array)$data['varyingTitles'],
+            ];
+        }
+        $newField = [
+            'subfields' => [
+                ['a' => $componentId],
+            ],
+        ];
+
+        if ($data['title']) {
+            $newField['subfields'][] = ['b' => $data['title']];
+        }
+        if ($data['authors']) {
+            $newField['subfields'][] = ['c' => array_shift($data['authors'])];
+            foreach ($data['authors'] as $author) {
+                $newField['subfields'][] = ['d' => $author];
+            }
+        }
+        foreach ($data['additionalAuthors'] as $addAuthor) {
+            $newField['subfields'][] = ['d' => $addAuthor];
+        }
+        if ($data['uniformTitle']) {
+            $newField['subfields'][] = ['e' => $data['uniformTitle']];
+        }
+        if ($data['durations']) {
+            $newField['subfields'][] = ['f' => reset($data['durations'])];
+        }
+        foreach ($data['additionalTitles'] as $addTitle) {
+            $newField['subfields'][] = ['g' => $addTitle];
+        }
+        foreach ($data['languages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['h' => $language];
+            }
+        }
+        foreach ($data['originalLanguages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['i' => $language];
+            }
+        }
+        foreach ($data['subtitleLanguages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['j' => $language];
+            }
+        }
+        foreach ($data['identifiers'] as $identifier) {
+            $newField['subfields'][] = ['k' => $identifier];
+        }
+        foreach ($data['authorIds'] as $identifier) {
+            $newField['subfields'][] = ['l' => $identifier];
+        }
+        $newField['subfields'][] = ['m' => $data['format']];
+        return $newField;
     }
 
     /**
