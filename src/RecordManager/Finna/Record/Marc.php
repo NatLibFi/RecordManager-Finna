@@ -32,7 +32,6 @@ namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 use RecordManager\Base\Marc\Marc as MarcHandler;
-use RecordManager\Base\Record\AbstractRecord;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
@@ -1260,13 +1259,12 @@ class Marc extends \RecordManager\Base\Record\Marc
                 '',
                 $this->source
             );
-
-            $id = $componentPart['_id'];
-            $newField = $this->createFieldFromComponentRecord($id, $componentRecord);
-
+            $componentPartMetadata = $componentRecord->getComponentPartMetadata($componentPart);
             if (null !== $callback) {
-                $newField = $callback($newField);
+                $callback($componentPartMetadata);
             }
+            $id = $componentPartMetadata['_id'] = $componentPart['_id'];
+            $newField = $this->createComponentPartField($componentPartMetadata);
             $key = $this->metadataUtils->createIdSortKey($id);
             $parts["$key $count"] = $newField;
             ++$count;
@@ -1406,16 +1404,14 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Create field data from a component record
      *
-     * @param string         $componentId     Component database id
-     * @param AbstractRecord $componentRecord Component part to be merged
+     * @param array $data Component part data from getComponentPartMetadata
      *
      * @return array Field data from component
      *
      * @psalm-suppress DuplicateArrayKey
      */
-    protected function createFieldFromComponentRecord(string $componentId, AbstractRecord $componentRecord): array
+    protected function createComponentPartField(array $data): array
     {
-        $data = $componentRecord->getComponentPartMetadata();
         if ($data['textIncipits']) {
             $this->extraFields['allfields'] = [
                 ...(array)($this->extraFields['allfields'] ?? []),
@@ -1439,7 +1435,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         $newField = [
             'subfields' => [
-                ['a' => $componentId],
+                ['a' => $data['_id']],
             ],
         ];
 

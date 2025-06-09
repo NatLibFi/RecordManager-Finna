@@ -91,21 +91,14 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         $mergedComponents = $metadataRecord->mergeComponentPartsCallback(
             $components,
             $changeDate,
-            function ($field) use ($source) {
-                if (empty($field['subfields'])) {
-                    return $field;
+            function (&$data) use ($source) {
+                $format = $data['format'] ?? null;
+                if (!$format) {
+                    return;
                 }
-                $field['subfields'] = array_map(
-                    function ($subfield) use ($source) {
-                        if ($formatField = $subfield['m'] ?? false) {
-                            $mappedFormat = $this->fieldMapper->mapFormat($source, [$formatField]);
-                            $subfield['m'] = reset($mappedFormat);
-                        }
-                        return $subfield;
-                    },
-                    $field['subfields'] ?? []
-                );
-                return $field;
+                if ($results = $this->fieldMapper->mapFormat($source, [$format])) {
+                    $data['format'] = reset($results);
+                }
             }
         );
         // Use latest date as the host record date
