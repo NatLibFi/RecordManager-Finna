@@ -88,7 +88,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         string $source
     ): int {
         $changeDate = null;
-        $mergedComponents = $metadataRecord->mergeComponentPartsCallback(
+        $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
             $components,
             $changeDate,
             function (&$data) use ($source) {

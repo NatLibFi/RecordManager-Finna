@@ -1235,13 +1235,13 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @param \Traversable $componentParts Component part to be merged
      * @param mixed        $changeDate     Latest database timestamp for the component part set
-     * @param ?callable    $callback       Callback for processing component part fields
+     * @param ?callable    $callback       Callback for processing component part data
      *
      * @return int Count of records merged
      *
      * @psalm-suppress DuplicateArrayKey
      */
-    public function mergeComponentPartsCallback(
+    public function mergeComponentPartsExtended(
         \Traversable $componentParts,
         mixed &$changeDate,
         ?callable $callback = null
@@ -1289,7 +1289,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function mergeComponentParts($componentParts, &$changeDate)
     {
-        return $this->mergeComponentPartsCallback($componentParts, $changeDate);
+        return $this->mergeComponentPartsExtended($componentParts, $changeDate);
     }
 
     /**
