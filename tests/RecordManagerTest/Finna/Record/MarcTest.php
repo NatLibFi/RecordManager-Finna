@@ -64,6 +64,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ],
+            config: [
+                'MarcRecord' => [
+                    'hidden_author_relators' => 'distributor',
+                ],
             ]
         );
         $fields = $record->toSolrArray();
@@ -109,6 +114,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'tutkimus',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
+                'Example Distributor',
+                'distributor',
             ],
             'language' => [
                 'fin',
