@@ -64,6 +64,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ],
+            config: [
+                'MarcRecord' => [
+                    'hidden_author_relators' => 'distributor',
+                ],
             ]
         );
         $fields = $record->toSolrArray();
@@ -109,6 +114,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'tutkimus',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
+                'Example Distributor',
+                'distributor',
             ],
             'language' => [
                 'fin',
@@ -1525,5 +1532,38 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $record->normalize();
         $fields = $record->toSolrArray();
         $this->assertEquals($expected, $fields['linking_id_str_mv']);
+    }
+
+    /**
+     * Test collectionFields setting
+     *
+     * @return void
+     */
+    public function testCollectionFields(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc9.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'collectionFields=852b',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $record->normalize();
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'Sublocation',
+                'Second Sublocation',
+            ],
+            $fields['collection']
+        );
     }
 }
