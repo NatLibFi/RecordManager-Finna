@@ -1,0 +1,19 @@
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+  <leader>01195cam a22004094i 4500</leader>
+  <controlfield tag="001">555555</controlfield>
+  <controlfield tag="003">FI-MELINDA</controlfield>
+  <controlfield tag="005">20160322194428.0</controlfield>
+  <controlfield tag="008">140327s2013    fi            000 0 fin d</controlfield>
+  <datafield tag="852" ind1=" " ind2=" ">
+    <subfield code="a">Location</subfield>
+    <subfield code="b">Sublocation</subfield>
+    <subfield code="c">shelving Location</subfield>
+  </datafield>
+  <datafield tag="852" ind1=" " ind2=" ">
+    <subfield code="a">Second Location</subfield>
+    <subfield code="b">Second Sublocation</subfield>
+    <subfield code="c">Second shelving Location</subfield>
+  </datafield>
+</record>
+</collection>
