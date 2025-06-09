@@ -1533,4 +1533,37 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $fields = $record->toSolrArray();
         $this->assertEquals($expected, $fields['linking_id_str_mv']);
     }
+
+    /**
+     * Test collectionFields setting
+     *
+     * @return void
+     */
+    public function testCollectionFields(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc9.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'collectionFields=852b',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $record->normalize();
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'Sublocation',
+                'Second Sublocation',
+            ],
+            $fields['collection']
+        );
+    }
 }
