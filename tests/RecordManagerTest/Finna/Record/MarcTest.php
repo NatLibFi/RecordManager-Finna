@@ -65,7 +65,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class),
             ],
-            [
+            config: [
                 'MarcRecord' => [
                     'hidden_author_relators' => 'distributor',
                 ],
