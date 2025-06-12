@@ -597,7 +597,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     $subfieldArray
                         = $this->getSubfieldsArray($field, $subfields);
                     foreach ($subfieldArray as $subfield) {
-                        $data['collection'] = $subfield;
+                        $data['collection'][] = $subfield;
                     }
                 }
             }
