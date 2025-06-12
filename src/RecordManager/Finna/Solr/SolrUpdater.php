@@ -31,6 +31,8 @@ namespace RecordManager\Finna\Solr;
 
 use RecordManager\Base\Record\AbstractRecord;
 
+use function is_callable;
+
 /**
  * SolrUpdater Class
  *
@@ -87,6 +89,9 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         \Traversable $components,
         string $source
     ): int {
+        if (!is_callable([$metadataRecord, 'mergeComponentPartsExtended'])) {
+            return 0;
+        }
         $changeDate = null;
         $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
             $components,
@@ -101,7 +106,9 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 }
             }
         );
+
         // Use latest date as the host record date
+        // @phpstan-ignore-next-line
         if (null !== $changeDate && $changeDate > $record['date']) {
             $record['date'] = $changeDate;
         }
