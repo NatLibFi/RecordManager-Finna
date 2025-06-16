@@ -192,7 +192,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             [
                 'tag' => '979',
                 'i1' => ' ',
-                'i2' => ' ',
+                'i2' => '0',
                 'subfields' => [
                     [
                         'code' => 'a',
@@ -202,16 +202,12 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                         'code' => 'h',
                         'data' => 'fin',
                     ],
-                    [
-                        'code' => 'm',
-                        'data' => 'Book/Book',
-                    ],
                 ],
             ],
             [
                 'tag' => '979',
                 'i1' => ' ',
-                'i2' => ' ',
+                'i2' => '1',
                 'subfields' => [
                     [
                         'code' => 'a',
@@ -220,10 +216,6 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                     [
                         'code' => 'h',
                         'data' => 'fin',
-                    ],
-                    [
-                        'code' => 'm',
-                        'data' => 'Other/Collection',
                     ],
                 ],
             ],
