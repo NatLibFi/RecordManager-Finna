@@ -89,26 +89,29 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         \Traversable $components,
         string $source
     ): int {
-        if (!is_callable([$metadataRecord, 'mergeComponentPartsExtended'])) {
-            return 0;
-        }
         $changeDate = null;
-        $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
-            $components,
-            $changeDate,
-            function (&$data) use ($source) {
-                $format = $data['format'] ?? null;
-                if (!$format) {
-                    return;
+        if (!is_callable([$metadataRecord, 'mergeComponentPartsExtended'])) {
+            $mergedComponents = $metadataRecord->mergeComponentParts(
+                $components,
+                $changeDate
+            );
+        } else {
+            $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
+                $components,
+                $changeDate,
+                function (&$data) use ($source) {
+                    $format = $data['format'] ?? null;
+                    if (!$format) {
+                        return;
+                    }
+                    if ($results = $this->fieldMapper->mapFormat($source, [$format])) {
+                        $data['format'] = reset($results);
+                    }
                 }
-                if ($results = $this->fieldMapper->mapFormat($source, [$format])) {
-                    $data['format'] = reset($results);
-                }
-            }
-        );
+            );
+        }
 
         // Use latest date as the host record date
-        // @phpstan-ignore-next-line
         if (null !== $changeDate && $changeDate > $record['date']) {
             $record['date'] = $changeDate;
         }

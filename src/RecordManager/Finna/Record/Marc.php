@@ -65,18 +65,18 @@ class Marc extends \RecordManager\Base\Record\Marc
     use MediaTypeTrait;
 
     /**
-     * Value indicating that embedded component has default value
+     * Value indicating that embedded component is a normal unit
      *
      * @var string
      */
-    public const FIELD_979_CONTAINS_UNIT = '0';
+    public const FIELD_979_IS_UNIT = '0';
 
     /**
-     * Value for indicating that embedded component is a collection
+     * Value indicating that embedded component is a collection
      *
      * @var string
      */
-    public const FIELD_979_CONTAINS_COLLECTION = '1';
+    public const FIELD_979_IS_COLLECTION = '1';
 
     /**
      * Record plugin manager
@@ -195,7 +195,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @var array
      */
     protected array $field979Ind2Mappings = [
-        'Other/Collection' => self::FIELD_979_CONTAINS_COLLECTION,
+        'Other/Collection' => self::FIELD_979_IS_COLLECTION,
     ];
 
     /**
@@ -1504,7 +1504,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         foreach ($data['authorIds'] as $identifier) {
             $newField['subfields'][] = ['l' => $identifier];
         }
-        $newField['ind2'] = $this->field979Ind2Mappings[$data['format']] ?? self::FIELD_979_CONTAINS_UNIT;
+        $newField['ind2'] = $this->field979Ind2Mappings[$data['format']] ?? self::FIELD_979_IS_UNIT;
         return $newField;
     }
 
