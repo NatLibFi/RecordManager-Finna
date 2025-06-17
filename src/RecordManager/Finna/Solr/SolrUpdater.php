@@ -31,6 +31,8 @@ namespace RecordManager\Finna\Solr;
 
 use RecordManager\Base\Record\AbstractRecord;
 
+use function is_callable;
+
 /**
  * SolrUpdater Class
  *
@@ -69,5 +71,50 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
+    }
+
+    /**
+     * Merge component parts to record
+     *
+     * @param AbstractRecord $metadataRecord Record to merge component parts to
+     * @param array          $record         Database record
+     * @param \Traversable   $components     Component parts to merge
+     * @param string         $source         Source ID
+     *
+     * @return int Amount of merged component parts
+     */
+    protected function mergeComponentParts(
+        AbstractRecord $metadataRecord,
+        array &$record,
+        \Traversable $components,
+        string $source
+    ): int {
+        $changeDate = null;
+        if (!is_callable([$metadataRecord, 'mergeComponentPartsExtended'])) {
+            $mergedComponents = $metadataRecord->mergeComponentParts(
+                $components,
+                $changeDate
+            );
+        } else {
+            $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
+                $components,
+                $changeDate,
+                function (&$data) use ($source) {
+                    $format = $data['format'] ?? null;
+                    if (!$format) {
+                        return;
+                    }
+                    if ($results = $this->fieldMapper->mapFormat($source, [$format])) {
+                        $data['format'] = reset($results);
+                    }
+                }
+            );
+        }
+
+        // Use latest date as the host record date
+        if (null !== $changeDate && $changeDate > $record['date']) {
+            $record['date'] = $changeDate;
+        }
+        return $mergedComponents;
     }
 }
