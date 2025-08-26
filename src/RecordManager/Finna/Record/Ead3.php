@@ -1295,23 +1295,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getInstitution()
     {
+        $firstResult = $langResult = '';
         foreach ($this->doc->did->repository ?? [] as $repo) {
-            $attr = $repo->attributes();
-            if (
-                !isset($attr->encodinganalog)
-                || 'ahaa:AI42' !== (string)$attr->encodinganalog
-            ) {
-                continue;
-            }
-            foreach ($repo->corpname as $node) {
-                $attr = $node->attributes();
-                if (!isset($attr->identifier)) {
-                    continue;
+            $encoding = trim((string)($repo->attributes()->encodinganalog ?? ''));
+            foreach ($repo->corpname as $name) {
+                $id = trim((string)($name->attributes()->identifier ?? ''));
+                if ($id && $encoding === 'ahaa:AI42') {
+                    return $id;
                 }
-                return (string)$attr->identifier;
+                $lang = trim((string)($name->part->attributes()->lang ?? $name->attributes()->lang ?? ''));
+                $part = trim((string)($name->part ?? ''));
+                $firstResult = $firstResult ?: $id ?: $part;
+                if (!$langResult && $lang === 'fin') {
+                    $langResult = $id ?: $part;
+                }
             }
         }
-        return '';
+        return $langResult ?: $firstResult;
     }
 
     /**

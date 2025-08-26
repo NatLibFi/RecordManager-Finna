@@ -603,6 +603,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'ctrlnum' => '',
             'allfields' => [
                 'Yksityisaineisto',
+                'Joku muu instituutio',
                 'SKS:n arkisto, Hallituskatu 1, HKI',
                 '242790397',
                 'xx.xx.1881-xx.xx.1881',
@@ -969,5 +970,29 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         $fields = $this->createRecord(Ead3::class, 'sks4.xml', [], 'Finna')
             ->toSolrArray();
         $this->assertEquals('collection/Valokuva', $fields['format']);
+    }
+
+    /**
+     * Test institution
+     *
+     * @return void
+     */
+    public function testInstitution()
+    {
+        // AI46 institution code
+        $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('102268433', $fields['institution']);
+        // other institution code
+        $fields = $this->createRecord(Ead3::class, 'sks2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('12345', $fields['institution']);
+        // institution name with lang attribute
+        $fields = $this->createRecord(Ead3::class, 'sks3.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Instituutio suomeksi', $fields['institution']);
+        $fields = $this->createRecord(Ead3::class, 'sks4.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Instituutio suomeksi', $fields['institution']);
     }
 }
