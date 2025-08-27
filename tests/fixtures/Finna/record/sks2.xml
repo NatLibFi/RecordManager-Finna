@@ -1,5 +1,15 @@
 <?xml version="1.0"?>
 <c02 level="file">
+   <did>
+    <repository>
+      <corpname identifier="12345">
+        <part lang="fin">Ensimmäinen instituutio</part>
+      </corpname>
+      <corpname identifier="67890">
+        <part lang="fin">Toinen instituutio</part>
+      </corpname>
+    </repository>
+  </did>
   <controlaccess>
     <genreform encodinganalog="ahaa:AI08">
       <part lang="fin">Teksti</part>

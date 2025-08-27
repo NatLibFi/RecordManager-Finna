@@ -2,7 +2,12 @@
 <c02 level="file">
   <did>
     <didnote encodinganalog="ahaa:AI46">Yksityisaineisto</didnote>
-    <repository label="hallinnoija" encodinganalog="ahaa:AI42">
+    <repository>
+      <corpname identifier="0000">
+        <part lang="fin">Joku muu instituutio</part>
+      </corpname>
+    </repository>
+    <repository encodinganalog="ahaa:AI42">
       <corpname identifier="102268433">
         <part lang="fin">SKS:n arkisto, Hallituskatu 1, HKI</part>
       </corpname>

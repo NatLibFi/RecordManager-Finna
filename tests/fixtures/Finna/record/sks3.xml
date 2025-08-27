@@ -1,5 +1,18 @@
 <?xml version="1.0"?>
 <archdesc level="fonds">
+  <did>
+    <repository>
+      <corpname>
+        <part lang="eng">Institution in English</part>
+      </corpname>
+      <corpname>
+        <part lang="swe">Institution på svenska</part>
+      </corpname>
+      <corpname>
+        <part lang="fin">Instituutio suomeksi</part>
+      </corpname>
+    </repository>
+  </did>
   <controlaccess>
     <genreform encodinganalog="ahaa:AI08">
       <part lang="fin">Teksti</part>

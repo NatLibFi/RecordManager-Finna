@@ -1,5 +1,18 @@
 <?xml version="1.0"?>
 <archdesc level="collection">
+  <did>
+    <repository>
+      <corpname lang="eng">
+        <part>Institution in English</part>
+      </corpname>
+      <corpname lang="swe">
+        <part>Institution på svenska</part>
+      </corpname>
+      <corpname lang="fin">
+        <part>Instituutio suomeksi</part>
+      </corpname>
+    </repository>
+  </did>
   <controlaccess>
     <genreform>
       <part lang="fin">Valokuva</part>
