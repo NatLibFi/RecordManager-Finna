@@ -800,10 +800,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         if (null !== ($online = $this->getDriverParam('online', null))) {
             return boolval($online);
         }
-        foreach ($this->doc->did->daoset ?? [] as $set) {
-            foreach ($set->dao as $dao) {
-                if (trim((string)$dao->attributes()->href)) {
-                    return true;
+        foreach ([$this->doc->did ?? [], $this->doc->did->daoset ?? []] as $root) {
+            foreach ($root as $set) {
+                foreach ($set->dao as $dao) {
+                    if (trim((string)$dao->attributes()->href)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -818,26 +820,28 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getOnlineURLs(): array
     {
         $results = [];
-        foreach ($this->doc->did->daoset ?? [] as $set) {
-            foreach ($set->dao as $dao) {
-                $attrs = $dao->attributes();
-                $url = trim((string)$attrs->href);
-                if (empty($url)) {
-                    continue;
+        foreach ([$this->doc->did ?? [], $this->doc->did->daoset ?? []] as $root) {
+            foreach ($root as $set) {
+                foreach ($set->dao as $dao) {
+                    $attrs = $dao->attributes();
+                    $url = trim((string)$attrs->href);
+                    if (empty($url)) {
+                        continue;
+                    }
+                    $result = [
+                        'url' => $url,
+                        'desc' => trim($attrs->linktitle ?? ''),
+                        'source' => $this->source,
+                    ];
+                    $mediaType = $this->getLinkMediaType(
+                        $url,
+                        trim((string)$attrs->linkrole),
+                    );
+                    if ($mediaType) {
+                        $result['mediaType'] = $mediaType;
+                    }
+                    $results[] = $result;
                 }
-                $result = [
-                    'url' => $url,
-                    'desc' => trim($attrs->linktitle ?? ''),
-                    'source' => $this->source,
-                ];
-                $mediaType = $this->getLinkMediaType(
-                    $url,
-                    trim((string)$attrs->linkrole),
-                );
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
-                }
-                $results[] = $result;
             }
         }
         return $results;
@@ -1382,6 +1386,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             foreach ($set->dao as $dao) {
                 $matchAttributes($dao);
             }
+        }
+        foreach ($this->doc->did->dao ?? [] as $dao) {
+            $matchAttributes($dao);
         }
         $fileIds = [...$ids, ...$fileIds];
         return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
