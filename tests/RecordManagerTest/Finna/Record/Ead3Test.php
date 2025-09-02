@@ -542,10 +542,17 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testOnlineBooleans()
     {
+        // online record with daoset
         $fields = $this->createRecord(Ead3::class, 'yksa2.xml', [], 'Finna')
             ->toSolrArray();
         $this->assertEquals('1', $fields['online_boolean']);
         $this->assertEquals('1', $fields['free_online_boolean']);
+        // online record without daoset
+        $fields = $this->createRecord(Ead3::class, 'sks2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('1', $fields['online_boolean']);
+        $this->assertEquals('1', $fields['free_online_boolean']);
+        // not online
         $fields = $this->createRecord(Ead3::class, 'ead3_online_boolean.xml', [], 'Finna')
             ->toSolrArray();
         $this->assertNotContains('online_boolean', $fields);
