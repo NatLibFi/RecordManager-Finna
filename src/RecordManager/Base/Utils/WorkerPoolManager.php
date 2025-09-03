@@ -128,7 +128,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    public function destroyWorkerPools()
+    public function destroyWorkerPools(): void
     {
         // Destroy any worker pools
         if (!empty($this->workerPools)) {
@@ -157,12 +157,12 @@ class WorkerPoolManager
      * @return void
      */
     public function createWorkerPool(
-        $poolId,
-        $processes,
-        $maxQueue,
+        string $poolId,
+        int $processes,
+        int $maxQueue,
         callable $runMethod,
         ?callable $initMethod = null
-    ) {
+    ): void {
         if (isset($this->workerPoolRunMethods[$poolId])) {
             // Already initialized
             return;
@@ -257,7 +257,7 @@ class WorkerPoolManager
      *
      * @return bool
      */
-    public function hasWorkerPool($poolId)
+    public function hasWorkerPool(string $poolId): bool
     {
         return !empty($this->workerPools[$poolId]);
     }
@@ -269,7 +269,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    public function addRequest($poolId/*, ... */)
+    public function addRequest(string $poolId/*, ... */): void
     {
         $args = func_get_args();
         array_shift($args);
@@ -302,7 +302,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    public function handleRequests($poolId)
+    public function handleRequests(string $poolId): void
     {
         if (empty($this->workerPools[$poolId])) {
             return;
@@ -334,7 +334,7 @@ class WorkerPoolManager
      *
      * @return bool
      */
-    public function requestsPending($poolId)
+    public function requestsPending(string $poolId): bool
     {
         $this->handleRequests($poolId);
         $this->checkForStoppedWorkers();
@@ -349,7 +349,7 @@ class WorkerPoolManager
      *
      * @return bool
      */
-    public function requestsActive($poolId)
+    public function requestsActive(string $poolId): bool
     {
         $this->handleRequests($poolId);
         if (empty($this->workerPools[$poolId])) {
@@ -370,7 +370,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    public function waitUntilDone($poolId)
+    public function waitUntilDone(string $poolId): void
     {
         while ($this->requestsPending($poolId)) {
             usleep(1000);
@@ -384,7 +384,7 @@ class WorkerPoolManager
      *
      * @return bool
      */
-    public function checkForResults($poolId)
+    public function checkForResults(string $poolId): bool
     {
         if (!empty($this->workerPools[$poolId])) {
             foreach ($this->workerPools[$poolId] as &$worker) {
@@ -411,7 +411,7 @@ class WorkerPoolManager
      *
      * @return mixed
      */
-    public function getResult($poolId)
+    public function getResult(string $poolId): mixed
     {
         if (empty($this->results[$poolId])) {
             return null;
@@ -424,11 +424,11 @@ class WorkerPoolManager
      *
      * @param mixed $socket      Socket
      * @param bool  $block       Whether to block waiting for data
-     * @param bool  $checkParent Whether to chek that the parent process is alive
+     * @param bool  $checkParent Whether to check that the parent process is alive
      *
      * @return mixed
      */
-    public function readSocket($socket, $block = false, $checkParent = false)
+    public function readSocket(mixed $socket, bool $block = false, bool $checkParent = false): mixed
     {
         $msgLen = '';
         $received = 0;
@@ -521,7 +521,7 @@ class WorkerPoolManager
      *
      * @return bool
      */
-    public function writeSocket($socket, $data, $checkParent = false)
+    public function writeSocket(mixed $socket, mixed $data, bool $checkParent = false): bool
     {
         $message = serialize($data);
         $length = strlen($message);
@@ -578,7 +578,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    public function signalHandler($signo)
+    public function signalHandler($signo): void
     {
         if (SIGCHLD == $signo) {
             $this->reapChildren();
@@ -590,7 +590,7 @@ class WorkerPoolManager
      *
      * @return void
      */
-    protected function reapChildren()
+    protected function reapChildren(): void
     {
         do {
             $found = false;
@@ -616,7 +616,7 @@ class WorkerPoolManager
      * @return void
      * @throws \Exception
      */
-    protected function checkForStoppedWorkers()
+    protected function checkForStoppedWorkers(): void
     {
         if (empty($this->workerPools)) {
             return;
@@ -640,7 +640,7 @@ class WorkerPoolManager
      * @return void
      * @throws \Exception
      */
-    protected function checkParentIsAlive()
+    protected function checkParentIsAlive(): void
     {
         $time = microtime(true);
         if (
