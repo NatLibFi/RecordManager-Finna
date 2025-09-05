@@ -1756,7 +1756,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         } elseif ('m' === $typeOfRecord) {
             $electronicType = substr($field008, 26, 1);
-            if ('g' === $electronicType || $termIn655('videopelit')) {
+            if ('g' === $electronicType || $termIn655('videopelit') || $termIn655('konsolipelit')) {
                 return 'VideoGame';
             }
         }
