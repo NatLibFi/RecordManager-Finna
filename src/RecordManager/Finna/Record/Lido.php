@@ -298,9 +298,10 @@ class Lido extends \RecordManager\Base\Record\Lido
             ...$this->getEventPlaceCoordinates(),
             ...$this->getRepositoryLocationCoordinates(),
         ];
-        $data['center_coords']
-            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
-
+        if (!empty($data['location_geo'])) {
+            $data['center_coords']
+                = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
+        }
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
