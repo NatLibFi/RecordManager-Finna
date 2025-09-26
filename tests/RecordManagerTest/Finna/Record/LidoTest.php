@@ -262,7 +262,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'free_online_boolean' => '1',
             'free_online_str_mv' => '__unit_test_no_source__',
             'location_geo' => [],
-            'center_coords' => '',
             'usage_rights_str_mv' => [
                 '',
             ],
