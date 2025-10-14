@@ -120,11 +120,18 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Title types for preferred titles.
+     *
+     * @var array
+     */
+    protected $preferredTitleTypes = ['preferred', 'http://terminology.lido-schema.org/lido00169'];
+
+    /**
      * Repository location types to be included.
      *
      * @var array
      */
-    protected $repositoryLocationTypes = ['Current location'];
+    protected $repositoryLocationTypes = ['current location', 'http://terminology.lido-schema.org/lido01018'];
 
     /**
      * Excluded location appellationValue labels.
@@ -146,6 +153,16 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @var array
      */
     protected $excludedLocationLabels;
+
+    /**
+     * PlaceID source mappings
+     *
+     * @var array
+     */
+    protected $placeIDSourceMappings = [
+        'vtj' => 'prt',
+        'kiinteistörekisteri' => 'kiinteistötunnus',
+    ];
 
     /**
      * Constructor
@@ -477,7 +494,10 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $result[] = $id;
                 continue;
             }
-            if ($type = (string)($placeID['type'] ?? '')) {
+            if ($type = trim((string)($placeID['type'] ?? ''))) {
+                if ($source = trim((string)($placeID->attributes()->source ?? ''))) {
+                    $type = $this->placeIDSourceMappings[mb_strtolower($source, 'UTF-8')] ?? $source;
+                }
                 $result[] = "($type)$id";
             }
         }
@@ -522,6 +542,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $attr = $placeID->attributes();
                     if (
                         $allEvents || in_array($attr->type, $this->includedLocationLabels)
+                        || in_array($attr->source, $this->includedLocationLabels)
                         || ($attr->type == 'URI' && $attr->source == 'YSO')
                     ) {
                         $result[] = $placeID;

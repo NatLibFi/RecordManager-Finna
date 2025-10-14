@@ -175,6 +175,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'geographic_id_str_mv' => [
                 '(prt)Prt',
+                '(prt)Prt 2',
                 '(kiinteistötunnus)Kiinteistötunnus',
                 'http://www.yso.fi/onto/yso/p94413',
             ],
@@ -199,6 +200,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Repository Location 1',
                 'Repository Location 2',
                 'Prt',
+                'Prt 2',
                 'Kiinteistötunnus',
                 'http://www.yso.fi/onto/yso/p94413',
                 'Tarkempi paikka veden äärellä',
@@ -296,6 +298,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'identifier_txtP_mv' => [
                 '4878:1',
                 'Prt',
+                'Prt 2',
                 'Kiinteistötunnus',
                 '111222',
             ],
