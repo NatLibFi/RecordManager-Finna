@@ -146,6 +146,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Hintze Harry, kuvaaja',
             ],
             'author_sort' => 'Testaaja, Taavi, suunnittelija',
+            'author2_id_str_mv' => [
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
+            ],
+            'author2_id_role_str_mv' => [
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kuvaaja',
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kehittäjä',
+            ],
             'topic_facet' => [],
             'topic' => [],
             'topic_id_str_mv' => [],
@@ -208,6 +215,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Capellanranta 1 ja 3 välillä',
                 'Helsinki',
                 'valmistus',
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
                 'Hintze Harry',
                 '1897',
                 '1897',

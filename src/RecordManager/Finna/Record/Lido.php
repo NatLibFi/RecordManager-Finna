@@ -330,6 +330,17 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
+        $data['author2_id_str_mv']
+            = $this->addNamespaceToAuthorityIds(
+                array_unique(
+                    [
+                        ...$this->getAuthorIds(),
+                        ...$this->getSecondaryAuthorIds(),
+                    ]
+                ),
+                'author'
+            );
+        $data['author2_id_role_str_mv'] = $this->addNamespaceToAuthorityIds($this->getAllAuthorIdsAndRoles(), 'author');
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
@@ -474,6 +485,83 @@ class Lido extends \RecordManager\Base\Record\Lido
     public function getRawGeographicTopicIds(): array
     {
         return $this->processPlaceIDElements($this->getPlaceIDElements(false, true));
+    }
+
+    /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getEventNodes($this->getMainEvents()) as $eventNode) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getEventNodes($this->getSecondaryAuthorEvents()) as $eventNode) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get all author ids and roles
+     *
+     * @return array<string>
+     */
+    protected function getAllAuthorIdsAndRoles(): array
+    {
+        $results = [];
+        foreach (
+            $this->getEventNodes(
+                [...$this->getMainEvents(), ...$this->getSecondaryAuthorEvents()]
+            ) as $eventNode
+        ) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                $ids = $roles = [];
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $ids[] = $id;
+                    }
+                }
+                foreach ($actorNode->actorInRole->roleActor ?? [] as $roleActor) {
+                    if ($role = $this->metadataUtils->normalizeRelator((string)($roleActor->term ?? ''))) {
+                        $roles[] = $role;
+                    }
+                }
+                if ($ids && $roles) {
+                    foreach ($ids as $id) {
+                        foreach ($roles as $role) {
+                            $results[] = $this->formatAuthorIdWithRole($id, $role);
+                        }
+                    }
+                }
+            }
+        }
+        return $results;
     }
 
     /**
