@@ -107,6 +107,7 @@ abstract class AbstractEnrichment
      * @var array
      */
     protected $httpOptions = [
+        'http_errors' => false,
         'follow_redirects' => true,
         'headers' => [
             'Connection' => 'Keep-Alive',
