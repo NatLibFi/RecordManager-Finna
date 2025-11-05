@@ -75,8 +75,12 @@
                             <namePlaceSet>
                                 <appellationValue>Repository Location 2</appellationValue>
                             </namePlaceSet>
-                            <placeID type="prt" source="YSO">Prt</placeID>
+                            <!--The value of source should be prefixed-->
+                            <placeID type="Local identifier" source="prt">Prt</placeID>
+                            <!--The value of source should be mapped to match type-->
+                            <placeID type="prt" source="VTJ">Prt 2</placeID>
                             <placeID type="kiinteist&#xF6;tunnus" source="Kiinteist&#xF6;rekisteri">Kiinteistötunnus</placeID>
+                            <!--The value of source should not be prefixed-->
                             <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p94413</placeID>
                             <placeID type="URI" source="YSO"><!-- Empty value should not appear --></placeID>
                         </repositoryLocation>
@@ -121,12 +125,16 @@
                         <eventActor>
                             <actorInRole>
                                 <actor>
+                                    <actorID type="URI" source="finaf">http://urn.fi/URN:NBN:fi:au:finaf:000173713</actorID>
                                     <nameActorSet>
                                         <appellationValue>Hintze Harry</appellationValue>
                                     </nameActorSet>
                                 </actor>
                                 <roleActor>
                                     <term>kuvaaja</term>
+                                </roleActor>
+                                <roleActor>
+                                    <term>kehittäjä</term>
                                 </roleActor>
                             </actorInRole>
                         </eventActor>

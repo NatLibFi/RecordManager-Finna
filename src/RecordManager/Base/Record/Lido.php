@@ -116,6 +116,13 @@ class Lido extends AbstractRecord
     protected $subjectConceptIDTypes = ['uri', 'url'];
 
     /**
+     * Title types for preferred titles.
+     *
+     * @var array
+     */
+    protected $preferredTitleTypes = ['preferred'];
+
+    /**
      * Repository location types to be included.
      *
      * @var array
@@ -426,6 +433,26 @@ class Lido extends AbstractRecord
     }
 
     /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
+    {
+        return [];
+    }
+
+    /**
      * Return subject identifiers associated with object.
      *
      * @param string[] $exclude List of subject types to exclude (defaults to
@@ -486,13 +513,13 @@ class Lido extends AbstractRecord
                 if (!($title = trim((string)$appellationValue))) {
                     continue;
                 }
-                $preference = (string)$appellationValue['pref'] ?: 'preferred';
+                $preference = mb_strtolower((string)($appellationValue->attributes()->pref ?? 'preferred'), 'UTF-8');
                 $titleLang = $this->getInheritedXmlAttribute(
                     $appellationValue,
                     'lang',
                     $defaultLanguage
                 );
-                if ('preferred' === $preference) {
+                if (in_array($preference, $this->preferredTitleTypes)) {
                     $preferredParts[$titleLang][] = $title;
                 } else {
                     $alternateParts[$titleLang][] = $title;
@@ -789,7 +816,8 @@ class Lido extends AbstractRecord
                         $this->metadataUtils->stripTrailingPunctuation(
                             (string)$placeNode->displayPlace,
                             '.'
-                        )
+                        ),
+                        ', \n\r\t\v\0'
                     );
                     if ($str) {
                         $results[] = $str;
@@ -922,7 +950,8 @@ class Lido extends AbstractRecord
                         $this->metadataUtils->stripTrailingPunctuation(
                             (string)$place->displayPlace,
                             '.'
-                        )
+                        ),
+                        ', \n\r\t\v\0'
                     );
                     if ('' !== $str) {
                         $results[] = $str;
@@ -1339,7 +1368,7 @@ class Lido extends AbstractRecord
             $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
             ?? [] as $set
         ) {
-            $type = (string)($set->attributes()->type ?? '');
+            $type = mb_strtolower((string)($set->attributes()->type ?? ''), 'UTF-8');
             if ($this->repositoryLocationTypes && !in_array($type, $this->repositoryLocationTypes)) {
                 continue;
             }

@@ -146,6 +146,13 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Hintze Harry, kuvaaja',
             ],
             'author_sort' => 'Testaaja, Taavi, suunnittelija',
+            'author2_id_str_mv' => [
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
+            ],
+            'author2_id_role_str_mv' => [
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kuvaaja',
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kehittäjä',
+            ],
             'topic_facet' => [],
             'topic' => [],
             'topic_id_str_mv' => [],
@@ -175,6 +182,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'geographic_id_str_mv' => [
                 '(prt)Prt',
+                '(prt)Prt 2',
                 '(kiinteistötunnus)Kiinteistötunnus',
                 'http://www.yso.fi/onto/yso/p94413',
             ],
@@ -199,6 +207,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Repository Location 1',
                 'Repository Location 2',
                 'Prt',
+                'Prt 2',
                 'Kiinteistötunnus',
                 'http://www.yso.fi/onto/yso/p94413',
                 'Tarkempi paikka veden äärellä',
@@ -206,6 +215,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Capellanranta 1 ja 3 välillä',
                 'Helsinki',
                 'valmistus',
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
                 'Hintze Harry',
                 '1897',
                 '1897',
@@ -262,7 +272,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'free_online_boolean' => '1',
             'free_online_str_mv' => '__unit_test_no_source__',
             'location_geo' => [],
-            'center_coords' => '',
             'usage_rights_str_mv' => [
                 '',
             ],
@@ -297,6 +306,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'identifier_txtP_mv' => [
                 '4878:1',
                 'Prt',
+                'Prt 2',
                 'Kiinteistötunnus',
                 '111222',
             ],

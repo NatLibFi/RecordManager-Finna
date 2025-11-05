@@ -120,11 +120,18 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected $descriptionTypesExcludedFromTitle = ['provenance', 'provenienssi'];
 
     /**
+     * Title types for preferred titles.
+     *
+     * @var array
+     */
+    protected $preferredTitleTypes = ['preferred', 'http://terminology.lido-schema.org/lido00169'];
+
+    /**
      * Repository location types to be included.
      *
      * @var array
      */
-    protected $repositoryLocationTypes = ['Current location'];
+    protected $repositoryLocationTypes = ['current location', 'http://terminology.lido-schema.org/lido01018'];
 
     /**
      * Excluded location appellationValue labels.
@@ -146,6 +153,16 @@ class Lido extends \RecordManager\Base\Record\Lido
      * @var array
      */
     protected $excludedLocationLabels;
+
+    /**
+     * PlaceID source mappings
+     *
+     * @var array
+     */
+    protected $placeIDSourceMappings = [
+        'vtj' => 'prt',
+        'kiinteistörekisteri' => 'kiinteistötunnus',
+    ];
 
     /**
      * Constructor
@@ -298,9 +315,10 @@ class Lido extends \RecordManager\Base\Record\Lido
             ...$this->getEventPlaceCoordinates(),
             ...$this->getRepositoryLocationCoordinates(),
         ];
-        $data['center_coords']
-            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
-
+        if (!empty($data['location_geo'])) {
+            $data['center_coords']
+                = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
+        }
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
@@ -312,6 +330,17 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Additional authority ids
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
+        $data['author2_id_str_mv']
+            = $this->addNamespaceToAuthorityIds(
+                array_unique(
+                    [
+                        ...$this->getAuthorIds(),
+                        ...$this->getSecondaryAuthorIds(),
+                    ]
+                ),
+                'author'
+            );
+        $data['author2_id_role_str_mv'] = $this->addNamespaceToAuthorityIds($this->getAllAuthorIdsAndRoles(), 'author');
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
@@ -459,6 +488,83 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getEventNodes($this->getMainEvents()) as $eventNode) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
+    {
+        $results = [];
+        foreach ($this->getEventNodes($this->getSecondaryAuthorEvents()) as $eventNode) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $results[] = $id;
+                    }
+                }
+            }
+        }
+        return array_filter(array_unique($results));
+    }
+
+    /**
+     * Get all author ids and roles
+     *
+     * @return array<string>
+     */
+    protected function getAllAuthorIdsAndRoles(): array
+    {
+        $results = [];
+        foreach (
+            $this->getEventNodes(
+                [...$this->getMainEvents(), ...$this->getSecondaryAuthorEvents()]
+            ) as $eventNode
+        ) {
+            foreach ($eventNode->eventActor as $actorNode) {
+                $ids = $roles = [];
+                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
+                    if ($id = trim((string)$actorId)) {
+                        $ids[] = $id;
+                    }
+                }
+                foreach ($actorNode->actorInRole->roleActor ?? [] as $roleActor) {
+                    if ($role = $this->metadataUtils->normalizeRelator((string)($roleActor->term ?? ''))) {
+                        $roles[] = $role;
+                    }
+                }
+                if ($ids && $roles) {
+                    foreach ($ids as $id) {
+                        foreach ($roles as $role) {
+                            $results[] = $this->formatAuthorIdWithRole($id, $role);
+                        }
+                    }
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
      * Process an array of placeID elements
      *
      * @param array $ids PlaceID elements
@@ -476,7 +582,10 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $result[] = $id;
                 continue;
             }
-            if ($type = (string)($placeID['type'] ?? '')) {
+            if ($type = trim((string)($placeID['type'] ?? ''))) {
+                if ($source = trim((string)($placeID->attributes()->source ?? ''))) {
+                    $type = $this->placeIDSourceMappings[mb_strtolower($source, 'UTF-8')] ?? $source;
+                }
                 $result[] = "($type)$id";
             }
         }
@@ -521,6 +630,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $attr = $placeID->attributes();
                     if (
                         $allEvents || in_array($attr->type, $this->includedLocationLabels)
+                        || in_array($attr->source, $this->includedLocationLabels)
                         || ($attr->type == 'URI' && $attr->source == 'YSO')
                     ) {
                         $result[] = $placeID;

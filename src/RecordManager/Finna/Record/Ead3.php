@@ -234,8 +234,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['location_geo'] = $this->getGeographicCoordinates();
-        $data['center_coords']
-            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
+        if (!empty($data['location_geo'])) {
+            $data['center_coords']
+                = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
+        }
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['identifier_txtP_mv'] = $resourceIdentifiers['ids'];
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];

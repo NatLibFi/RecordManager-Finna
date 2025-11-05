@@ -704,7 +704,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Luvia',
             ],
             'location_geo' => [],
-            'center_coords' => '',
             'topic_facet' => [
                 'folk tales',
                 'kansansadut',
