@@ -124,6 +124,7 @@ class SierraApi extends AbstractBase
      * @var array
      */
     protected $httpOptions = [
+        'http_errors' => false,
         // Set a timeout since Sierra may sometimes just hang without ever returning.
         'timeout' => 600,
     ];

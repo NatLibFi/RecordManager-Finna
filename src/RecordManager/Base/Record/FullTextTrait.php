@@ -143,6 +143,7 @@ trait FullTextTrait
         $maxTries = $this->config['FullTextEnrichment']['max_tries'] ?? 90;
         $retryWait = $this->config['FullTextEnrichment']['retry_wait'] ?? 5;
         $httpOptions = [
+            'http_errors' => false,
             'allow_redirects' => true,
         ];
 
