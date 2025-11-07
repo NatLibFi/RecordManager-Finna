@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Media type handling support trait.
+ * Trait which exposes methods to keep index values consistent.
  *
- * PHP version 7
+ * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2023.
+ * Copyright (C) The National Library of Finland 2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -32,7 +32,7 @@ namespace RecordManager\Finna\Record\Feature;
 use function in_array;
 
 /**
- * Media type handling support trait.
+ * Trait which exposes methods to keep index values consistent.
  *
  * @category DataManagement
  * @package  RecordManager
