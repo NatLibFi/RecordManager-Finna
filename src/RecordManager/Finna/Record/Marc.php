@@ -62,7 +62,7 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\FinnaCommonRecordTrait;
 
     /**
      * Value indicating that embedded component is a normal unit
@@ -229,7 +229,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c';
 
         $this->recordPluginManager = $recordPluginManager;
-        $this->initMediaTypeTrait($config);
+        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
     }
 
     /**
@@ -555,16 +555,10 @@ class Marc extends \RecordManager\Base\Record\Marc
         unset($value);
 
         // URLs
-        $onlineUrls = $this->getLinkData();
-        foreach ($onlineUrls as $link) {
-            $link['source'] = $this->source;
-            $data['online_urls_str_mv'][] = json_encode($link);
+        if ($onlineUrls = $this->getLinkData()) {
+            $data['online_urls_str_mv'] = $this->createOnlineURLsArray($onlineUrls);
+            $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         }
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
 
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
@@ -2881,37 +2875,27 @@ class Marc extends \RecordManager\Base\Record\Marc
                 continue;
             }
             $ind2 = $this->record->getIndicator($field, 2);
-            if (($ind2 != '0' && $ind2 != '1')) {
+            if (!in_array($ind2, ['0', '1', '2'])) {
                 continue;
             }
             $url = trim($this->record->getSubfield($field, 'u'));
             if (!$url) {
                 continue;
             }
-            // Require at least one dot surrounded by valid characters or a
-            // familiar scheme
-            if (
-                !preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
-                && !preg_match('/^https?:\/\//', $url)
-            ) {
-                continue;
-            }
-            $result = [
-                'url' => $url,
-            ];
-            $text = $this->record->getSubfield($field, 'y');
-            if (!$text) {
-                $text = $this->record->getSubfield($field, 'z');
-            }
-            $result['text'] = $text;
             $mediaType = $this->getLinkMediaType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            if ($mediaType) {
-                $result['mediaType'] = $mediaType;
+            $result = $this->createURLArray(
+                url: $url,
+                mediaType: $mediaType,
+                text: $this->record->getSubfield($field, 'y') ?: $this->record->getSubfield($field, 'z'),
+                source: $this->source,
+                mediaTypeCheck: $ind2 === '2'
+            );
+            if ($result) {
+                $results[] = $result;
             }
-            $results[] = $result;
         }
 
         $this->resultCache[__FUNCTION__] = $results;

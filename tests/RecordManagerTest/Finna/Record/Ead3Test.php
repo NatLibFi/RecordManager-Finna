@@ -780,14 +780,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'author_facet' => [
                 'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Ingman, Anders Wilhelm',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
                 'Ingman, Anders Wilhelm',
             ],
             'author2_id_str_mv' => [

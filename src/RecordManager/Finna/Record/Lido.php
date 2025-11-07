@@ -57,7 +57,7 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\FinnaCommonRecordTrait;
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -189,7 +189,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 'tarkempi paikka',
             ];
 
-        $this->initMediaTypeTrait($config);
+        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
     }
 
     /**
@@ -344,11 +344,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
@@ -2228,23 +2224,24 @@ class Lido extends \RecordManager\Base\Record\Lido
         $results = [];
         foreach ($this->getResourceSetNodes() as $set) {
             foreach ($set->resourceRepresentation as $node) {
-                if (empty($node->linkResource)) {
+                $url = trim((string)($node->linkResource ?? ''));
+                if (!$url) {
                     continue;
                 }
-                $result = [
-                    'url' => trim($node->linkResource),
-                    'desc' => trim($set->resourceDescription ?? ''),
-                    'source' => $this->source,
-                ];
                 $mediaType = $this->getLinkMediaType(
                     trim($node->linkResource),
                     trim($node->linkResource->attributes()->formatResource ?? ''),
                     trim($node->attributes()->type ?? '')
                 );
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
+                $result = $this->createURLArray(
+                    url: $url,
+                    mediaType: $mediaType,
+                    text: $set->resourceDescription ?? '',
+                    source: $this->source
+                );
+                if ($result) {
+                    $results[] = $result;
                 }
-                $results[] = $result;
             }
         }
         return $results;

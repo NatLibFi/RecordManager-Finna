@@ -20,3 +20,10 @@
 ; prepend = whether to prepend 003 to the field. 0 = no (default), 1 = yes.
 ; Example:
 ;record_linking_id_fields = "001,1:035a,0:999c,0"
+
+[OnlineURLs]
+; Following setting allows online urls which needs to be checked for its media type to be
+; indexed into the online_urls_str_mv field.
+; Example for allowing IIIF json files.
+;allowed_media_types[] = application/ld+json;profile="http://iiif.io/api/presentation/3/context.json"
+
