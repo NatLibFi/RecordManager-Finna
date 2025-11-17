@@ -62,7 +62,7 @@ trait IndexValueTrait
      *
      * @return array
      */
-    public function createURLArray(
+    public function createOnlineURLEntry(
         string $url,
         string $mediaType = '',
         string $text = '',
