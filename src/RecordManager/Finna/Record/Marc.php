@@ -1001,11 +1001,14 @@ class Marc extends \RecordManager\Base\Record\Marc
         $linkingIds = array_filter(explode(':', $linkingIds));
         $prefixIn003 = $this->metadataUtils->stripTrailingPunctuation($this->record->getControlField('003'));
 
+        // Support for datasource specific prefixIn003 setting.
+        $datasourcePrefixSetting = $this->getDriverParam('003InLinkingID', null);
+
         foreach ($linkingIds as $idPiped) {
             $fieldSpec = explode(',', $idPiped, 2);
             $field = substr($fieldSpec[0], 0, 3);
             $subField = $fieldSpec[0][3] ?? null;
-            $prefix = $fieldSpec[1] ?? null;
+            $prefix = !isset($datasourcePrefixSetting) && isset($fieldSpec[1]) ? $fieldSpec[1] : null;
             if (!$field) {
                 $this->logger->logDebug(
                     'Marc',
