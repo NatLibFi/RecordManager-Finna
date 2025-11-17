@@ -1042,6 +1042,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $results = [...$results, ...$ids];
             }
         }
+
         return array_values(array_unique(array_filter($results)));
     }
 
