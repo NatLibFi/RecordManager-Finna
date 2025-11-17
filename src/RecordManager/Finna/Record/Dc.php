@@ -50,7 +50,8 @@ use function array_slice;
 class Dc extends \RecordManager\Base\Record\Dc
 {
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Constructor
@@ -71,7 +72,8 @@ class Dc extends \RecordManager\Base\Record\Dc
         ?Database $db = null
     ) {
         parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils, $httpService, $db);
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**

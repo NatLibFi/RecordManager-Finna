@@ -55,7 +55,8 @@ class Forward extends \RecordManager\Base\Record\Forward
     use AuthoritySupportTrait;
     use ForwardRecordTrait;
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Default primary author relator codes, may be overridden in configuration.
@@ -129,7 +130,8 @@ class Forward extends \RecordManager\Base\Record\Forward
             $logger,
             $metadataUtils
         );
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -574,7 +576,7 @@ class Forward extends \RecordManager\Base\Record\Forward
                 $attributes = $event->ProductionEventType->attributes();
                 $url = (string)$attributes
                     ->{'elokuva-elonet-materiaali-video-url'};
-                $result = $this->createURLArray(
+                $result = $this->createOnlineURLEntry(
                     url: $url,
                     text: $description ?: $videoType,
                     source: $this->source

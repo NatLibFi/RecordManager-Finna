@@ -57,7 +57,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -103,7 +104,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $logger,
             $metadataUtils
         );
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -821,7 +823,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     if (empty($url)) {
                         continue;
                     }
-                    $result = $this->createURLArray(
+                    $result = $this->createOnlineURLEntry(
                         url: $url,
                         text: (string)($attrs->linktitle ?? ''),
                         mediaType: $this->getLinkMediaType(

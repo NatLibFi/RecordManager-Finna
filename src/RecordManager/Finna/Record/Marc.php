@@ -62,7 +62,8 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Value indicating that embedded component is a normal unit
@@ -229,7 +230,8 @@ class Marc extends \RecordManager\Base\Record\Marc
         $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c';
 
         $this->recordPluginManager = $recordPluginManager;
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -2886,7 +2888,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            $result = $this->createURLArray(
+            $result = $this->createOnlineURLEntry(
                 url: $url,
                 mediaType: $mediaType,
                 text: $this->record->getSubfield($field, 'y') ?: $this->record->getSubfield($field, 'z'),

@@ -49,7 +49,8 @@ use function strlen;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Rights statements indicating open access

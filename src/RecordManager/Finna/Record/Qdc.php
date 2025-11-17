@@ -225,7 +225,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                 $url,
                 trim($file->attributes()->type ?? '')
             );
-            $result = $this->createURLArray(
+            $result = $this->createOnlineURLEntry(
                 url: $url,
                 mediaType: $mediaType,
                 text: (string)$file->attributes()->name,

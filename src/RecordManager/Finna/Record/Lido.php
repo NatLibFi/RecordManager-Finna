@@ -57,7 +57,8 @@ class Lido extends \RecordManager\Base\Record\Lido
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -189,7 +190,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 'tarkempi paikka',
             ];
 
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -2233,7 +2235,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     trim($node->linkResource->attributes()->formatResource ?? ''),
                     trim($node->attributes()->type ?? '')
                 );
-                $result = $this->createURLArray(
+                $result = $this->createOnlineURLEntry(
                     url: $url,
                     mediaType: $mediaType,
                     text: $set->resourceDescription ?? '',

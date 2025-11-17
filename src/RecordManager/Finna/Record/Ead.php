@@ -53,7 +53,8 @@ class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use Feature\FinnaCommonRecordTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Field for geographic data
@@ -89,7 +90,8 @@ class Ead extends \RecordManager\Base\Record\Ead
             $logger,
             $metadataUtils
         );
-        $this->initFinnaCommonRecordTrait($config, $dataSourceConfig);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -397,7 +399,7 @@ class Ead extends \RecordManager\Base\Record\Ead
                 if (empty($url)) {
                     continue;
                 }
-                $result = $this->createURLArray(
+                $result = $this->createOnlineURLEntry(
                     url: $url,
                     mediaType: $this->getLinkMediaType($url),
                     source: $this->source

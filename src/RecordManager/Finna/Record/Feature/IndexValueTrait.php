@@ -50,7 +50,7 @@ trait IndexValueTrait
     protected array $allowedOnlineURLMediaTypes = [];
 
     /**
-     * Create value for online_urls_str_mv index field.
+     * Create entry for an online URL.
      *
      * @param string $url            Online URL.
      * @param string $mediaType      Media type associated to the URL.
@@ -60,7 +60,7 @@ trait IndexValueTrait
      *                               recordFormatSpecificMappings[online_urls_str_mv].
      *                               Default is false.
      *
-     * @return array
+     * @return array Containing keys 'url', 'mediaType', 'text', 'source'.
      */
     public function createOnlineURLEntry(
         string $url,
