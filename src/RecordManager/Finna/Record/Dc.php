@@ -30,6 +30,9 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Http\HttpService;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 use function array_slice;
 
@@ -47,6 +50,31 @@ use function array_slice;
 class Dc extends \RecordManager\Base\Record\Dc
 {
     use DateSupportTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
+
+    /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     * @param HttpService   $httpService      HTTP service
+     * @param ?Database     $db               Database
+     */
+    public function __construct(
+        $config,
+        $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils,
+        HttpService $httpService,
+        ?Database $db = null
+    ) {
+        parent::__construct($config, $dataSourceConfig, $logger, $metadataUtils, $httpService, $db);
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
+    }
 
     /**
      * Return fields to be indexed in Solr
@@ -78,16 +106,7 @@ class Dc extends \RecordManager\Base\Record\Dc
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a = (array)($data['author'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a2 = (array)($data['author2'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $ac = (array)($data['author_corporate'] ?? []);
-        $data['author_facet'] = [...$a, ...$a2, ...$ac];
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
 
         $data['format_ext_str_mv'] = $data['format'];
 

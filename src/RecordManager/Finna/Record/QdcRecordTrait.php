@@ -49,7 +49,8 @@ use function strlen;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Rights statements indicating open access
@@ -106,14 +107,9 @@ trait QdcRecordTrait
             }
         }
         $onlineUrls = $this->getOnlineUrls();
-        foreach ($this->getOnlineUrls() as $url) {
-            $data['online_urls_str_mv'][] = json_encode($url);
-        }
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['online_urls_str_mv'] = $this->createOnlineURLsArray($onlineUrls);
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
+
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
 
@@ -156,16 +152,7 @@ trait QdcRecordTrait
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a = (array)($data['author'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a2 = (array)($data['author2'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $ac = (array)($data['author_corporate'] ?? []);
-        $data['author_facet'] = [...$a, ...$a2, ...$ac];
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
 
         $data['format_ext_str_mv'] = $data['format'];
 
