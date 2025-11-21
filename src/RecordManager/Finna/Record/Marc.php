@@ -227,7 +227,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             $recordCallback,
             $formatCalculator
         );
-        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c';
+        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c,0';
 
         $this->recordPluginManager = $recordPluginManager;
         $this->initMediaTypeTrait($config);
@@ -1005,10 +1005,16 @@ class Marc extends \RecordManager\Base\Record\Marc
         $datasourcePrefixSetting = $this->getDriverParam('003InLinkingID', null);
 
         foreach ($linkingIds as $idPiped) {
+            // Explode the setting 0 => field and subfield, 1 => prefix with value from 003
             $fieldSpec = explode(',', $idPiped, 2);
             $field = substr($fieldSpec[0], 0, 3);
+            // Try to get the subfield from field
             $subField = $fieldSpec[0][3] ?? null;
-            $prefix = !isset($datasourcePrefixSetting) && isset($fieldSpec[1]) ? $fieldSpec[1] : null;
+            $prefix = $fieldSpec[1] ?? null;
+            // Only use prefix from datasource if the prefix setting has been declared in the global setting.
+            if (null !== $prefix && null !== $datasourcePrefixSetting) {
+                $prefix = $datasourcePrefixSetting;
+            }
             if (!$field) {
                 $this->logger->logDebug(
                     'Marc',
