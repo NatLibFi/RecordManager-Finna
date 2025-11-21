@@ -1425,6 +1425,36 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                     '123',
                 ],
             ],
+            'koha datasource with 003InLinkingID set to true' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=true',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)010101',
+                ],
+            ],
+            'koha datasource with 003InLinkingID set to false' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=false',
+                        ],
+                    ],
+                ],
+                [
+                    '010101',
+                ],
+            ],
             'koha datasource with id in 999' => [
                 'marc5.xml',
                 [
