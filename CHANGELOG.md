@@ -5,20 +5,51 @@ Notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## 3.0.0 - TBD
 
 **N.B. This version bumps the minimum PHP version to 8.2**
 
+The update of tooling may require local extensions to be updated as well to adhere to the code style. Running `composer fix` to automatically fix a lot of issues is recommended.
+
 Anything marked with [**BC**] is known to affect backward compatibility with previous versions.
+
+### Added
+
+- Sierra API: Added support for harvesting authority records.
+- Added support for defining additional HTTP headers for a data source.
+- LIDO: Related ISBNs are now indexed.
+- Added linking_id_str_mv field for search-time linking between records.
+- Added an option (mergeMultiLevelParts) to merge component parts to a parent record even when parent is a component part itself ()
+- MARC: Added an option (linking_id_fields) to define the linking ID fields.
+- MARC: Added support for ignoring authors by relators/roles (see hidden_author_relators setting).
+- Added support for deleting unseen records after import.
+- Added support for defining additional HTTP options for Solr index requests. This could be useful e.g. when using SSL with self-signed certificates.
 
 ### Changed
 
 - [**BC**] The HTTP client library has been changed from HTTP_Request2 to Guzzle. This has required some changes to how the HTTP client is used. See e.g. src/RecordManager/Base/Harvest/SierraApi.php for usage examples. This also affects the settings in HTTP section of recordmanager.ini. Only the most commonly used legacy settings are automatically mapped to Guzzle's equivalents.
+- Extending the EAD3 splitter was made easier by splitting code to additional methods.
+- Support for PHP 8.4 was improved. Some dependencies, such as json-ld, may still use deprecated functionality.
+- Rector was introduced to update code style.
+- Records are now unconditionally re-deduplicated when they're updated. This ensures that any changes (like format) that could affect deduplication are taken into account.
+- Deduplication now requires at least a partial title match even if ISBN or other identifier matches. This avoids invalid deduplication when cataloguing style differs between sources.
+- MusicBrainzEnrichment was adjusted for improved matching.
+
+### Fixed
+
+- MARC: Fixed an issue that could have linked a record with a deleted record.
+- Deduplication could mark deleted records to be re-processed.
+- Several mistakes in example configurations were fixed.
+- Fixed the --inject-id-prefixed option in export.
+- Fixed HTTP redirection handling in FullTextTrait.
+- Fixed HTTP error handling in enrichments, FullTextTrait and Sierra API harvesting.
 
 ### Removed
 
 - [**BC**] Support for splitting titles of LIDO records has been dropped.
-- [**BC**] Updated all dependencies including PHPUnit 10. Some tests may require changes.
+- [**BC**] Updated all dependencies including PHPUnit 11. Some tests and code style may require changes.
+- LIDO: Removed non-standard identifier field.
 
 
 ## 2.3.0 - 2024-06-24
