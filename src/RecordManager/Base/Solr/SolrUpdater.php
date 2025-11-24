@@ -2803,10 +2803,13 @@ class SolrUpdater
         // At least some combinations of PHP + curl cause both Transfer-Encoding and
         // Content-Length to be set in certain cases. Set allow_redirects to true to
         // invoke the PHP workaround in the curl adapter.
-        $options = [
-            'headers' => ['Connection' => 'Keep-Alive'],
-            'allow_redirects' => true,
-        ];
+        $options = array_merge_recursive(
+            [
+                'headers' => ['Connection' => 'Keep-Alive'],
+                'allow_redirects' => true,
+            ],
+            $this->config['Solr HTTP'] ?? []
+        );
         if (
             ($username = $this->config['Solr']['username'] ?? null)
             && ($password = $this->config['Solr']['password'] ?? null)
