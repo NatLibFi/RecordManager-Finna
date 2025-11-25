@@ -280,7 +280,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
-            'media_type_str_mv' => [],
             'major_genre_str_mv' => 'nonfiction',
             'linking_id_str_mv' => [
                 '123',
@@ -489,7 +488,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 0 => '1234',
                 1 => '1558192',
@@ -676,7 +674,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 0 => '107786',
                 1 => '(FI-Piki)Ppro837_107786',
@@ -824,7 +821,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 '123',
             ],
@@ -967,7 +963,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 '123',
             ],
@@ -1090,7 +1085,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'testauth.(FI-ASTERI-N)000189739',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 '123',
             ],
@@ -1203,7 +1197,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
-            'media_type_str_mv' => [],
             'linking_id_str_mv' => [
                 '123',
             ],
@@ -1430,6 +1423,36 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 ],
                 [
                     '123',
+                ],
+            ],
+            'koha datasource with 003InLinkingID set to true' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=true',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)010101',
+                ],
+            ],
+            'koha datasource with 003InLinkingID set to false' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=false',
+                        ],
+                    ],
+                ],
+                [
+                    '010101',
                 ],
             ],
             'koha datasource with id in 999' => [

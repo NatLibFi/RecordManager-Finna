@@ -53,7 +53,8 @@ class Ead extends \RecordManager\Base\Record\Ead
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Field for geographic data
@@ -90,6 +91,7 @@ class Ead extends \RecordManager\Base\Record\Ead
             $metadataUtils
         );
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -190,27 +192,14 @@ class Ead extends \RecordManager\Base\Record\Ead
             $data['usage_rights_ext_str_mv'] = $rights;
         }
 
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a = (array)($data['author'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a2 = (array)($data['author2'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $ac = (array)($data['author_corporate'] ?? []);
-        $data['author_facet'] = [...$a, ...$a2, ...$ac];
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
 
         $data['format_ext_str_mv'] = (array)$data['format'];
         if ($this->hasImages()) {
             $data['format_ext_str_mv'][] = 'Image';
         }
         $onlineUrls = $this->getOnlineURLs();
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         return $data;
     }
 
@@ -410,16 +399,14 @@ class Ead extends \RecordManager\Base\Record\Ead
                 if (empty($url)) {
                     continue;
                 }
-                $result = [
-                    'url' => $url,
-                    'desc' => '',
-                    'source' => $this->source,
-                ];
-                $mediaType = $this->getLinkMediaType($url);
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
+                $result = $this->createOnlineURLEntry(
+                    url: $url,
+                    mediaType: $this->getLinkMediaType($url),
+                    source: $this->source
+                );
+                if ($result) {
+                    $results[] = $result;
                 }
-                $results[] = $result;
             }
         }
         return $results;

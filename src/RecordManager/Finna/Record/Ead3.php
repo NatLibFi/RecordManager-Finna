@@ -57,7 +57,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -104,6 +105,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $metadataUtils
         );
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -187,11 +189,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $data['rights'] = (string)$doc->did->accessrestrict->p;
         }
         $onlineUrls = $this->getOnlineURLs();
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
@@ -200,13 +198,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $data['author_variant'] = $this->getAuthorVariants();
         $data['author2'] = $this->getSecondaryAuthors();
-        // phpcs:ignore
-        /** @psalm-var array<string, list<string>> $data */
-        $data['author_facet'] = [
-            ...$data['author'],
-            ...$data['author2'],
-            ...$data['author_corporate'],
-        ];
+
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
         $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
                     array_unique(
@@ -830,19 +823,18 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     if (empty($url)) {
                         continue;
                     }
-                    $result = [
-                        'url' => $url,
-                        'desc' => trim($attrs->linktitle ?? ''),
-                        'source' => $this->source,
-                    ];
-                    $mediaType = $this->getLinkMediaType(
-                        $url,
-                        trim((string)$attrs->linkrole),
+                    $result = $this->createOnlineURLEntry(
+                        url: $url,
+                        text: (string)($attrs->linktitle ?? ''),
+                        mediaType: $this->getLinkMediaType(
+                            $url,
+                            trim((string)$attrs->linkrole),
+                        ),
+                        source: $this->source
                     );
-                    if ($mediaType) {
-                        $result['mediaType'] = $mediaType;
+                    if ($result) {
+                        $results[] = $result;
                     }
-                    $results[] = $result;
                 }
             }
         }

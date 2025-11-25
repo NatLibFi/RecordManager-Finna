@@ -62,7 +62,8 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Value indicating that embedded component is a normal unit
@@ -226,10 +227,11 @@ class Marc extends \RecordManager\Base\Record\Marc
             $recordCallback,
             $formatCalculator
         );
-        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c';
+        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c,0';
 
         $this->recordPluginManager = $recordPluginManager;
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -555,16 +557,10 @@ class Marc extends \RecordManager\Base\Record\Marc
         unset($value);
 
         // URLs
-        $onlineUrls = $this->getLinkData();
-        foreach ($onlineUrls as $link) {
-            $link['source'] = $this->source;
-            $data['online_urls_str_mv'][] = json_encode($link);
+        if ($onlineUrls = $this->getLinkData()) {
+            $data['online_urls_str_mv'] = $this->createOnlineURLsArray($onlineUrls);
+            $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         }
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
 
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
@@ -1005,11 +1001,20 @@ class Marc extends \RecordManager\Base\Record\Marc
         $linkingIds = array_filter(explode(':', $linkingIds));
         $prefixIn003 = $this->metadataUtils->stripTrailingPunctuation($this->record->getControlField('003'));
 
+        // Support for datasource specific prefixIn003 setting.
+        $datasourcePrefixSetting = $this->getDriverParam('003InLinkingID', null);
+
         foreach ($linkingIds as $idPiped) {
+            // Explode the setting 0 => field and subfield, 1 => prefix with value from 003
             $fieldSpec = explode(',', $idPiped, 2);
             $field = substr($fieldSpec[0], 0, 3);
+            // Try to get the subfield from field
             $subField = $fieldSpec[0][3] ?? null;
             $prefix = $fieldSpec[1] ?? null;
+            // Only use prefix from datasource if the prefix setting has been declared in the global setting.
+            if (null !== $prefix && null !== $datasourcePrefixSetting) {
+                $prefix = $datasourcePrefixSetting;
+            }
             if (!$field) {
                 $this->logger->logDebug(
                     'Marc',
@@ -2881,37 +2886,27 @@ class Marc extends \RecordManager\Base\Record\Marc
                 continue;
             }
             $ind2 = $this->record->getIndicator($field, 2);
-            if (($ind2 != '0' && $ind2 != '1')) {
+            if (!in_array($ind2, ['0', '1', '2'])) {
                 continue;
             }
             $url = trim($this->record->getSubfield($field, 'u'));
             if (!$url) {
                 continue;
             }
-            // Require at least one dot surrounded by valid characters or a
-            // familiar scheme
-            if (
-                !preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
-                && !preg_match('/^https?:\/\//', $url)
-            ) {
-                continue;
-            }
-            $result = [
-                'url' => $url,
-            ];
-            $text = $this->record->getSubfield($field, 'y');
-            if (!$text) {
-                $text = $this->record->getSubfield($field, 'z');
-            }
-            $result['text'] = $text;
             $mediaType = $this->getLinkMediaType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            if ($mediaType) {
-                $result['mediaType'] = $mediaType;
+            $result = $this->createOnlineURLEntry(
+                url: $url,
+                mediaType: $mediaType,
+                text: $this->record->getSubfield($field, 'y') ?: $this->record->getSubfield($field, 'z'),
+                source: $this->source,
+                mediaTypeCheck: $ind2 === '2'
+            );
+            if ($result) {
+                $results[] = $result;
             }
-            $results[] = $result;
         }
 
         $this->resultCache[__FUNCTION__] = $results;

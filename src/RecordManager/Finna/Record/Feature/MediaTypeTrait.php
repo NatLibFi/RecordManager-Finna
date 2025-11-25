@@ -27,7 +27,7 @@
  * @link     https://github.com/NatLibFi/RecordManager
  */
 
-namespace RecordManager\Finna\Record;
+namespace RecordManager\Finna\Record\Feature;
 
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 

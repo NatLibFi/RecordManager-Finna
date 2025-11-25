@@ -96,6 +96,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $db
         );
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -151,19 +152,18 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         // Materials
         foreach ($this->doc->material ?? [] as $material) {
             if ($url = (string)($material->url ?? '')) {
-                $result = [
-                    'url' => $url,
-                    'text' => trim((string)($material->name ?? $url)),
-                    'source' => $this->source,
-                ];
-                $mediaType = $this->getLinkMediaType(
-                    $url,
-                    trim($material->format ?? '')
+                $result = $this->createOnlineURLEntry(
+                    url: $url,
+                    text: (string)($material->name ?? $url),
+                    mediaType: $this->getLinkMediaType(
+                        $url,
+                        trim($material->format ?? '')
+                    ),
+                    source: $this->source
                 );
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
+                if ($result) {
+                    $results[] = $result;
                 }
-                $results[] = $result;
             }
         }
         return $results;
