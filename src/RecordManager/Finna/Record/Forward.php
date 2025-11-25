@@ -31,6 +31,8 @@
 namespace RecordManager\Finna\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
+use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 
 use function boolval;
 use function in_array;
@@ -53,6 +55,8 @@ class Forward extends \RecordManager\Base\Record\Forward
     use AuthoritySupportTrait;
     use ForwardRecordTrait;
     use DateSupportTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Default primary author relator codes, may be overridden in configuration.
@@ -107,16 +111,39 @@ class Forward extends \RecordManager\Base\Record\Forward
     protected $primaryLanguage = 'fi';
 
     /**
+     * Constructor
+     *
+     * @param array         $config           Main configuration
+     * @param array         $dataSourceConfig Data source settings
+     * @param Logger        $logger           Logger
+     * @param MetadataUtils $metadataUtils    Metadata utilities
+     */
+    public function __construct(
+        array $config,
+        array $dataSourceConfig,
+        Logger $logger,
+        MetadataUtils $metadataUtils
+    ) {
+        parent::__construct(
+            $config,
+            $dataSourceConfig,
+            $logger,
+            $metadataUtils
+        );
+        $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
+    }
+
+    /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      *
      * @psalm-suppress DuplicateArrayKey
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
 
@@ -140,16 +167,10 @@ class Forward extends \RecordManager\Base\Record\Forward
                 $data['free_online_boolean'] = '1';
                 $data['free_online_str_mv'] = $this->source;
             }
-            foreach ($this->getOnlineUrls() as $url) {
-                $data['online_urls_str_mv'][] = json_encode($url);
-            }
+            $data['online_urls_str_mv'] = $this->createOnlineURLsArray($this->getOnlineUrls());
         }
 
-        $data['author_facet'] = [
-            ...(array)($data['author'] ?? []),
-            ...(array)($data['author2'] ?? []),
-            ...(array)($data['author_corporate'] ?? []),
-        ];
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
 
         $data['format_ext_str_mv'] = (array)$data['format'];
         if (!empty($data['thumbnail'])) {
@@ -555,11 +576,14 @@ class Forward extends \RecordManager\Base\Record\Forward
                 $attributes = $event->ProductionEventType->attributes();
                 $url = (string)$attributes
                     ->{'elokuva-elonet-materiaali-video-url'};
-                $results[] = [
-                    'url' => $url,
-                    'text' => $description ? $description : $videoType,
-                    'source' => $this->source,
-                ];
+                $result = $this->createOnlineURLEntry(
+                    url: $url,
+                    text: $description ?: $videoType,
+                    source: $this->source
+                );
+                if ($result) {
+                    $results[] = $result;
+                }
             }
         }
         return $results;

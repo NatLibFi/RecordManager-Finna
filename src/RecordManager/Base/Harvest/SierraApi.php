@@ -124,6 +124,7 @@ class SierraApi extends AbstractBase
      * @var array
      */
     protected $httpOptions = [
+        'http_errors' => false,
         // Set a timeout since Sierra may sometimes just hang without ever returning.
         'timeout' => 600,
     ];
@@ -131,9 +132,19 @@ class SierraApi extends AbstractBase
     /**
      * Fields to request from Sierra
      *
+     * @var array
+     */
+    protected $harvestFields = [
+        'bibs' => 'default,locations,fixedFields,varFields,catalogDate',
+        'authorities' => 'default,varFields,createdDate',
+    ];
+
+    /**
+     * Sierra API endpoint to use
+     *
      * @var string
      */
-    protected $harvestFields = 'default,locations,fixedFields,varFields,catalogDate';
+    protected $endpoint = 'bibs';
 
     /**
      * Initialize harvesting
@@ -166,6 +177,7 @@ class SierraApi extends AbstractBase
         );
         $this->apiVersion = 'v' . ($settings['sierraApiVersion'] ?? '6');
         $this->keepExisting852Fields = $settings['keepExisting852Fields'] ?? false;
+        $this->endpoint = $settings['sierraApiEndpoint'] ?? 'bibs';
     }
 
     /**
@@ -195,7 +207,7 @@ class SierraApi extends AbstractBase
         $apiParams = [
             'limit' => $this->batchSize,
             'offset' => $this->startPosition,
-            'fields' => $this->harvestFields,
+            'fields' => $this->harvestFields[$this->endpoint] ?? '',
         ];
         if (null !== $this->suppressedRecords) {
             $apiParams['suppressed'] = $this->suppressedRecords ? 'true' : 'false';
@@ -215,7 +227,7 @@ class SierraApi extends AbstractBase
 
         // Keep harvesting as long as a records are received:
         do {
-            $response = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
+            $response = $this->sendRequest([$this->apiVersion, $this->endpoint], $apiParams);
             $count = $this->processResponse((string)$response->getBody());
             $this->reportResults();
             $apiParams['offset'] += $apiParams['limit'];
@@ -237,8 +249,7 @@ class SierraApi extends AbstractBase
 
             // Keep harvesting as long as a records are received:
             do {
-                $response
-                    = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
+                $response = $this->sendRequest([$this->apiVersion, $this->endpoint], $apiParams);
                 $count = $this->processResponse((string)$response->getBody());
                 $this->reportResults();
                 $apiParams['offset'] += $apiParams['limit'];
@@ -274,7 +285,7 @@ class SierraApi extends AbstractBase
             $apiParams['suppressed'] = $this->suppressedRecords ? 'true' : 'false';
         }
 
-        $response = $this->sendRequest([$this->apiVersion, 'bibs'], $apiParams);
+        $response = $this->sendRequest([$this->apiVersion, $this->endpoint], $apiParams);
         $this->processResponse((string)$response->getBody());
         $this->reportResults();
     }
@@ -327,9 +338,8 @@ class SierraApi extends AbstractBase
         }
 
         $client = $this->httpService->createClient($apiUrl, $this->httpOptions);
-        $headers = [
-            'Accept' => 'application/json',
-        ];
+        $headers = $this->httpHeaders;
+        $headers['Accept'] = 'application/json';
         $url = $this->httpService->appendQueryParams($apiUrl, $params);
 
         if (null === $this->accessToken) {
@@ -453,10 +463,9 @@ class SierraApi extends AbstractBase
         // Set up the request:
         $apiUrl = $this->baseURL . '/' . $this->apiVersion . '/token';
         $client = $this->httpService->createClient($apiUrl);
-        $headers = [
-            'Accept' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode("{$this->apiKey}:{$this->apiSecret}"),
-        ];
+        $headers = $this->httpHeaders;
+        $headers['Accept'] = 'application/json';
+        $headers['Authorization'] = 'Basic ' . base64_encode("{$this->apiKey}:{$this->apiSecret}");
 
         // Perform request and throw an exception on error:
         for ($try = 1; $try <= $this->maxTries; $try++) {

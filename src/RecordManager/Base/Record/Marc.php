@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2023.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -69,6 +69,13 @@ class Marc extends AbstractRecord
     protected $primaryAuthorRelators = [
         'adp', 'aut', 'cmp', 'cre', 'dub', 'inv',
     ];
+
+    /**
+     * Author relators that are not considered for indexing
+     *
+     * @var array
+     */
+    protected $hiddenAuthorRelators = [];
 
     /**
      * Strings in field 300 that signify that the work is illustrated.
@@ -168,6 +175,16 @@ class Marc extends AbstractRecord
     ];
 
     /**
+     * Fields containing linking ids
+     *
+     * @var array
+     */
+    protected array $linkingIdFields = [
+        '760', '762', '765', '767', '770', '772', '773', '774',
+        '775', '776', '777', '780', '785', '786', '787',
+    ];
+
+    /**
      * MARC record creation callback
      *
      * @var callable
@@ -204,11 +221,14 @@ class Marc extends AbstractRecord
         $this->createRecordCallback = $recordCallback;
         $this->formatCalculator = $formatCalculator;
 
-        if (isset($config['MarcRecord']['primary_author_relators'])) {
-            $this->primaryAuthorRelators = explode(
-                ',',
-                $config['MarcRecord']['primary_author_relators']
-            );
+        if ($relators = $config['MarcRecord']['primary_author_relators'] ?? null) {
+            $this->primaryAuthorRelators = explode(',', $relators);
+        }
+        if ($relators = $config['MarcRecord']['hidden_author_relators'] ?? null) {
+            $this->hiddenAuthorRelators = explode(',', $relators);
+        }
+        if (null !== ($fields = $config['MarcRecord']['linking_id_fields'] ?? null)) {
+            $this->linkingIdFields = array_filter(explode(',', $fields));
         }
     }
 
@@ -259,23 +279,17 @@ class Marc extends AbstractRecord
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = [
             'record_format' => 'marc',
         ];
 
-        // Try to find matches for IDs in link fields
-        $fields = [
-            '760', '762', '765', '767', '770', '772', '773', '774',
-            '775', '776', '777', '780', '785', '786', '787',
-        ];
-        foreach ($fields as $code) {
+        foreach ($this->linkingIdFields as $code) {
             foreach ($this->record->getFields($code) as $fieldIdx => $marcfield) {
                 foreach ($this->record->getSubfields($marcfield, 'w') as $subfieldIdx => $marcsubfield) {
                     $targetId = $marcsubfield;
@@ -286,6 +300,7 @@ class Marc extends AbstractRecord
                             [
                                 'source_id' => $this->source,
                                 'linking_id' => $linkingId,
+                                'deleted' => false,
                             ],
                             ['projection' => ['_id' => 1]]
                         );
@@ -295,6 +310,7 @@ class Marc extends AbstractRecord
                                 [
                                     'source_id' => $this->source,
                                     'linking_id' => $targetId,
+                                    'deleted' => false,
                                 ],
                                 ['projection' => ['_id' => 1]]
                             );
@@ -1196,6 +1212,14 @@ class Marc extends AbstractRecord
         foreach ($authorFields as $tag => $subfields) {
             $tag = (string)$tag;
             foreach ($this->record->getFields($tag) as $field) {
+                $fieldRelators = $this->normalizeRelators(
+                    $this->getSubfieldsArray($field, ['4', 'e'])
+                );
+
+                if ($this->hiddenAuthorRelators && array_intersect($this->hiddenAuthorRelators, $fieldRelators)) {
+                    continue;
+                }
+
                 // Check for analytical entries to be processed later:
                 if (
                     in_array($tag, ['700', '710', '711'])
@@ -1529,12 +1553,20 @@ class Marc extends AbstractRecord
     /**
      * Get publisher numbers (for enrichment)
      *
+     * @param array $includeInd1 Indicator numbers as strings to include in results.
+     *
      * @return array
      */
-    public function getPublisherNumbers(): array
+    public function getPublisherNumbers(array $includeInd1 = []): array
     {
         $result = [];
         foreach ($this->record->getFields('028') as $field028) {
+            if ($includeInd1) {
+                $fieldInd1 = $this->record->getIndicator($field028, 1);
+                if (!in_array($fieldInd1, $includeInd1)) {
+                    continue;
+                }
+            }
             $id = $this->record->getSubfield($field028, 'a');
             $source = $this->record->getSubfield($field028, 'b');
             $result[] = compact('id', 'source');
@@ -2247,6 +2279,10 @@ class Marc extends AbstractRecord
                 $fieldRelators = $this->normalizeRelators(
                     $this->getSubfieldsArray($field, ['4', 'e'])
                 );
+
+                if ($this->hiddenAuthorRelators && array_intersect($this->hiddenAuthorRelators, $fieldRelators)) {
+                    continue;
+                }
 
                 $match = empty($relators);
                 if (!$match) {

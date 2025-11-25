@@ -244,16 +244,17 @@ trait StoreRecordTrait
                     // If this is a component part, mark its host record to be
                     // deduplicated.
                     if (!$hostIDs) {
-                        $dbRecord['update_needed']
-                            = $this->dedupHandler->updateDedupCandidateKeys(
-                                $dbRecord,
-                                $metadataRecord
-                            ) || $wasDeleted;
+                        $this->dedupHandler->updateDedupCandidateKeys(
+                            $dbRecord,
+                            $metadataRecord
+                        );
+                        $dbRecord['update_needed'] = true;
                     } else {
                         $this->db->updateRecords(
                             [
                                 'source_id' => ['$in' => $hostSourceIds],
                                 'linking_id' => ['$in' => (array)$hostIDs],
+                                'deleted' => false,
                             ],
                             ['update_needed' => true]
                         );
@@ -394,5 +395,53 @@ trait StoreRecordTrait
             }
         );
         return $count;
+    }
+
+    /**
+     * Set deleted all records that were not "seen" during harvest
+     *
+     * Uses the 'date' field that only gets updated when a record is received.
+     *
+     * @param string $source        Record source
+     * @param int    $dateThreshold Date threshold for deletion
+     *
+     * @return void
+     */
+    protected function markUnseenRecordsDeleted(
+        string $source,
+        int $dateThreshold
+    ): void {
+        $count = 0;
+        $classParts = explode('\\', static::class);
+        $funcName = strtolower(end($classParts));
+        $this->logger->logInfo($funcName, "Marking unseen records deleted in '$source'");
+
+        $this->db->iterateRecords(
+            [
+                'source_id' => $source,
+                'deleted' => false,
+                'date' => [
+                    '$lt' =>
+                        $this->db->getTimestamp($dateThreshold),
+                ],
+            ],
+            [],
+            function ($record) use (&$count, $source, $dateThreshold, $funcName) {
+                if (!empty($record['oai_id'])) {
+                    $this->deleteByOaiId(
+                        $source,
+                        $record['oai_id'],
+                        $dateThreshold
+                    );
+                } else {
+                    $this->markRecordDeleted($record);
+                }
+
+                if (++$count % 1000 == 0) {
+                    $this->logger->logInfo($funcName, "Deleted $count records");
+                }
+            }
+        );
+        $this->logger->logInfo($funcName, "Deleted $count records");
     }
 }

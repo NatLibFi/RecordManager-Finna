@@ -85,7 +85,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         Logger $logger,
         MetadataUtils $metadataUtils,
         HttpService $httpService,
-        Database $db = null
+        ?Database $db = null
     ) {
         parent::__construct(
             $config,
@@ -96,17 +96,17 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
             $db
         );
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = $this->_toSolrArray();
 
@@ -152,19 +152,18 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
         // Materials
         foreach ($this->doc->material ?? [] as $material) {
             if ($url = (string)($material->url ?? '')) {
-                $result = [
-                    'url' => $url,
-                    'text' => trim((string)($material->name ?? $url)),
-                    'source' => $this->source,
-                ];
-                $mediaType = $this->getLinkMediaType(
-                    $url,
-                    trim($material->format ?? '')
+                $result = $this->createOnlineURLEntry(
+                    url: $url,
+                    text: (string)($material->name ?? $url),
+                    mediaType: $this->getLinkMediaType(
+                        $url,
+                        trim($material->format ?? '')
+                    ),
+                    source: $this->source
                 );
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
+                if ($result) {
+                    $results[] = $result;
                 }
-                $results[] = $result;
             }
         }
         return $results;

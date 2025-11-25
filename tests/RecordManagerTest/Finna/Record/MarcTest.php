@@ -64,6 +64,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'Base',
             [
                 $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ],
+            config: [
+                'MarcRecord' => [
+                    'hidden_author_relators' => 'distributor',
+                ],
             ]
         );
         $fields = $record->toSolrArray();
@@ -109,6 +114,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'tutkimus',
                 'Remes, Pirkko',
                 'Sajavaara, Paula',
+                'Example Distributor',
+                'distributor',
             ],
             'language' => [
                 'fin',
@@ -273,8 +280,13 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Book',
             'topic_id_str_mv' => [],
             'description' => 'Summary field',
-            'media_type_str_mv' => [],
             'major_genre_str_mv' => 'nonfiction',
+            'linking_id_str_mv' => [
+                '123',
+                'FCC005246184',
+                '378890',
+                '401416',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -476,7 +488,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '(biotest)(BIOTEST)1234',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                0 => '1234',
+                1 => '1558192',
+                2 => 'FCC002608043',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -658,7 +674,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Map',
             'topic_id_str_mv' => [],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                0 => '107786',
+                1 => '(FI-Piki)Ppro837_107786',
+                2 => '(PIKI)Ppro837_107786',
+                3 => '(FI-MELINDA)000963219',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -800,7 +821,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                '123',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -940,7 +963,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'http://www.yso.fi/onto/yso/p8471',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                '123',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1060,7 +1085,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'testauth.(FI-ASTERI-N)000189739',
             ],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                '123',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1170,7 +1197,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'format_ext_str_mv' => 'Serial',
             'topic_id_str_mv' => [],
             'description' => '',
-            'media_type_str_mv' => [],
+            'linking_id_str_mv' => [
+                '123',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1305,6 +1334,259 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'application/pdf',
             ],
             $fields['media_type_str_mv']
+        );
+    }
+
+    /**
+     * Test MARC performers
+     *
+     * @return void
+     */
+    public function testMarcPerformers1(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-performers1.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'viulu/viulu (1)',
+                'sello/sello (2)',
+                'piano/piano (3)',
+                'sopraano/sopraano',
+                'kitara/kitara (4)',
+                'basso/basso (6)',
+                'kantele/kantele',
+            ],
+            $fields['performer_str_mv']
+        );
+        $this->assertEquals(
+            [7, 11],
+            $fields['performer_total_int_mv']
+        );
+    }
+
+    /**
+     * Test MARC performers
+     *
+     * @return void
+     */
+    public function testMarcPerformers2(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc-performers2.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'viulu/viulu (1)',
+                'sello/sello (2)',
+                'piano/piano (3)',
+                'sopraano/sopraano',
+            ],
+            $fields['performer_str_mv']
+        );
+        $this->assertEquals(
+            [7],
+            $fields['performer_total_int_mv']
+        );
+    }
+
+    /**
+     * Dataprovider for testLinkingIdField
+     *
+     * @return array
+     */
+    public static function getTestLinkingIdFieldData(): array
+    {
+        return [
+            'datasource with id in 001' => [
+                'marc4.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'kohaNormalization=true',
+                        ],
+                    ],
+                ],
+                [
+                    '123',
+                ],
+            ],
+            'koha datasource with 003InLinkingID set to true' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=true',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)010101',
+                ],
+            ],
+            'koha datasource with 003InLinkingID set to false' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            '003InLinkingID=false',
+                        ],
+                    ],
+                ],
+                [
+                    '010101',
+                ],
+            ],
+            'koha datasource with id in 999' => [
+                'marc5.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                        ],
+                    ],
+                ],
+                [
+                    '010101',
+                ],
+            ],
+            'koha datasource with id in 999 and 001' => [
+                'marc6.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            'recordLinkingIdFields="001,1:035a:999c"',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)123',
+                    '010101',
+                ],
+            ],
+            'koha datasource with id in 999 and 001 but configurated to 001' => [
+                'marc6.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                            'recordLinkingIdFields="001,1|035a,0"',
+                        ],
+                    ],
+                ],
+                [
+                    '(FI-MELINDA)123',
+                ],
+            ],
+            'koha datasource with duplicate values in both' => [
+                'marc7.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                        ],
+                    ],
+                ],
+                [
+                    '555555',
+                ],
+            ],
+            'koha datasource with an empty spaced value' => [
+                'marc8.xml',
+                [
+                    '__unit_test_no_source__' => [
+                        'driverParams' => [
+                            'idIn999=true',
+                            'kohaNormalization=true',
+                        ],
+                    ],
+                ],
+                [
+                    '555555',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Test linking_id_str_mv field
+     *
+     * @param string $path     Marc record path
+     * @param array  $dsConfig Datasource config
+     * @param array  $expected Expected results
+     *
+     * @return       void
+     * @dataProvider getTestLinkingIdFieldData
+     */
+    public function testLinkingIdField(string $path, array $dsConfig, array $expected): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            $path,
+            $dsConfig,
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $record->normalize();
+        $fields = $record->toSolrArray();
+        $this->assertEquals($expected, $fields['linking_id_str_mv']);
+    }
+
+    /**
+     * Test collectionFields setting
+     *
+     * @return void
+     */
+    public function testCollectionFields(): void
+    {
+        $record = $this->createMarcRecord(
+            Marc::class,
+            'marc9.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'collectionFields=852b',
+                    ],
+                ],
+            ],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Record\PluginManager::class),
+            ]
+        );
+        $record->normalize();
+        $fields = $record->toSolrArray();
+        $this->assertEquals(
+            [
+                'Sublocation',
+                'Second Sublocation',
+            ],
+            $fields['collection']
         );
     }
 }

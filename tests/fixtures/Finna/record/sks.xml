@@ -2,7 +2,12 @@
 <c02 level="file">
   <did>
     <didnote encodinganalog="ahaa:AI46">Yksityisaineisto</didnote>
-    <repository label="hallinnoija" encodinganalog="ahaa:AI42">
+    <repository>
+      <corpname identifier="0000">
+        <part lang="fin">Joku muu instituutio</part>
+      </corpname>
+    </repository>
+    <repository encodinganalog="ahaa:AI42">
       <corpname identifier="102268433">
         <part lang="fin">SKS:n arkisto, Hallituskatu 1, HKI</part>
       </corpname>
@@ -13,6 +18,7 @@
       <dao label="3" identifier="242790421" href="http://128.214.12.166/s_24537_0003.tif" linktitle="Tiedosto 3"/>
       <dao label="4" identifier="242790426" href="http://128.214.12.166/s_24537_0004.tif" linktitle="Tiedosto 4"/>
       <dao label="5" identifier="242790431" href="http://128.214.12.166/s_24537_0005.tif" linktitle="Tiedosto 5"/>
+      <dao label="" identifier="" href="http://128.214.12.166/actuallyishouldappear.tif" linktitle="Very good filename"/>
       <descriptivenote>
         <p>242790397</p>
       </descriptivenote>

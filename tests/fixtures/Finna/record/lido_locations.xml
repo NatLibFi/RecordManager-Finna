@@ -7,6 +7,7 @@
         <repositoryWrap>
           <repositorySet type="Current location">
             <repositoryLocation>
+              <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p94137</placeID>
               <namePlaceSet>
                 <appellationValue label="tarkempi paikka">Should not display</appellationValue>
               </namePlaceSet>
@@ -34,6 +35,7 @@
               <subjectPlace>
                 <displayPlace lang="fi">Pohjantie, Karjaa, Etelä-Uusimaa, Suomi</displayPlace>
                 <place>
+                  <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p94191</placeID>
                   <namePlaceSet>
                     <appellationValue label="katuosoite">Pohjantie</appellationValue>
                   </namePlaceSet>
@@ -66,13 +68,16 @@
             <subject>
               <subjectPlace>
                 <displayPlace>Suomi, Hamina; Hamina</displayPlace>
+                <place>
+                  <placeID>http://www.yso.fi/onto/yso/p94124</placeID>
+                </place>
               </subjectPlace>
             </subject>
           </subjectSet>
           <subjectSet>
             <subject>
               <subjectPlace>
-                <displayPlace>Suomi, Mäntyharju; S-market Mäntyharju; Mäntyharju, S-market Mäntyharju</displayPlace>
+                <displayPlace>Suomi, Mäntyharju; S-market Mäntyharju; Mäntyharju, Mäntyharju Mäntyharju</displayPlace>
               </subjectPlace>
             </subject>
           </subjectSet>
@@ -97,6 +102,7 @@
           <subjectSet>
             <subjectPlace>
               <place>
+                <placeID type="URI" source="YSO">http://www.yso.fi/onto/yso/p105096</placeID>
                 <namePlaceSet>
                   <appellationValue><!-- Kuvausmaa -->Suomi</appellationValue>
                 </namePlaceSet>

@@ -154,6 +154,32 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     }
 
     /**
+     * Test getResourceIdentifiers
+     *
+     * @return void
+     */
+    public function testGetResourceIdentifiers()
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_media_types.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+        $this->assertEquals(
+            [
+                'powerpoint_1',
+                'jpg_2',
+            ],
+            $fields['file_identifier_str_mv']
+        );
+    }
+
+    /**
      * Test QDC processing warnings handling
      *
      * @return void
@@ -191,6 +217,33 @@ class QdcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             $fields['language'],
             'LanguageCheckAfterWarnings'
+        );
+    }
+
+    /**
+     * Test original identifiers
+     *
+     * @return void
+     */
+    public function testOriginalIds(): void
+    {
+        $fields = $this->createRecord(
+            Qdc::class,
+            'qdc_original_ids.xml',
+            [],
+            'Finna',
+            [
+                $this->createMock(\RecordManager\Base\Http\HttpService::class),
+            ]
+        );
+        $fields = $fields->toSolrArray();
+
+        $this->assertEquals(
+            [
+                '10000_12345',
+                'original/id',
+            ],
+            $fields['ctrlnum']
         );
     }
 }

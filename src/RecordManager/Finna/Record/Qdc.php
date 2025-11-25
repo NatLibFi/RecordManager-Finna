@@ -76,7 +76,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
         Logger $logger,
         MetadataUtils $metadataUtils,
         HttpService $httpService,
-        Database $db = null
+        ?Database $db = null
     ) {
         parent::__construct(
             $config,
@@ -221,19 +221,19 @@ class Qdc extends \RecordManager\Base\Record\Qdc
             if (!$url) {
                 continue;
             }
-            $result = [
-                'url' => $url,
-                'text' => trim((string)$file->attributes()->name),
-                'source' => $this->source,
-            ];
             $mediaType = $this->getLinkMediaType(
                 $url,
-                trim($file->attributes()->type)
+                trim($file->attributes()->type ?? '')
             );
-            if ($mediaType) {
-                $result['mediaType'] = $mediaType;
+            $result = $this->createOnlineURLEntry(
+                url: $url,
+                mediaType: $mediaType,
+                text: (string)$file->attributes()->name,
+                source: $this->source
+            );
+            if ($result) {
+                $results[] = $result;
             }
-            $results[] = $result;
         }
         return $results;
     }

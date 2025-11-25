@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2019-2023.
+ * Copyright (C) The National Library of Finland 2019-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -49,7 +49,8 @@ use function strlen;
 trait QdcRecordTrait
 {
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     /**
      * Rights statements indicating open access
@@ -82,12 +83,11 @@ trait QdcRecordTrait
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
 
@@ -107,14 +107,11 @@ trait QdcRecordTrait
             }
         }
         $onlineUrls = $this->getOnlineUrls();
-        foreach ($this->getOnlineUrls() as $url) {
-            $data['online_urls_str_mv'][] = json_encode($url);
-        }
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['online_urls_str_mv'] = $this->createOnlineURLsArray($onlineUrls);
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
+
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
 
         // Get thumbnail from files
         foreach ($this->doc->file as $file) {
@@ -155,18 +152,16 @@ trait QdcRecordTrait
         $data['source_str_mv'] = $this->source;
         $data['datasource_str_mv'] = $this->source;
 
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a = (array)($data['author'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $a2 = (array)($data['author2'] ?? []);
-        // phpcs:ignore
-        /** @psalm-var list<string> */
-        $ac = (array)($data['author_corporate'] ?? []);
-        $data['author_facet'] = [...$a, ...$a2, ...$ac];
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
 
         $data['format_ext_str_mv'] = $data['format'];
+
+        if ($originalIds = $this->getValues('source', ['type' => 'identifier'])) {
+            $data['ctrlnum'] = [
+                ...(array)($data['ctrlnum'] ?? []),
+                ...$originalIds,
+            ];
+        }
 
         return $data;
     }
@@ -189,6 +184,27 @@ trait QdcRecordTrait
             'primary' => $locations,
             'secondary' => [],
         ];
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileIds]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileIds = [];
+        foreach ($this->doc->file as $file) {
+            if ($fileName = trim((string)$file->attributes()->name)) {
+                $fileIds[] = $fileName;
+            }
+        }
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 
     /**

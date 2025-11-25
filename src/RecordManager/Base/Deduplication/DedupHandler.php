@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2022.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -37,6 +37,7 @@ use RecordManager\Base\Utils\MetadataUtils;
 
 use function count;
 use function in_array;
+use function sprintf;
 use function strlen;
 
 /**
@@ -53,6 +54,18 @@ use function strlen;
 class DedupHandler implements DedupHandlerInterface
 {
     use \RecordManager\Base\Record\CreateRecordTrait;
+
+    /**
+     * Punctuations used to ectract a short title from full title
+     *
+     * @var array
+     */
+    protected $titlePartPunctuations = [
+        ' : ',
+        ' / ',
+        ' - ',
+        ' = ',
+    ];
 
     /**
      * Database
@@ -181,10 +194,7 @@ class DedupHandler implements DedupHandlerInterface
             $dedupRecord['deleted'] = true;
             $dedupRecord['changed'] = $this->db->getTimestamp();
             $this->db->saveDedup($dedupRecord);
-            return [
-                "Marked dedup record '{$dedupRecord['_id']}' deleted (no records in"
-                . ' non-deleted dedup record)',
-            ];
+            return ["Marked dedup record '{$dedupRecord['_id']}' deleted (no records in non-deleted dedup record)"];
         }
         $removed = [];
         $recordCache = [];
@@ -196,9 +206,6 @@ class DedupHandler implements DedupHandlerInterface
         };
         foreach ((array)($dedupRecord['ids'] ?? []) as $id) {
             $problem = '';
-            if (!isset($recordCache[$id])) {
-                $recordCache[$id] = $this->db->getRecord($id);
-            }
             $record = $getCachedRecord($id);
             $sourceAlreadyExists = false;
             if ($record) {
@@ -220,8 +227,7 @@ class DedupHandler implements DedupHandlerInterface
             } elseif (!isset($record['dedup_id'])) {
                 $problem = 'record is missing dedup_id';
             } elseif ($record['dedup_id'] != $dedupRecord['_id']) {
-                $problem
-                    = "record linked with dedup record '{$record['dedup_id']}'";
+                $problem = "record linked with dedup record '{$record['dedup_id']}'";
             } elseif ($strictCheck) {
                 // This is slower, so check only if there are no other issues:
                 $metadataRecord = $this->createRecordFromDbRecord($record);
@@ -807,10 +813,58 @@ class DedupHandler implements DedupHandlerInterface
             return false;
         }
 
+        // Check title first to ensure that we don't match records e.g. with an invalid ISBN.
+        $origTitle = $origRecord->getTitle(false);
+        $origTitleKey = $this->metadataUtils->normalizeKey(
+            $this->metadataUtils->stripPunctuation($origTitle),
+            $this->normalizationForm
+        );
+        $candidateTitle = $candidateRecord->getTitle(false);
+        $candidateTitleKey = $this->metadataUtils->normalizeKey(
+            $this->metadataUtils->stripPunctuation($candidateTitle),
+            $this->normalizationForm
+        );
+        if (!$origTitleKey || !$candidateTitleKey) {
+            // No title match without title...
+            $this->log->writelnVeryVerbose('--No title - no further matching');
+            return false;
+        }
+        $titleDistance = $this->getLevenshteinDistance($origTitleKey, $candidateTitleKey);
+        $titleMatch = $titleDistance < 10;
+
+        if (!$titleMatch) {
+            // No title match, but maybe short title match? If so, a matching identifier may be enough...
+            $origShortTitleKey = $this->metadataUtils->normalizeKey(
+                $this->getShortTitle($origTitle),
+                $this->normalizationForm
+            );
+            $candidateShortTitleKey = $this->metadataUtils->normalizeKey(
+                $this->getShortTitle($candidateTitle),
+                $this->normalizationForm
+            );
+            if (!$origShortTitleKey || !$candidateShortTitleKey) {
+                // No title match without title...
+                $this->log->writelnVeryVerbose('--No short title - no further matching');
+                return false;
+            }
+            $shortTitleDistance = $this->getLevenshteinDistance(
+                $origShortTitleKey,
+                $candidateShortTitleKey,
+                allowSubstringMatch: true
+            );
+            if ($shortTitleDistance >= 10) {
+                $this->log->writelnVeryVerbose(
+                    "--Short title distance discard: $shortTitleDistance" . PHP_EOL
+                    . "Original:  $origShortTitleKey" . PHP_EOL
+                    . "Candidate: $candidateShortTitleKey"
+                );
+                return false;
+            }
+        }
+
         // Check for common ISBN
         $origISBNs = $this->filterIds($origRecord->getISBNs(), $origDbRecord);
-        $candidateISBNs
-            = $this->filterIds($candidateRecord->getISBNs(), $candidateDbRecord);
+        $candidateISBNs = $this->filterIds($candidateRecord->getISBNs(), $candidateDbRecord);
         $isect = array_intersect($origISBNs, $candidateISBNs);
         if (!empty($isect)) {
             // Shared ISBN -> match
@@ -876,18 +930,25 @@ class DedupHandler implements DedupHandlerInterface
             return false;
         }
 
+        if (!$titleMatch) {
+            $this->log->writelnVeryVerbose(
+                "--Title distance discard: $titleDistance" . PHP_EOL
+                . "Original:  $origTitleKey" . PHP_EOL
+                . "Candidate: $candidateTitleKey"
+            );
+            return false;
+        }
+
         $origYear = $origRecord->getPublicationYear();
         $candidateYear = $candidateRecord->getPublicationYear();
         if ($origYear && $candidateYear && $origYear != $candidateYear) {
-            $this->log
-                ->writelnVeryVerbose("--Year mismatch: $origYear != $candidateYear");
+            $this->log->writelnVeryVerbose("--Year mismatch: $origYear != $candidateYear");
             return false;
         }
         $pages = $origRecord->getPageCount();
         $candidatePages = $candidateRecord->getPageCount();
         if ($pages && $candidatePages && abs($pages - $candidatePages) > 10) {
-            $this->log
-                ->writelnVeryVerbose("--Pages mismatch ($pages != $candidatePages)");
+            $this->log->writelnVeryVerbose("--Pages mismatch ($pages != $candidatePages)");
             return false;
         }
 
@@ -896,33 +957,6 @@ class DedupHandler implements DedupHandlerInterface
         }
         $candidateNumbering = $candidateRecord->getSeriesNumbering();
         if ($origRecord->getSeriesNumbering() != $candidateNumbering) {
-            return false;
-        }
-
-        $origTitle = $this->metadataUtils->normalizeKey(
-            $origRecord->getTitle(true),
-            $this->normalizationForm
-        );
-        $candidateTitle = $this->metadataUtils->normalizeKey(
-            $candidateRecord->getTitle(true),
-            $this->normalizationForm
-        );
-        if (!$origTitle || !$candidateTitle) {
-            // No title match without title...
-            $this->log->writelnVeryVerbose('--No title - no further matching');
-            return false;
-        }
-        $lev = levenshtein(
-            substr($origTitle, 0, 255),
-            substr($candidateTitle, 0, 255)
-        );
-        $lev = $lev / strlen($origTitle) * 100;
-        if ($lev >= 10) {
-            $this->log->writelnVeryVerbose(
-                "--Title distance discard: $lev" . PHP_EOL
-                . "Original:  $origTitle" . PHP_EOL
-                . "Candidate: $candidateTitle"
-            );
             return false;
         }
 
@@ -963,21 +997,21 @@ class DedupHandler implements DedupHandlerInterface
 
         $this->log->writelnVeryVerbose(
             function () use (
-                $lev,
+                $titleDistance,
                 $authorLev,
                 $origRecord,
                 $origAuthor,
-                $origTitle,
+                $origTitleKey,
                 $candidateRecord,
                 $candidateAuthor,
-                $candidateTitle
+                $candidateTitleKey
             ) {
-                return "++Title match (distance: $lev, author distance: $authorLev):"
+                return "++Title match (distance: $titleDistance, author distance: $authorLev):"
                     . PHP_EOL
                     . $origRecord->getFullTitleForDebugging() . PHP_EOL
-                    . "   $origAuthor - $origTitle." . PHP_EOL
+                    . "   $origAuthor - $origTitleKey." . PHP_EOL
                     . $candidateRecord->getFullTitleForDebugging() . PHP_EOL
-                    . "   $candidateAuthor - $candidateTitle.";
+                    . "   $candidateAuthor - $candidateTitleKey.";
             }
         );
         // We have a match!
@@ -1399,5 +1433,57 @@ class DedupHandler implements DedupHandlerInterface
         );
         ksort($components);
         return array_values($components);
+    }
+
+    /**
+     * Calculate Levenshtein distance between two strings
+     *
+     * @param string $str1                String 1
+     * @param string $str2                String 2
+     * @param int    $maxLen              Maximum number of bytes to compare
+     * @param bool   $allowSubstringMatch Whether to consider the strings a full match if substring matches
+     *
+     * @return int
+     */
+    protected function getLevenshteinDistance(
+        string $str1,
+        string $str2,
+        int $maxLen = 255,
+        $allowSubstringMatch = false
+    ): int {
+        if (
+            $str1 === $str2
+            || ($allowSubstringMatch && strncmp($str1, $str2, min(strlen($str1), strlen($str2))) === 0)
+        ) {
+            return 0;
+        }
+        $distance = levenshtein(
+            substr($str1, 0, $maxLen),
+            substr($str2, 0, $maxLen)
+        );
+        if ($distance === 0) {
+            return 0;
+        }
+        return (int)($distance / (strlen($str1) ?: strlen($str2)) * 100);
+    }
+
+    /**
+     * Extract short title from a full title
+     *
+     * @param string $title Title
+     *
+     * @return string
+     */
+    protected function getShortTitle(string $title): string
+    {
+        $positions = [];
+        foreach ($this->titlePartPunctuations as $punctuation) {
+            $positions[] = mb_strpos($title, $punctuation, encoding: 'UTF-8') ?: 255;
+        }
+        $positions[] = mb_strpos($title, ' / ', encoding: 'UTF-8') ?: 255;
+        $positions[] = mb_strpos($title, ' - ', encoding: 'UTF-8') ?: 255;
+        $positions = array_filter($positions);
+        $max = $positions ? min($positions) : 255;
+        return $this->metadataUtils->stripPunctuation(mb_substr($title, 0, $max, 'UTF-8'));
     }
 }

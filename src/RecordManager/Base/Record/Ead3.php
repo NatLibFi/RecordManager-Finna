@@ -117,18 +117,17 @@ class Ead3 extends Ead
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = [];
 
         $doc = $this->doc;
         $data['record_format'] = 'ead3';
-        $data['ctrlnum'] = (string)$this->doc->attributes()->{'id'};
+        $data['ctrlnum'] = $this->getOldIdentifier();
         $data['fullrecord'] = $this->metadataUtils->trimXMLWhitespace($doc->asXML());
         $data['allfields'] = $this->getAllFields($doc);
         $data['description'] = $this->getDescription();
@@ -506,6 +505,22 @@ class Ead3 extends Ead
     protected function getUnitId()
     {
         return (string)($this->doc->did->unitid ?? '');
+    }
+
+    /**
+     * Get old identifier for the record.
+     *
+     * @return string
+     */
+    protected function getOldIdentifier(): string
+    {
+        $idLabel = $this->getDriverParam('oldIdLabel', 'Old id');
+        foreach ($this->doc->did->unitid ?? [] as $unitid) {
+            if (($id = trim((string)$unitid)) && ($idLabel === (string)$unitid->attributes()->label)) {
+                return "($idLabel)" . $id;
+            }
+        }
+        return '';
     }
 
     /**

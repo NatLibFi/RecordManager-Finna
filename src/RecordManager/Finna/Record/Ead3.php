@@ -38,6 +38,7 @@ use RecordManager\Base\Utils\MetadataUtils;
 use function boolval;
 use function count;
 use function in_array;
+use function sprintf;
 
 /**
  * EAD 3 Record Class
@@ -56,7 +57,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 {
     use AuthoritySupportTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
 
     // These are always lowercase:
     public const GEOGRAPHIC_SUBJECT_RELATORS = ['aihe', 'alueellinen kattavuus'];
@@ -74,20 +76,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         'brevmottagare', 'donator', 'inlämnare', 'insamlare','keruun järjestäjä', 'kerääjä',
         'luovuttaja', 'vastaanottaja',
     ];
-
-    /**
-     * Archive fonds format
-     *
-     * @return string
-     */
-    protected $fondsType = 'Document/Arkisto';
-
-    /**
-     * Archive collection format
-     *
-     * @return string
-     */
-    protected $collectionType = 'Document/Kokoelma';
 
     /**
      * Undefined format type
@@ -117,17 +105,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $metadataUtils
         );
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
         $doc = $this->doc;
@@ -201,11 +189,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $data['rights'] = (string)$doc->did->accessrestrict->p;
         }
         $onlineUrls = $this->getOnlineURLs();
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
+        $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         // Usage rights
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
@@ -214,13 +198,8 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
 
         $data['author_variant'] = $this->getAuthorVariants();
         $data['author2'] = $this->getSecondaryAuthors();
-        // phpcs:ignore
-        /** @psalm-var array<string, list<string>> $data */
-        $data['author_facet'] = [
-            ...$data['author'],
-            ...$data['author2'],
-            ...$data['author_corporate'],
-        ];
+
+        $data['author_facet'] = $this->createAuthorFacetArray($data);
         $data['author2_id_str_mv']
                 = $this->addNamespaceToAuthorityIds(
                     array_unique(
@@ -248,9 +227,13 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $data['topic_id_str_mv'] = $this->getTopicIDs();
         $data['geographic_id_str_mv'] = $this->getGeographicTopicIDs();
         $data['location_geo'] = $this->getGeographicCoordinates();
-        $data['center_coords']
-            = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
-
+        if (!empty($data['location_geo'])) {
+            $data['center_coords']
+                = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
+        }
+        $resourceIdentifiers = $this->getResourceIdentifiers();
+        $data['identifier_txtP_mv'] = $resourceIdentifiers['ids'];
+        $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         return $data;
     }
 
@@ -290,15 +273,17 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     public function getFormat()
     {
-        $level1 = $level2 = null;
-
+        // If no genreform, use doc level
         $docLevel = (string)$this->doc->attributes()->level;
-        $level1 = $docLevel === 'fonds' ? 'Document' : null;
-
         if (!isset($this->doc->controlaccess->genreform)) {
             return $docLevel;
         }
-
+        // For fonds and collections, use doc level as main format
+        $level1 = $level2 = null;
+        if ($docLevel === 'fonds' || $docLevel === 'collection') {
+            $level1 = $docLevel;
+        }
+        // Check format from genreform
         $defaultFormat = null;
         foreach ($this->doc->controlaccess->genreform as $genreform) {
             $nonLangFormat = null;
@@ -319,11 +304,10 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             if (null === $defaultFormat) {
                 $defaultFormat = $format;
             }
-
             if (!$format) {
                 continue;
             }
-
+            // Define main and sub format based on encodinganalog attributes
             $attr = $genreform->attributes();
             if (isset($attr->encodinganalog)) {
                 $type = (string)$attr->encodinganalog;
@@ -338,11 +322,14 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-
+        // For fonds and collections, use genreform as default sub format
+        if (($level1 === 'fonds' || $level1 === 'collection') && (null === $level2)) {
+            $level2 = $defaultFormat ?? '';
+        }
+        // For other records, use genreform as default main format
         if (null === $level1) {
             $level1 = $defaultFormat ?? '';
         }
-
         return $level2 ? "$level1/$level2" : $level1;
     }
 
@@ -808,10 +795,12 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         if (null !== ($online = $this->getDriverParam('online', null))) {
             return boolval($online);
         }
-        foreach ($this->doc->did->daoset ?? [] as $set) {
-            foreach ($set->dao as $dao) {
-                if (trim((string)$dao->attributes()->href)) {
-                    return true;
+        foreach ([$this->doc->did ?? [], $this->doc->did->daoset ?? []] as $root) {
+            foreach ($root as $set) {
+                foreach ($set->dao as $dao) {
+                    if (trim((string)$dao->attributes()->href)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -826,26 +815,27 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     protected function getOnlineURLs(): array
     {
         $results = [];
-        foreach ($this->doc->did->daoset ?? [] as $set) {
-            foreach ($set->dao as $dao) {
-                $attrs = $dao->attributes();
-                $url = trim((string)$attrs->href);
-                if (empty($url)) {
-                    continue;
+        foreach ([$this->doc->did ?? [], $this->doc->did->daoset ?? []] as $root) {
+            foreach ($root as $set) {
+                foreach ($set->dao as $dao) {
+                    $attrs = $dao->attributes();
+                    $url = trim((string)$attrs->href);
+                    if (empty($url)) {
+                        continue;
+                    }
+                    $result = $this->createOnlineURLEntry(
+                        url: $url,
+                        text: (string)($attrs->linktitle ?? ''),
+                        mediaType: $this->getLinkMediaType(
+                            $url,
+                            trim((string)$attrs->linkrole),
+                        ),
+                        source: $this->source
+                    );
+                    if ($result) {
+                        $results[] = $result;
+                    }
                 }
-                $result = [
-                    'url' => $url,
-                    'desc' => trim($attrs->linktitle),
-                    'source' => $this->source,
-                ];
-                $mediaType = $this->getLinkMediaType(
-                    $url,
-                    trim((string)$attrs->linkrole),
-                );
-                if ($mediaType) {
-                    $result['mediaType'] = $mediaType;
-                }
-                $results[] = $result;
             }
         }
         return $results;
@@ -878,13 +868,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getSubtitle()
     {
-        $noSubtitleFormats = [
-            $this->fondsType,
-            $this->collectionType,
-        ];
-        if (in_array($this->getFormat(), $noSubtitleFormats)) {
-            return '';
-        }
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
             foreach ($this->doc->did->unitid ?? [] as $id) {
                 $attr = $id->attributes();
@@ -1310,23 +1293,23 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      */
     protected function getInstitution()
     {
+        $firstResult = $langResult = '';
         foreach ($this->doc->did->repository ?? [] as $repo) {
-            $attr = $repo->attributes();
-            if (
-                !isset($attr->encodinganalog)
-                || 'ahaa:AI42' !== (string)$attr->encodinganalog
-            ) {
-                continue;
-            }
-            foreach ($repo->corpname as $node) {
-                $attr = $node->attributes();
-                if (!isset($attr->identifier)) {
-                    continue;
+            $encoding = trim((string)($repo->attributes()->encodinganalog ?? ''));
+            foreach ($repo->corpname as $name) {
+                $id = trim((string)($name->attributes()->identifier ?? ''));
+                if ($id && $encoding === 'ahaa:AI42') {
+                    return $id;
                 }
-                return (string)$attr->identifier;
+                $lang = trim((string)($name->part->attributes()->lang ?? $name->attributes()->lang ?? ''));
+                $part = trim((string)($name->part ?? ''));
+                $firstResult = $firstResult ?: $id ?: $part;
+                if (!$langResult && $lang === 'fin') {
+                    $langResult = $id ?: $part;
+                }
             }
         }
-        return '';
+        return $langResult ?: $firstResult;
     }
 
     /**
@@ -1366,5 +1349,42 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         return mb_strtolower((string)$node->attributes()->localtype, 'UTF-8')
             === self::RELATOR_TIME_INTERVAL;
+    }
+
+    /**
+     * Get resource identifiers, used for identifier_txtP_mv and file_identifier_string_mv
+     *
+     * @return array<string,array> [ids, fileIds]
+     */
+    protected function getResourceIdentifiers(): array
+    {
+        $cacheKey = __FUNCTION__;
+        if ($this->resultCache[$cacheKey] ?? false) {
+            return $this->resultCache[$cacheKey];
+        }
+        $ids = [];
+        $fileIds = [];
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds) {
+            if ($check && $attrs = $check->attributes()) {
+                if ($identifier = trim((string)$attrs->identifier)) {
+                    $ids[] = $identifier;
+                }
+                if ($linktitle = trim((string)$attrs->linktitle)) {
+                    $fileIds[] = $linktitle;
+                }
+            }
+        };
+
+        foreach ($this->doc->did->daoset ?? [] as $set) {
+            $matchAttributes($set);
+            foreach ($set->dao as $dao) {
+                $matchAttributes($dao);
+            }
+        }
+        foreach ($this->doc->did->dao ?? [] as $dao) {
+            $matchAttributes($dao);
+        }
+        $fileIds = [...$ids, ...$fileIds];
+        return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
     }
 }

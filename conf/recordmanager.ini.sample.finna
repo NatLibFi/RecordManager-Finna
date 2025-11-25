@@ -11,3 +11,19 @@
 ; The following section excludes certain location places
 ; Compares to: ...namePlaceSet->appellationValue->attributes()->label
 ;excluded_location_labels[] = "Torin nurkkaus etäällä"
+
+[MarcRecord]
+; A colon-separated list of MARC fields to index as a linking ids for record.
+; Format:
+; field,prepend:field,prepend
+; field = field code, and subfield code for variable fields
+; prepend = whether to prepend 003 to the field. 0 = no (default), 1 = yes.
+; Example:
+;record_linking_id_fields = "001,1:035a,0:999c,0"
+
+[OnlineURLs]
+; Following setting allows online urls which need to be checked for their media types to be
+; indexed into the online_urls_str_mv field.
+; Example for allowing IIIF json files.
+;allowed_media_types[] = application/ld+json;profile="http://iiif.io/api/presentation/3/context.json"
+

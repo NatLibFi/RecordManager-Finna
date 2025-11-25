@@ -34,6 +34,7 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 use function count;
 use function in_array;
 use function is_string;
+use function sprintf;
 use function strlen;
 
 /**
@@ -85,14 +86,20 @@ class Lido extends AbstractRecord
     protected $secondaryAuthorEvents = [];
 
     /**
-     * Related work relation types reflecting the terminology in the particular LIDO
-     * records.
+     * Related work relation types for collections.
      *
      * @var array
      */
     protected $relatedWorkRelationTypes = [
         'Collection', 'belongs to collection', 'collection',
     ];
+
+    /**
+     * Related work relation types for related ISBNs.
+     *
+     * @var array
+     */
+    protected $relatedISBNRelationTypes = ['is reproduced in'];
 
     /**
      * Description types to exclude from title
@@ -107,6 +114,13 @@ class Lido extends AbstractRecord
      * @var array
      */
     protected $subjectConceptIDTypes = ['uri', 'url'];
+
+    /**
+     * Title types for preferred titles.
+     *
+     * @var array
+     */
+    protected $preferredTitleTypes = ['preferred'];
 
     /**
      * Repository location types to be included.
@@ -135,12 +149,11 @@ class Lido extends AbstractRecord
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = [];
 
@@ -185,6 +198,7 @@ class Lido extends AbstractRecord
         $data['ctrlnum'] = $this->getRecordInfoIDs();
         $data['isbn'] = $this->getISBNs();
         $data['issn'] = $this->getISSNs();
+        $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
 
         $this->getHierarchyFields($data);
 
@@ -356,12 +370,7 @@ class Lido extends AbstractRecord
     {
         $arr = [];
         foreach ($this->getIdentifiersByType(['isbn'], []) as $identifier) {
-            $identifier = str_replace('-', '', trim($identifier));
-            if (!preg_match('{^([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
-                continue;
-            }
-            $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
-            if ($isbn) {
+            if ($isbn = $this->metadataUtils->normalizeISBN($this->checkISBN((string)$identifier))) {
                 $arr[] = $isbn;
             } else {
                 $this->storeWarning("Invalid ISBN '$identifier'");
@@ -369,6 +378,28 @@ class Lido extends AbstractRecord
         }
 
         return array_unique($arr);
+    }
+
+    /**
+     * Get related ISBNs
+     *
+     * @return array
+     */
+    public function getRelatedISBNs(): array
+    {
+        $results = [];
+        foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
+            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
+                if ($isbn = $this->checkISBN((string)$identifier)) {
+                    // Include ISBNs in original format and in ISBN-13 format
+                    $results[] = $isbn;
+                    if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
+                        $results[] = $normalized;
+                    }
+                }
+            }
+        }
+        return array_unique($results);
     }
 
     /**
@@ -397,6 +428,26 @@ class Lido extends AbstractRecord
      * @return array
      */
     public function getRawGeographicTopicIds(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getAuthorIds(): array
+    {
+        return [];
+    }
+
+    /**
+     * Get secondary author identifiers
+     *
+     * @return array<int, string>
+     */
+    public function getSecondaryAuthorIds(): array
     {
         return [];
     }
@@ -462,13 +513,13 @@ class Lido extends AbstractRecord
                 if (!($title = trim((string)$appellationValue))) {
                     continue;
                 }
-                $preference = (string)$appellationValue['pref'] ?: 'preferred';
+                $preference = mb_strtolower((string)($appellationValue->attributes()->pref ?? 'preferred'), 'UTF-8');
                 $titleLang = $this->getInheritedXmlAttribute(
                     $appellationValue,
                     'lang',
                     $defaultLanguage
                 );
-                if ('preferred' === $preference) {
+                if (in_array($preference, $this->preferredTitleTypes)) {
                     $preferredParts[$titleLang][] = $title;
                 } else {
                     $alternateParts[$titleLang][] = $title;
@@ -765,7 +816,8 @@ class Lido extends AbstractRecord
                         $this->metadataUtils->stripTrailingPunctuation(
                             (string)$placeNode->displayPlace,
                             '.'
-                        )
+                        ),
+                        ', \n\r\t\v\0'
                     );
                     if ($str) {
                         $results[] = $str;
@@ -898,7 +950,8 @@ class Lido extends AbstractRecord
                         $this->metadataUtils->stripTrailingPunctuation(
                             (string)$place->displayPlace,
                             '.'
-                        )
+                        ),
+                        ', \n\r\t\v\0'
                     );
                     if ('' !== $str) {
                         $results[] = $str;
@@ -1315,7 +1368,7 @@ class Lido extends AbstractRecord
             $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
             ?? [] as $set
         ) {
-            $type = (string)($set->attributes()->type ?? '');
+            $type = mb_strtolower((string)($set->attributes()->type ?? ''), 'UTF-8');
             if ($this->repositoryLocationTypes && !in_array($type, $this->repositoryLocationTypes)) {
                 continue;
             }
@@ -1542,5 +1595,21 @@ class Lido extends AbstractRecord
                     = trim($this->getIdentifier() . ' ' . $data['title']);
             }
         }
+    }
+
+    /**
+     * Check if identifier is a valid ISBN
+     *
+     * @param string $identifier Identifier to check
+     *
+     * @return string ISBN without dashes and namespaces, or empty string
+     */
+    protected function checkISBN($identifier = ''): string
+    {
+        $identifier = str_replace('-', '', trim($identifier));
+        if (preg_match('{^(URN:ISBN:)?([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+            return $matches[2];
+        }
+        return '';
     }
 }

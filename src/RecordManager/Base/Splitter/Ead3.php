@@ -144,6 +144,62 @@ class Ead3 extends Ead
             $this->appendXMLFiltered($record, $child);
         }
 
+        $ancestorDid = $original->xpath('ancestor::*/did');
+
+        if ($ancestorDid) {
+            // Append any ancestor did's
+            foreach (array_reverse($ancestorDid) as $did) {
+                $this->appendXML($record, $did, $this->nonInheritedFields);
+            }
+        }
+
+        if ($record->getName() !== 'archdesc') {
+            foreach ($this->doc->archdesc->bibliography ?? [] as $elem) {
+                $this->appendXML($record, $elem, $this->nonInheritedFields);
+            }
+
+            foreach ($this->doc->archdesc->accessrestrict ?? [] as $elem) {
+                $this->appendXML($record, $elem, $this->nonInheritedFields);
+            }
+        }
+
+        $this->addAdditionalData($record, $original);
+
+        return ['metadata' => $record->asXML()];
+    }
+
+    /**
+     * Get archive title
+     *
+     * @return string
+     */
+    protected function getArchiveTitle(): string
+    {
+        return (string)$this->doc->archdesc->did->unittitle;
+    }
+
+    /**
+     * Get parent unit id for prepending to parent title
+     *
+     * @param \SimpleXMLElement $parentDid Parent did
+     *
+     * @return string
+     */
+    protected function getParentUnitId(\SimpleXMLElement $parentDid): string
+    {
+        return (string)($parentDid->unitid ?? '');
+    }
+
+    /**
+     * Add and form additional data to record
+     *
+     * @param \SimpleXMLElement $record   The record
+     * @param \SimpleXMLElement $original The original record
+     *
+     * @return void
+     */
+    protected function addAdditionalData(&$record, &$original): void
+    {
         $addData = $record->addChild('add-data');
         $unitId = '';
 
@@ -203,25 +259,6 @@ class Ead3 extends Ead
 
         if ($this->archiveSubTitle) {
             $absolute->addAttribute('subtitle', $this->archiveSubTitle);
-        }
-
-        $ancestorDid = $original->xpath('ancestor::*/did');
-
-        if ($ancestorDid) {
-            // Append any ancestor did's
-            foreach (array_reverse($ancestorDid) as $did) {
-                $this->appendXML($record, $did, $this->nonInheritedFields);
-            }
-        }
-
-        if ($record->getName() !== 'archdesc') {
-            foreach ($this->doc->archdesc->bibliography ?? [] as $elem) {
-                $this->appendXML($record, $elem, $this->nonInheritedFields);
-            }
-
-            foreach ($this->doc->archdesc->accessrestrict ?? [] as $elem) {
-                $this->appendXML($record, $elem, $this->nonInheritedFields);
-            }
         }
 
         $parentDid = $original->xpath('parent::*/did');
@@ -298,29 +335,5 @@ class Ead3 extends Ead
                 $parent->addAttribute('level', 'archive');
             }
         }
-
-        return ['metadata' => $record->asXML()];
-    }
-
-    /**
-     * Get archive title
-     *
-     * @return string
-     */
-    protected function getArchiveTitle(): string
-    {
-        return (string)$this->doc->archdesc->did->unittitle;
-    }
-
-    /**
-     * Get parent unit id for prepending to parent title
-     *
-     * @param \SimpleXMLElement $parentDid Parent did
-     *
-     * @return string
-     */
-    protected function getParentUnitId(\SimpleXMLElement $parentDid): string
-    {
-        return (string)($parentDid->unitid ?? '');
     }
 }

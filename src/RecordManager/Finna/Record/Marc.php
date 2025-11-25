@@ -42,6 +42,7 @@ use RecordManager\Base\Utils\MetadataUtils;
 use function boolval;
 use function in_array;
 use function is_array;
+use function is_string;
 use function strlen;
 
 /**
@@ -61,7 +62,22 @@ class Marc extends \RecordManager\Base\Record\Marc
     use AuthoritySupportTrait;
     use CreateRecordTrait;
     use DateSupportTrait;
-    use MediaTypeTrait;
+    use Feature\MediaTypeTrait;
+    use Feature\IndexValueTrait;
+
+    /**
+     * Value indicating that embedded component is a normal unit
+     *
+     * @var string
+     */
+    public const FIELD_979_IS_UNIT = '0';
+
+    /**
+     * Value indicating that embedded component is a collection
+     *
+     * @var string
+     */
+    public const FIELD_979_IS_COLLECTION = '1';
 
     /**
      * Record plugin manager
@@ -113,6 +129,13 @@ class Marc extends \RecordManager\Base\Record\Marc
      * @var mixed
      */
     protected $cachedFormat = null;
+
+    /**
+     * Default configuration for fields to be indexed as linking ids
+     *
+     * @var string
+     */
+    protected string $recordLinkingIdFields = '';
 
     /**
      * Patterns for matching publication date ranges (case-insentive)
@@ -168,6 +191,15 @@ class Marc extends \RecordManager\Base\Record\Marc
     ];
 
     /**
+     * Component part format to indicator 2 value mappings
+     *
+     * @var array
+     */
+    protected array $field979Ind2Mappings = [
+        'Other/Collection' => self::FIELD_979_IS_COLLECTION,
+    ];
+
+    /**
      * Constructor
      *
      * @param array               $config              Main configuration
@@ -195,9 +227,11 @@ class Marc extends \RecordManager\Base\Record\Marc
             $recordCallback,
             $formatCalculator
         );
+        $this->recordLinkingIdFields = $config['MarcRecord']['record_linking_id_fields'] ?? '001,0:035a:999c,0';
 
         $this->recordPluginManager = $recordPluginManager;
         $this->initMediaTypeTrait($config);
+        $this->initIndexValueTrait($config);
     }
 
     /**
@@ -249,15 +283,14 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Return fields to be indexed in Solr
      *
-     * @param Database $db Database connection. Omit to avoid database lookups for
-     *                     related records.
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
      *
      * @return array<string, mixed>
      *
      * @psalm-suppress DuplicateArrayKey
      * @psalm-suppress NoValue
      */
-    public function toSolrArray(Database $db = null)
+    public function toSolrArray(?Database $db = null)
     {
         $data = parent::toSolrArray($db);
 
@@ -524,16 +557,10 @@ class Marc extends \RecordManager\Base\Record\Marc
         unset($value);
 
         // URLs
-        $onlineUrls = $this->getLinkData();
-        foreach ($onlineUrls as $link) {
-            $link['source'] = $this->source;
-            $data['online_urls_str_mv'][] = json_encode($link);
+        if ($onlineUrls = $this->getLinkData()) {
+            $data['online_urls_str_mv'] = $this->createOnlineURLsArray($onlineUrls);
+            $data['media_type_str_mv'] = $this->createMediaTypeArray($onlineUrls);
         }
-        $data['media_type_str_mv'] = array_values(
-            array_unique(
-                array_column($onlineUrls, 'mediaType')
-            )
-        );
 
         if ($this->isOnline()) {
             $data['online_boolean'] = '1';
@@ -589,7 +616,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     $subfieldArray
                         = $this->getSubfieldsArray($field, $subfields);
                     foreach ($subfieldArray as $subfield) {
-                        $data['collection'] = $subfield;
+                        $data['collection'][] = $subfield;
                     }
                 }
             }
@@ -603,7 +630,7 @@ class Marc extends \RecordManager\Base\Record\Marc
         // NBN
         foreach ($this->record->getFields('015') as $field015) {
             $nbn = $this->record->getSubfield($field015, 'a');
-            $data['nbn_isn_mv'] = $nbn;
+            $data['nbn_str_mv'] = $data['nbn_isn_mv'] = $nbn;
         }
 
         // ISMN, ISRC, UPC, EAN
@@ -923,6 +950,27 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
+        // Performers
+        foreach ($this->record->getFields('382') as $performer) {
+            $performerData = [];
+            $lastIndex = null;
+            foreach ($performer['subfields'] ?? [] as $subfield) {
+                if (in_array($subfield['code'], ['a', 'b', 'd', 'p'])) {
+                    $performerData[] = $subfield['data'] . '/' . $subfield['data'];
+                    $lastIndex = array_key_last($performerData);
+                }
+                if (in_array($subfield['code'], ['n', 'e']) && $lastIndex !== null) {
+                    $performerData[$lastIndex] .= ' (' . $subfield['data'] . ')';
+                }
+                if ('s' === $subfield['code']) {
+                    $data['performer_total_int_mv'][] = (int)$subfield['data'];
+                }
+            }
+            if (!empty($performerData)) {
+                $data['performer_str_mv'] = array_merge($data['performer_str_mv'] ?? [], $performerData);
+            }
+        }
+
         // Merge any extra fields from e.g. merged component parts (also converts any
         // single-value field to an array):
         foreach ($this->extraFields as $field => $fieldData) {
@@ -936,8 +984,72 @@ class Marc extends \RecordManager\Base\Record\Marc
         if ($date = $this->metadataUtils->validateDate($this->extraData['catalogDate'] ?? null)) {
             $data['catalog_date'] = date('Y-m-d', $date) . 'T00:00:00Z';
         }
-
+        $data['linking_id_str_mv'] = $this->getLinkingIDs();
         return $data;
+    }
+
+    /**
+     * Return record linking IDs (typically same as ID) used for links
+     * between records in the data source
+     *
+     * @return array
+     */
+    public function getLinkingIDs()
+    {
+        $results = [];
+        $linkingIds = $this->getDriverParam('recordLinkingIdFields', $this->recordLinkingIdFields);
+        $linkingIds = array_filter(explode(':', $linkingIds));
+        $prefixIn003 = $this->metadataUtils->stripTrailingPunctuation($this->record->getControlField('003'));
+
+        // Support for datasource specific prefixIn003 setting.
+        $datasourcePrefixSetting = $this->getDriverParam('003InLinkingID', null);
+
+        foreach ($linkingIds as $idPiped) {
+            // Explode the setting 0 => field and subfield, 1 => prefix with value from 003
+            $fieldSpec = explode(',', $idPiped, 2);
+            $field = substr($fieldSpec[0], 0, 3);
+            // Try to get the subfield from field
+            $subField = $fieldSpec[0][3] ?? null;
+            $prefix = $fieldSpec[1] ?? null;
+            // Only use prefix from datasource if the prefix setting has been declared in the global setting.
+            if (null !== $prefix && null !== $datasourcePrefixSetting) {
+                $prefix = $datasourcePrefixSetting;
+            }
+            if (!$field) {
+                $this->logger->logDebug(
+                    'Marc',
+                    'Missing field from recordIdLinkingFields for source: ' . $this->source,
+                    true
+                );
+                continue;
+            }
+            $ids = [];
+
+            $formatId = fn ($id) => trim($prefix && $prefixIn003 ? "($prefixIn003)$id" : $id);
+
+            $fields = $this->record->getFields($field, (array)$subField);
+            $ids = array_map(
+                function ($field) use ($formatId) {
+                    if (is_string($field)) {
+                        return (array)$formatId($field);
+                    }
+                    if (is_array($field)) {
+                        return array_map(
+                            fn ($subValue) => $formatId($subValue),
+                            array_column($field['subfields'], 'data'),
+                        );
+                    }
+                    return [];
+                },
+                $fields
+            );
+
+            if ($ids = array_filter(array_merge(...array_values($ids)))) {
+                $results = [...$results, ...$ids];
+            }
+        }
+
+        return array_values(array_unique(array_filter($results)));
     }
 
     /**
@@ -1126,6 +1238,8 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
+        $format = $this->getFormat();
+
         return compact(
             'title',
             'uniformTitle',
@@ -1139,8 +1253,55 @@ class Marc extends \RecordManager\Base\Record\Marc
             'originalLanguages',
             'subtitleLanguages',
             'identifiers',
-            'textIncipits'
+            'textIncipits',
+            'format'
         );
+    }
+
+    /**
+     * Merge a single component record to this record
+     *
+     * @param \Traversable $componentParts Component part to be merged
+     * @param mixed        $changeDate     Latest database timestamp for the component part set
+     * @param ?callable    $callback       Callback for processing component part data
+     *
+     * @return int Count of records merged
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    public function mergeComponentPartsExtended(
+        \Traversable $componentParts,
+        mixed &$changeDate,
+        ?callable $callback = null
+    ): int {
+        $count = 0;
+        $parts = [];
+        foreach ($componentParts as $componentPart) {
+            if (null === $changeDate || $changeDate < $componentPart['date']) {
+                $changeDate = $componentPart['date'];
+            }
+
+            $componentRecord = $this->createRecord(
+                $componentPart['format'],
+                $this->metadataUtils->getRecordData($componentPart, true),
+                '',
+                $this->source
+            );
+            $componentPartMetadata = $componentRecord->getComponentPartMetadata($componentPart);
+            if (null !== $callback) {
+                $callback($componentPartMetadata);
+            }
+            $id = $componentPartMetadata['_id'] = $componentPart['_id'];
+            $newField = $this->createComponentPartField($componentPartMetadata);
+            $key = $this->metadataUtils->createIdSortKey($id);
+            $parts["$key $count"] = $newField;
+            ++$count;
+        }
+        ksort($parts);
+        foreach ($parts as $part) {
+            $this->record->addField('979', ' ', $part['ind2'], $part['subfields']);
+        }
+        return $count;
     }
 
     /**
@@ -1156,102 +1317,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      */
     public function mergeComponentParts($componentParts, &$changeDate)
     {
-        $count = 0;
-        $parts = [];
-        foreach ($componentParts as $componentPart) {
-            if (null === $changeDate || $changeDate < $componentPart['date']) {
-                $changeDate = $componentPart['date'];
-            }
-
-            $componentRecord = $this->createRecord(
-                $componentPart['format'],
-                $this->metadataUtils->getRecordData($componentPart, true),
-                '',
-                $this->source
-            );
-
-            $data = $componentRecord->getComponentPartMetadata();
-            if ($data['textIncipits']) {
-                $this->extraFields['allfields'] = [
-                    ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['textIncipits'],
-                ];
-                // Text incipit is treated as an alternative title
-                $this->extraFields['title_alt'] = [
-                    ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['textIncipits'],
-                ];
-            }
-            if ($data['varyingTitles']) {
-                $this->extraFields['allfields'] = [
-                    ...(array)($this->extraFields['allfields'] ?? []),
-                    ...(array)$data['varyingTitles'],
-                ];
-                $this->extraFields['title_alt'] = [
-                    ...(array)($this->extraFields['title_alt'] ?? []),
-                    ...(array)$data['varyingTitles'],
-                ];
-            }
-
-            $id = $componentPart['_id'];
-            $newField = [
-                'subfields' => [
-                    ['a' => $id],
-                ],
-            ];
-
-            if ($data['title']) {
-                $newField['subfields'][] = ['b' => $data['title']];
-            }
-            if ($data['authors']) {
-                $newField['subfields'][] = ['c' => array_shift($data['authors'])];
-                foreach ($data['authors'] as $author) {
-                    $newField['subfields'][] = ['d' => $author];
-                }
-            }
-            foreach ($data['additionalAuthors'] as $addAuthor) {
-                $newField['subfields'][] = ['d' => $addAuthor];
-            }
-            if ($data['uniformTitle']) {
-                $newField['subfields'][] = ['e' => $data['uniformTitle']];
-            }
-            if ($data['durations']) {
-                $newField['subfields'][] = ['f' => reset($data['durations'])];
-            }
-            foreach ($data['additionalTitles'] as $addTitle) {
-                $newField['subfields'][] = ['g' => $addTitle];
-            }
-            foreach ($data['languages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['h' => $language];
-                }
-            }
-            foreach ($data['originalLanguages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['i' => $language];
-                }
-            }
-            foreach ($data['subtitleLanguages'] as $language) {
-                if ('|||' !== $language) {
-                    $newField['subfields'][] = ['j' => $language];
-                }
-            }
-            foreach ($data['identifiers'] as $identifier) {
-                $newField['subfields'][] = ['k' => $identifier];
-            }
-            foreach ($data['authorIds'] as $identifier) {
-                $newField['subfields'][] = ['l' => $identifier];
-            }
-
-            $key = $this->metadataUtils->createIdSortKey($id);
-            $parts["$key $count"] = $newField;
-            ++$count;
-        }
-        ksort($parts);
-        foreach ($parts as $part) {
-            $this->record->addField('979', ' ', ' ', $part['subfields']);
-        }
-        return $count;
+        return $this->mergeComponentPartsExtended($componentParts, $changeDate);
     }
 
     /**
@@ -1361,6 +1427,90 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         $this->resultCache[__METHOD__] = $result;
         return $result;
+    }
+
+    /**
+     * Create field data from a component record
+     *
+     * @param array $data Component part data from getComponentPartMetadata
+     *
+     * @return array Field data from component
+     *
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function createComponentPartField(array $data): array
+    {
+        if ($data['textIncipits']) {
+            $this->extraFields['allfields'] = [
+                ...(array)($this->extraFields['allfields'] ?? []),
+                ...(array)$data['textIncipits'],
+            ];
+            // Text incipit is treated as an alternative title
+            $this->extraFields['title_alt'] = [
+                ...(array)($this->extraFields['title_alt'] ?? []),
+                ...(array)$data['textIncipits'],
+            ];
+        }
+        if ($data['varyingTitles']) {
+            $this->extraFields['allfields'] = [
+                ...(array)($this->extraFields['allfields'] ?? []),
+                ...(array)$data['varyingTitles'],
+            ];
+            $this->extraFields['title_alt'] = [
+                ...(array)($this->extraFields['title_alt'] ?? []),
+                ...(array)$data['varyingTitles'],
+            ];
+        }
+        $newField = [
+            'subfields' => [
+                ['a' => $data['_id']],
+            ],
+        ];
+
+        if ($data['title']) {
+            $newField['subfields'][] = ['b' => $data['title']];
+        }
+        if ($data['authors']) {
+            $newField['subfields'][] = ['c' => array_shift($data['authors'])];
+            foreach ($data['authors'] as $author) {
+                $newField['subfields'][] = ['d' => $author];
+            }
+        }
+        foreach ($data['additionalAuthors'] as $addAuthor) {
+            $newField['subfields'][] = ['d' => $addAuthor];
+        }
+        if ($data['uniformTitle']) {
+            $newField['subfields'][] = ['e' => $data['uniformTitle']];
+        }
+        if ($data['durations']) {
+            $newField['subfields'][] = ['f' => reset($data['durations'])];
+        }
+        foreach ($data['additionalTitles'] as $addTitle) {
+            $newField['subfields'][] = ['g' => $addTitle];
+        }
+        foreach ($data['languages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['h' => $language];
+            }
+        }
+        foreach ($data['originalLanguages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['i' => $language];
+            }
+        }
+        foreach ($data['subtitleLanguages'] as $language) {
+            if ('|||' !== $language) {
+                $newField['subfields'][] = ['j' => $language];
+            }
+        }
+        foreach ($data['identifiers'] as $identifier) {
+            $newField['subfields'][] = ['k' => $identifier];
+        }
+        foreach ($data['authorIds'] as $identifier) {
+            $newField['subfields'][] = ['l' => $identifier];
+        }
+        $newField['ind2'] = $this->field979Ind2Mappings[$data['format']] ?? self::FIELD_979_IS_UNIT;
+        return $newField;
     }
 
     /**
@@ -1511,55 +1661,73 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
 
         // Dissertations and Thesis
-        if ($this->record->getField('502')) {
-            return 'Dissertation';
+        $dissTypes = [];
+        // New combined rule for all thesis types, replaces 920 & 509
+        foreach ($this->record->getFields('502') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $parts = explode('--', $sub);
+                $dissTypes[] = $parts[0];
+            }
         }
-        $dissTypes = $this->record->getFieldsSubfields('509', ['a']);
-        if (!$dissTypes) {
-            $dissTypes = $this->record->getFieldsSubfields('920', ['a']);
+        // Legacy rule
+        foreach ($this->record->getFields('509') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
+        }
+        foreach ($this->record->getFields('920') as $field) {
+            if ($sub = $this->record->getSubField($field, 'a')) {
+                $dissTypes[] = $sub;
+            }
+        }
+
+        foreach ($dissTypes as $dissType) {
+            $dissType = mb_strtolower(
+                $this->metadataUtils->normalizeUnicode(
+                    $this->metadataUtils->stripTrailingPunctuation($dissType),
+                    'NFKC'
+                ),
+                'UTF-8'
+            );
+            switch ($dissType) {
+                case 'kandidaatintutkielma':
+                case 'kandidaatintyö':
+                case 'kandidatarbete':
+                    return 'BachelorsThesis';
+                case 'pro gradu -tutkielma':
+                case 'pro gradu -työ':
+                case 'pro gradu':
+                    return 'ProGradu';
+                case 'laudaturtyö':
+                case 'laudaturavh':
+                    return 'LaudaturThesis';
+                case 'lisensiaatintyö':
+                case 'lic.avh':
+                case 'licentiatavhandling':
+                    return 'LicentiateThesis';
+                case 'diplomityö':
+                case 'diplomarbete':
+                    return 'MastersThesis';
+                case 'erikoistyö':
+                case 'vicenot.ex':
+                    return 'Thesis';
+                case 'lopputyö':
+                case 'rättsnot.ex':
+                    return 'Thesis';
+                case 'amk-opinnäytetyö':
+                case 'yh-examensarbete':
+                    return 'BachelorsThesisPolytechnic';
+                case 'ylempi amk-opinnäytetyö':
+                case 'högre yh-examensarbete':
+                    return 'MastersThesisPolytechnic';
+                case 'väitöskirja':
+                case 'monografiaväitöskirja':
+                case 'esseeväitöskirja':
+                case 'artikkeliväitöskirja':
+                    return 'Dissertation';
+            }
         }
         if ($dissTypes) {
-            foreach ($dissTypes as $dissType) {
-                $dissType = mb_strtolower(
-                    $this->metadataUtils->normalizeUnicode(
-                        $this->metadataUtils->stripTrailingPunctuation($dissType),
-                        'NFKC'
-                    ),
-                    'UTF-8'
-                );
-                switch ($dissType) {
-                    case 'kandidaatintutkielma':
-                    case 'kandidaatintyö':
-                    case 'kandidatarbete':
-                        return 'BachelorsThesis';
-                    case 'pro gradu -tutkielma':
-                    case 'pro gradu -työ':
-                    case 'pro gradu':
-                        return 'ProGradu';
-                    case 'laudaturtyö':
-                    case 'laudaturavh':
-                        return 'LaudaturThesis';
-                    case 'lisensiaatintyö':
-                    case 'lic.avh':
-                    case 'licentiatavhandling':
-                        return 'LicentiateThesis';
-                    case 'diplomityö':
-                    case 'diplomarbete':
-                        return 'MastersThesis';
-                    case 'erikoistyö':
-                    case 'vicenot.ex':
-                        return 'Thesis';
-                    case 'lopputyö':
-                    case 'rättsnot.ex':
-                        return 'Thesis';
-                    case 'amk-opinnäytetyö':
-                    case 'yh-examensarbete':
-                        return 'BachelorsThesisPolytechnic';
-                    case 'ylempi amk-opinnäytetyö':
-                    case 'högre yh-examensarbete':
-                        return 'MastersThesisPolytechnic';
-                }
-            }
             return 'Thesis';
         }
 
@@ -1593,7 +1761,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         } elseif ('m' === $typeOfRecord) {
             $electronicType = substr($field008, 26, 1);
-            if ('g' === $electronicType || $termIn655('videopelit')) {
+            if ('g' === $electronicType || $termIn655('videopelit') || $termIn655('konsolipelit')) {
                 return 'VideoGame';
             }
         }
@@ -2718,37 +2886,27 @@ class Marc extends \RecordManager\Base\Record\Marc
                 continue;
             }
             $ind2 = $this->record->getIndicator($field, 2);
-            if (($ind2 != '0' && $ind2 != '1')) {
+            if (!in_array($ind2, ['0', '1', '2'])) {
                 continue;
             }
             $url = trim($this->record->getSubfield($field, 'u'));
             if (!$url) {
                 continue;
             }
-            // Require at least one dot surrounded by valid characters or a
-            // familiar scheme
-            if (
-                !preg_match('/[A-Za-z0-9]\.[A-Za-z0-9]/', $url)
-                && !preg_match('/^https?:\/\//', $url)
-            ) {
-                continue;
-            }
-            $result = [
-                'url' => $url,
-            ];
-            $text = $this->record->getSubfield($field, 'y');
-            if (!$text) {
-                $text = $this->record->getSubfield($field, 'z');
-            }
-            $result['text'] = $text;
             $mediaType = $this->getLinkMediaType(
                 $url,
                 $this->record->getSubfield($field, 'q')
             );
-            if ($mediaType) {
-                $result['mediaType'] = $mediaType;
+            $result = $this->createOnlineURLEntry(
+                url: $url,
+                mediaType: $mediaType,
+                text: $this->record->getSubfield($field, 'y') ?: $this->record->getSubfield($field, 'z'),
+                source: $this->source,
+                mediaTypeCheck: $ind2 === '2'
+            );
+            if ($result) {
+                $results[] = $result;
             }
-            $results[] = $result;
         }
 
         $this->resultCache[__FUNCTION__] = $results;

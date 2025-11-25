@@ -42,11 +42,12 @@
 ; RecordManager settings:
 ; type                  Harvester type (HTTPFiles, OAI-PMH (default), SFX, SierraApi)
 ; url                   Harvesting URL
-; username              Username for HTTP authentication (OAI-PMH, HTTPFiled)
-; password              Password for HTTP authentication (OAI-PMH, HTTPFiled)
-; authType              Authentication type for HTTP authentication (OAI-PMH, HTTPFiled).
+; username              Username for HTTP authentication (OAI-PMH, HTTPFiles)
+; password              Password for HTTP authentication (OAI-PMH, HTTPFiles)
+; authType              Authentication type for HTTP authentication (OAI-PMH, HTTPFiles).
 ;                       Allowed options are "basic" (default), "digest" and "ntlm".
 ;                       Digest and NTLM authentication require the Curl adapter to be used (see HTTP section in recordmanager.ini).
+; headers               Array of HTTP headers to send with each request
 ; institution           The institution code mapped to the source (required)
 ; recordXPath           xpath expression used when loading records from a file to identify a single record (optional, e.g. //record)
 ; format                Record format in RecordManager
@@ -66,6 +67,11 @@
 ;                         merge_all            Merge all component parts to their host records
 ;                         merge_non_articles   Merge to host record unless article (including e-journal articles)
 ;                         merge_non_earticles  Merge to host record unless e-journal article
+; mergeMultiLevelParts  If set to true, component parts are merged to their parents
+;                       regardless of whether the parents are host records or component
+;                       parts. This allows a multi-level record hierarchy.
+;                       If false (default), component parts are only merged to host
+;                       records.
 ; idPrefix              Prefix to be used with the record ID's. Prefixes are always added so that ID's are unique, e.g. ID 1234 becomes prefix.1234 (optional, section name is used if not provided).
 ; solrIdPrefix          Prefix to be used with the record ID's in Solr (optional, overrides idPrefix but does not modify the prefix used in the Database).
 ; indexMergedParts      Whether to index merged component parts also separately with hidden_component_boolean field set to true. Defaults to true.
@@ -144,7 +150,7 @@
 
 ; Sample Koha configuration
 ;[koha]
-;url = https://koha.address/cgi-bin/koha/opac/oai.pl
+;url = https://koha.address/cgi-bin/koha/oai.pl
 ;metadataPrefix = marc21
 ;institution = SampleInstitution
 ;format = marc
@@ -179,7 +185,7 @@
 ;preTransformation = strip_namespaces.xsl
 ;oaipmhTransformation = strip_namespaces.xsl
 ;format_mapping = ead_level_to_format.map
-;non_inherited_fields[] = physdesc
+;recordSplitterParams[nonInheritedFields] = "physdesc"
 ;prepend_title_with_subtitle = true
 ;prepend_parent_title_with_unitid = true
 ;recordXPath = //ead
@@ -199,7 +205,10 @@
 ;type = sierra
 ;sierraApiKey = "[api_key]"
 ;sierraApiSecret = "[api_secret]"
-;sierraApiVersion = 5
+;sierraApiVersion = 6
+; Sierra API endpoint can be bibs for bibliographic records (default) or authorities
+; for authority records
+;sierraApiEndpoint = bibs
 ;url = https://kirjtuo1.helmet.fi/iii/sierra-api
 ;batchSize = 100
 ;; Support for asking for non-suppressed records exists with the setting below, but as
@@ -257,3 +266,10 @@
 ;metadataPrefix = oai_doaj
 ;format = doaj
 ;institution = DOAJ
+
+; Sample configuration with an API key in X-API-Key header
+;[priv]
+;url = ...
+;headers['X-API-Key'] = 'xyzzy'
+;metadataPrefix = marc21
+;format = marc

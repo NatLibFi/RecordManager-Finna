@@ -542,10 +542,17 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testOnlineBooleans()
     {
+        // online record with daoset
         $fields = $this->createRecord(Ead3::class, 'yksa2.xml', [], 'Finna')
             ->toSolrArray();
         $this->assertEquals('1', $fields['online_boolean']);
         $this->assertEquals('1', $fields['free_online_boolean']);
+        // online record without daoset
+        $fields = $this->createRecord(Ead3::class, 'sks2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('1', $fields['online_boolean']);
+        $this->assertEquals('1', $fields['free_online_boolean']);
+        // not online
         $fields = $this->createRecord(Ead3::class, 'ead3_online_boolean.xml', [], 'Finna')
             ->toSolrArray();
         $this->assertNotContains('online_boolean', $fields);
@@ -603,6 +610,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'ctrlnum' => '',
             'allfields' => [
                 'Yksityisaineisto',
+                'Joku muu instituutio',
                 'SKS:n arkisto, Hallituskatu 1, HKI',
                 '242790397',
                 'xx.xx.1881-xx.xx.1881',
@@ -696,7 +704,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Luvia',
             ],
             'location_geo' => [],
-            'center_coords' => '',
             'topic_facet' => [
                 'folk tales',
                 'kansansadut',
@@ -773,14 +780,6 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'author_facet' => [
                 'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Ingman, Anders Wilhelm',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
-                'Sundvall, Gustaf Edvard',
                 'Ingman, Anders Wilhelm',
             ],
             'author2_id_str_mv' => [
@@ -817,6 +816,26 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             ],
             'media_type_str_mv' => [
                 'image/tiff',
+            ],
+            'identifier_txtP_mv' => [
+                '242790411',
+                '242790416',
+                '242790421',
+                '242790426',
+                '242790431',
+            ],
+            'file_identifier_str_mv' => [
+                '242790411',
+                '242790416',
+                '242790421',
+                '242790426',
+                '242790431',
+                'Tiedosto 1',
+                'Tiedosto 2',
+                'Tiedosto 3',
+                'Tiedosto 4',
+                'Tiedosto 5',
+                'Very good filename',
             ],
         ];
         if (null !== $expectedTitleInHierarchy) {
@@ -920,5 +939,58 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             ['EAC_007', 'EAC_009'],
             $fields['topic_id_str_mv']
         );
+    }
+
+    /**
+     * Test format
+     *
+     * @return void
+     */
+    public function testFormat()
+    {
+        // file-level record with AI08 genreform
+        $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Teksti', $fields['format']);
+        // file-level record with AI08 and AI57 genreforms
+        $fields = $this->createRecord(Ead3::class, 'sks2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Teksti/Kirje', $fields['format']);
+        // file-level record with genreform without encodinganalog
+        $fields = $this->createRecord(Ead3::class, 'sks5.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Kirje', $fields['format']);
+        // fonds-level record with AI08 genreform
+        $fields = $this->createRecord(Ead3::class, 'sks3.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('fonds/Teksti', $fields['format']);
+        // collection-level record with genreform without encodinganalog
+        $fields = $this->createRecord(Ead3::class, 'sks4.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('collection/Valokuva', $fields['format']);
+    }
+
+    /**
+     * Test institution
+     *
+     * @return void
+     */
+    public function testInstitution()
+    {
+        // AI46 institution code
+        $fields = $this->createRecord(Ead3::class, 'sks.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('102268433', $fields['institution']);
+        // other institution code
+        $fields = $this->createRecord(Ead3::class, 'sks2.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('12345', $fields['institution']);
+        // institution name with lang attribute
+        $fields = $this->createRecord(Ead3::class, 'sks3.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Instituutio suomeksi', $fields['institution']);
+        $fields = $this->createRecord(Ead3::class, 'sks4.xml', [], 'Finna')
+            ->toSolrArray();
+        $this->assertEquals('Instituutio suomeksi', $fields['institution']);
     }
 }

@@ -47,6 +47,7 @@ use function count;
 use function defined;
 use function in_array;
 use function is_array;
+use function is_string;
 use function strlen;
 
 /**
@@ -1926,8 +1927,9 @@ class SolrUpdater
         $warnings = [];
 
         $hasComponentParts = false;
+        $hasHost = isset($record['host_record_id']);
         $components = null;
-        if (!isset($record['host_record_id'])) {
+        if (!$hasHost || ($settings['mergeMultiLevelParts'] ?? false)) {
             // Fetch info whether component parts exist and need to be merged
             if (empty($record['linking_id'])) {
                 if ($this->db) {
@@ -1980,16 +1982,12 @@ class SolrUpdater
         }
 
         if ($hasComponentParts && null !== $components) {
-            $changeDate = null;
-            $mergedComponents += $metadataRecord->mergeComponentParts(
+            $mergedComponents += $this->mergeComponentParts(
+                $metadataRecord,
+                $record,
                 $components,
-                $changeDate
+                $source
             );
-            // Use latest date as the host record date
-            // @phpstan-ignore-next-line
-            if (null !== $changeDate && $changeDate > $record['date']) {
-                $record['date'] = $changeDate;
-            }
         }
         if (isset($settings['solrTransformationXSLT'])) {
             $params = [
@@ -2117,7 +2115,8 @@ class SolrUpdater
                 }
             }
         }
-        if ($hasComponentParts) {
+        // Add isHierarchy information only to the record with no host record
+        if ($hasComponentParts && !$hasHost) {
             if ($this->isHierarchyIdField) {
                 $data[$this->isHierarchyIdField]
                     = $this->createSolrId($record['_id']);
@@ -2159,6 +2158,34 @@ class SolrUpdater
         $this->enrich($source, $settings, $metadataRecord, $data, 'final');
 
         return $data;
+    }
+
+    /**
+     * Merge component parts to record
+     *
+     * @param AbstractRecord $metadataRecord Record to merge component parts to
+     * @param array          $record         Database record
+     * @param \Traversable   $components     Component parts to merge
+     * @param string         $source         Source ID
+     *
+     * @return int Amount of merged component parts
+     */
+    protected function mergeComponentParts(
+        AbstractRecord $metadataRecord,
+        array &$record,
+        \Traversable $components,
+        string $source
+    ): int {
+        $changeDate = null;
+        $mergedComponents = $metadataRecord->mergeComponentParts(
+            $components,
+            $changeDate
+        );
+        // Use latest date as the host record date
+        if (null !== $changeDate && $changeDate > $record['date']) {
+            $record['date'] = $changeDate;
+        }
+        return $mergedComponents;
     }
 
     /**
@@ -2401,11 +2428,13 @@ class SolrUpdater
         foreach ($data as $key => &$values) {
             if (is_array($values)) {
                 foreach ($values as $key2 => &$value) {
-                    $value = $this->metadataUtils->normalizeUnicode(
-                        $value,
-                        $this->unicodeNormalizationForm
-                    );
-                    $value = $this->trimFieldLength($key, $value);
+                    if (is_string($value)) {
+                        $value = $this->metadataUtils->normalizeUnicode(
+                            $value,
+                            $this->unicodeNormalizationForm
+                        );
+                        $value = $this->trimFieldLength($key, $value);
+                    }
                     if (in_array($value, $this->nonIndexedValues, true)) {
                         unset($values[$key2]);
                     }
@@ -2416,11 +2445,13 @@ class SolrUpdater
                     $values = array_values(array_unique($values));
                 }
             } elseif ($key !== 'fullrecord') {
-                $values = $this->metadataUtils->normalizeUnicode(
-                    $values,
-                    $this->unicodeNormalizationForm
-                );
-                $values = $this->trimFieldLength($key, $values);
+                if (is_string($values)) {
+                    $values = $this->metadataUtils->normalizeUnicode(
+                        $values,
+                        $this->unicodeNormalizationForm
+                    );
+                    $values = $this->trimFieldLength($key, $values);
+                }
 
                 if (in_array($values, $this->nonIndexedValues, true)) {
                     unset($data[$key]);
