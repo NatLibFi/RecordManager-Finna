@@ -16,6 +16,14 @@
     <subfield code="a">doi1</subfield>
     <subfield code="2">doi</subfield>
   </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">uuid_lower</subfield>
+    <subfield code="2">uuid</subfield>
+  </datafield>
+  <datafield tag="024" ind1="7" ind2=" ">
+    <subfield code="a">uuid_upper</subfield>
+    <subfield code="2">UUID</subfield>
+  </datafield>
   <datafield tag="035" ind1=" " ind2=" ">
     <subfield code="a">FCC005246184</subfield>
   </datafield>

@@ -232,4 +232,34 @@ class LcCallNumber extends AbstractCallNumber
         }
         return $cache[$cacheKey] = '';
     }
+
+    /**
+     * Get class letters
+     *
+     * @return string
+     */
+    public function getClassLetters(): string
+    {
+        return $this->letters;
+    }
+
+    /**
+     * Get class digits
+     *
+     * @return string
+     */
+    public function getClassDigits(): string
+    {
+        return $this->digits;
+    }
+
+    /**
+     * Get class decimal part
+     *
+     * @return string
+     */
+    public function getClassDecimal(): string
+    {
+        return $this->decimal;
+    }
 }

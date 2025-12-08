@@ -1073,6 +1073,11 @@ class MetadataUtils
     public function normalizeRelator($relator)
     {
         $relator = trim($relator);
+        foreach ($this->config['Relators']['strip_prefixes'] ?? [] as $strip) {
+            if (str_starts_with($relator, $strip)) {
+                $relator = substr($relator, strlen($strip));
+            }
+        }
         $relator = preg_replace('/\p{P}+/u', '', $relator);
         $relator = mb_strtolower($relator, 'UTF-8');
         return $relator;

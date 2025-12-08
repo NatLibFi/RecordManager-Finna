@@ -583,6 +583,18 @@ abstract class AbstractRecord
     }
 
     /**
+     * Store warning messages about problems with the record
+     *
+     * @param array $msgs Messages
+     *
+     * @return void
+     */
+    protected function storeWarnings(array $msgs): void
+    {
+        $this->warnings = [...$this->warnings, ...$msgs];
+    }
+
+    /**
      * Verify that a string is valid ISO8601 date
      *
      * @param string $dateString Date string

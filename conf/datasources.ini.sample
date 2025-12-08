@@ -158,6 +158,9 @@
 ;; Hierarchical format facet:
 ;format_mapping[] = marc_format_to_hierarchy.map
 ;format_mapping[] = sub_format.map,regexp
+;language_mapping = language.map
+;callnumber-first_mapping = callnumber.map
+;callnumber-subject_mapping = callnumber_subject.map
 ;dedup = true
 ;driverParams[] = "idIn999=true"
 ;driverParams[] = "003InLinkingID=true"
