@@ -179,10 +179,7 @@ class Marc extends AbstractRecord
      *
      * @var array
      */
-    protected array $linkingIdFields = [
-        '760', '762', '765', '767', '770', '772', '773', '774',
-        '775', '776', '777', '780', '785', '786', '787',
-    ];
+    protected array $linkingIdFields = [];
 
     /**
      * MARC record creation callback

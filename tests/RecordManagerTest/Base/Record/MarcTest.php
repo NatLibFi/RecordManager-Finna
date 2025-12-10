@@ -842,17 +842,18 @@ class MarcTest extends RecordTestBase
     {
         yield 'setting commented' => [
             [
-                '__unit_test_no_source__.4112121',
-                '__unit_test_no_source__.xyzzy',
+                '961827',
+                'xyzzy',
             ],
             [
-                '__unit_test_no_source__.4132317',
-                '__unit_test_no_source__.xyzzy',
+                '961827',
+                'xyzzy',
             ],
             [],
+            0,
         ];
 
-        yield 'default setting' => [
+        yield 'setting defined' => [
             [
                 '__unit_test_no_source__.4112121',
                 '__unit_test_no_source__.xyzzy',
