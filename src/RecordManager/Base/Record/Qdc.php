@@ -164,7 +164,8 @@ class Qdc extends AbstractRecord
         $data['author2'] = $this->getSecondaryAuthors();
         $data['author_corporate'] = $this->getCorporateAuthors();
         $data['author_sort'] = $this->getAuthorSort($data['author']);
-        $data['title'] = $data['title_full'] = $this->getTitle();
+        $data['title'] = $this->getTitle();
+        $data['title_full'] = $this->getFullTitle();
         $data['title_short'] = $this->getShortTitle($data['title']);
         $data['title_sub'] = $this->getTitleSub($data['title']);
         $data['title_sort'] = $this->getTitle(true);
@@ -206,6 +207,11 @@ class Qdc extends AbstractRecord
      */
     public function getTitle($forFiling = false)
     {
+        $key = __METHOD__ . ($forFiling ? '1' : '0');
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
         $preferred = null;
         $default = '';
         foreach ($this->doc->title as $title) {
@@ -217,9 +223,11 @@ class Qdc extends AbstractRecord
                 break;
             }
         }
-        return $forFiling
+        $result = $forFiling
             ? $this->metadataUtils->createSortTitle($preferred ?? $default)
             : $this->metadataUtils->stripTrailingPunctuation($preferred ?? $default);
+
+        return $this->resultCache[$key] = $result;
     }
 
     /**
@@ -396,7 +404,7 @@ class Qdc extends AbstractRecord
      *
      * @return array
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         return $this->getValues('subject');
     }
@@ -444,31 +452,29 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Get primary authors
+     * Get primary authors.
      *
      * @return array
      */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         $result = [];
         foreach ($this->getValues('creator') as $author) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($author);
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($author);
         }
         return $result;
     }
 
     /**
-     * Get secondary authors
+     * Get secondary authors.
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         $result = [];
         foreach ($this->getValues('contributor') as $contributor) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($contributor);
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($contributor);
         }
         return $result;
     }
@@ -478,7 +484,7 @@ class Qdc extends AbstractRecord
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         return [];
     }
@@ -571,7 +577,7 @@ class Qdc extends AbstractRecord
     {
         $key = md5(__METHOD__ . "$tag-" . json_encode($attributes));
         if (isset($this->resultCache[$key])) {
-            //return $this->resultCache[$key];
+            return $this->resultCache[$key];
         }
 
         $result = [];
@@ -630,6 +636,16 @@ class Qdc extends AbstractRecord
     protected function getAuthorSort(array $authors): string
     {
         return $authors[0] ?? '';
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    protected function getFullTitle(): string
+    {
+        return $this->getTitle();
     }
 
     /**

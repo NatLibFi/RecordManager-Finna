@@ -322,13 +322,13 @@ class Marc extends AbstractRecord
         $data['callnumber-label'] = $this->getCallNumberLabels();
         $this->augmentCallNumberFields($data);
         $data['topic'] = $this->getTopics();
+        $data['topic_facet'] = $this->getTopicFacets();
         $data['topic_browse'] = $this->getTopicsForBrowse();
         $data['genre'] = $this->getGenres();
-        $data['geographic'] = $this->getGeographicTopics();
-        $data['era'] = $this->getEras();
-        $data['topic_facet'] = $this->getTopicFacets();
         $data['genre_facet'] = $this->getGenreFacets();
+        $data['geographic'] = $this->getGeographicTopics();
         $data['geographic_facet'] = $this->getGeographicFacets();
+        $data['era'] = $this->getEras();
         $data['era_facet'] = $this->getEraFacets();
         $data['url'] = $this->getUrls();
         $data['illustrated'] = $this->getIllustrated();
@@ -1602,7 +1602,7 @@ class Marc extends AbstractRecord
     }
 
     /**
-     * Get alternate titles
+     * Get alternate titles.
      *
      * @return array
      */
@@ -2109,61 +2109,9 @@ class Marc extends AbstractRecord
      *
      * @return array<int, string>
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         return $this->getTopicsWithDelimiter(' ');
-    }
-
-    /**
-     * Get all non-specific topics for browse
-     *
-     * @return array<int, string>
-     */
-    protected function getTopicsForBrowse()
-    {
-        return $this->getTopicsWithDelimiter("\u{2002}");
-    }
-
-    /**
-     * Get all genre topics
-     *
-     * @return array<int, string>
-     */
-    protected function getGenres()
-    {
-        return $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_BOTH, '655', ['a', 'b', 'c', 'v', 'x', 'y', 'z']],
-            ]
-        );
-    }
-
-    /**
-     * Get all geographic topics
-     *
-     * @return array<int, string>
-     */
-    protected function getGeographicTopics()
-    {
-        return $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_BOTH, '651', ['a', 'e', 'v', 'x', 'y', 'z']],
-            ]
-        );
-    }
-
-    /**
-     * Get all era topics
-     *
-     * @return array<int, string>
-     */
-    protected function getEras()
-    {
-        return $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_BOTH, '648', ['a', 'v', 'x', 'y', 'z']],
-            ]
-        );
     }
 
     /**
@@ -2188,6 +2136,30 @@ class Marc extends AbstractRecord
             false,
             true,
             true
+        );
+    }
+
+    /**
+     * Get all non-specific topics for browse
+     *
+     * @return array<int, string>
+     */
+    protected function getTopicsForBrowse()
+    {
+        return $this->getTopicsWithDelimiter("\u{2002}");
+    }
+
+    /**
+     * Get all genre topics
+     *
+     * @return array<int, string>
+     */
+    protected function getGenres()
+    {
+        return $this->getFieldsSubfields(
+            [
+                [MarcHandler::GET_BOTH, '655', ['a', 'b', 'c', 'v', 'x', 'y', 'z']],
+            ]
         );
     }
 
@@ -2219,6 +2191,20 @@ class Marc extends AbstractRecord
     }
 
     /**
+     * Get all geographic topics
+     *
+     * @return array<int, string>
+     */
+    protected function getGeographicTopics()
+    {
+        return $this->getFieldsSubfields(
+            [
+                [MarcHandler::GET_BOTH, '651', ['a', 'e', 'v', 'x', 'y', 'z']],
+            ]
+        );
+    }
+
+    /**
      * Get geographic facet fields
      *
      * @return array<int, string> Topics
@@ -2240,6 +2226,20 @@ class Marc extends AbstractRecord
             false,
             true,
             true
+        );
+    }
+
+    /**
+     * Get all era topics
+     *
+     * @return array<int, string>
+     */
+    protected function getEras()
+    {
+        return $this->getFieldsSubfields(
+            [
+                [MarcHandler::GET_BOTH, '648', ['a', 'v', 'x', 'y', 'z']],
+            ]
         );
     }
 
@@ -2404,7 +2404,7 @@ class Marc extends AbstractRecord
      *
      * @return array
      */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'q', 'd'],
@@ -2422,7 +2422,7 @@ class Marc extends AbstractRecord
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'q', 'd'],
@@ -2442,7 +2442,7 @@ class Marc extends AbstractRecord
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         $fieldSpecs = [
             '110' => ['a', 'b'],

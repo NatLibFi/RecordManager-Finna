@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2020.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -73,8 +73,7 @@ class Eaccpf extends AbstractRecord
     {
         $data = parent::toSolrArray($db);
 
-        $data['fullrecord']
-            = $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
+        $data['fullrecord'] = $this->getFullRecord();
         $data['allfields'] = $this->getAllFields();
         $data['source'] = $this->getRecordSource();
         $data['record_type'] = $this->getRecordType();
@@ -388,5 +387,15 @@ class Eaccpf extends AbstractRecord
             }
         }
         return $result;
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
     }
 }

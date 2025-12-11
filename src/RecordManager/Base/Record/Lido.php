@@ -31,7 +31,6 @@ namespace RecordManager\Base\Record;
 
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
-use function count;
 use function in_array;
 use function is_string;
 use function sprintf;
@@ -157,66 +156,33 @@ class Lido extends AbstractRecord
     {
         $data = parent::toSolrArray($db);
 
-        $title = $this->getTitle(false);
-        $data['title'] = $data['title_short'] = $data['title_full'] = $title;
-        $data['title_sort'] = $this->metadataUtils->createSortTitle($title);
+        $data['title'] = $this->getTitle(false);
+        $data['title_short'] = $this->getShortTitle();
+        $data['title_full'] = $this->getFullTitle();
+        $data['title_sort'] = $this->getTitle(true);
         $data['title_alt'] = $this->getAltTitles();
-
         $data['description'] = $this->getDescription();
-
         $data['format'] = $this->getObjectWorkType();
         $data['institution'] = $this->getLegalBodyName();
-
         $data['author'] = $this->getAuthors();
-        if (!empty($data['author'])) {
-            $data['author_sort'] = $data['author'][0];
-        }
-        if ($this->secondaryAuthorEvents) {
-            $data['author2'] = $this->getSecondaryAuthors();
-        }
-
-        $data['topic'] = $data['topic_facet'] = $this->getSubjectTerms();
+        $data['author_sort'] = $this->getAuthorSort($data['author']);
+        $data['author2'] = $this->getSecondaryAuthors();
+        $data['topic'] = $this->getTopics();
+        $data['topic_facet'] = $this->getTopics();
         $data['material_str_mv'] = $this->getMaterials();
-
-        $data['era'] = $data['era_facet'] = $this->getDisplayDates();
-
-        $data['geographic'] = $data['geographic_facet'] = $this->getDisplayPlaces();
-        // Index the other place forms only to facets:
-        $data['geographic_facet'] = [
-            ...$data['geographic_facet'],
-            ...$this->getSubjectPlaces(),
-        ];
+        $data['era'] = $this->getEras();
+        $data['era_facet'] = $this->getEraFacets();
+        $data['geographic'] = $this->getGeographicTopics();
+        $data['geographic_facet'] = $this->getGeographicFacets();
         $data['collection'] = $this->getCollection();
-
-        $urls = $this->getURLs();
-        if (count($urls)) {
-            // thumbnail field is not multivalued so can only store first image url
-            $data['thumbnail'] = $urls[0];
-        }
-
-        $data['ctrlnum'] = $this->getRecordInfoIDs();
+        $data['url'] = $this->getURLs();
+        $data['thumbnail'] = $this->getThumbnailUrl();
+        $data['ctrlnum'] = $this->getControlNumbers();
         $data['isbn'] = $this->getISBNs();
         $data['issn'] = $this->getISSNs();
-        $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
-
-        $this->getHierarchyFields($data);
-
         $data['allfields'] = $this->getAllFields($this->doc);
 
-        // Include hierarchy titles from relatedWorksWrap:
-        foreach (
-            ['is_hierarchy_title', 'hierarchy_parent_title', 'hierarchy_top_title', 'title_in_hierarchy'] as $field
-        ) {
-            // phpcs:ignore
-            /** @psalm-var list<string> */
-            $titles = (array)($data[$field] ?? []);
-            if ($titles) {
-                $data['allfields'] = [
-                    ...$data['allfields'],
-                    ...$titles,
-                ];
-            }
-        }
+        $this->addHierarchyFields($data);
 
         return $data;
     }
@@ -234,7 +200,7 @@ class Lido extends AbstractRecord
         $titles = $this->getTitles();
         $title = $titles['preferred'];
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
+            $title = $this->metadataUtils->createSortTitle($title);
         }
         return $title;
     }
@@ -449,6 +415,26 @@ class Lido extends AbstractRecord
     public function getSecondaryAuthorIds(): array
     {
         return [];
+    }
+
+    /**
+     * Get short title.
+     *
+     * @return string
+     */
+    public function getShortTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    public function getFullTitle(): string
+    {
+        return $this->getTitle();
     }
 
     /**
@@ -1317,7 +1303,7 @@ class Lido extends AbstractRecord
      *
      * @return array
      */
-    protected function getRecordInfoIDs()
+    protected function getControlNumbers()
     {
         $ids = [];
         foreach ($this->doc->lido->administrativeMetadata->recordWrap->recordInfoSet ?? [] as $set) {
@@ -1459,7 +1445,9 @@ class Lido extends AbstractRecord
      */
     protected function getSecondaryAuthors(): array
     {
-        return $this->getActors($this->getSecondaryAuthorEvents());
+        return $this->secondaryAuthorEvents
+            ? $this->getActors($this->getSecondaryAuthorEvents())
+            : [];
     }
 
     /**
@@ -1541,13 +1529,13 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
         foreach ($this->getRelatedWorkSetNodes(['is part of']) as $set) {
             if (!($relatedWork = $set->relatedWork)) {
@@ -1604,6 +1592,19 @@ class Lido extends AbstractRecord
                     = trim($this->getIdentifier() . ' ' . $data['title']);
             }
         }
+
+        // Include hierarchy titles from relatedWorksWrap in allfields:
+        foreach (
+            ['is_hierarchy_title', 'hierarchy_parent_title', 'hierarchy_top_title', 'title_in_hierarchy'] as $field
+        ) {
+            // phpcs:ignore
+            /** @psalm-var list<string> */
+            $titles = (array)($data[$field] ?? []);
+            $data['allfields'] = [
+                ...$data['allfields'],
+                ...$titles,
+            ];
+        }
     }
 
     /**
@@ -1620,5 +1621,93 @@ class Lido extends AbstractRecord
             return $matches[2];
         }
         return '';
+    }
+
+    /**
+     * Get author sort field.
+     *
+     * @param array $authors Primary authors
+     *
+     * @return string
+     */
+    protected function getAuthorSort(array $authors): string
+    {
+        return $authors[0] ?? '';
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    protected function getTopics(): array
+    {
+        return $this->getSubjectTerms();
+    }
+
+    /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getSubjectTerms();
+    }
+
+    /**
+     * Get all era topics.
+     *
+     * @return array<int, string>
+     */
+    protected function getEras(): array
+    {
+        return $this->getDisplayDates();
+    }
+
+    /**
+     * Get era facet fields.
+     *
+     * @return array<int, string> Topics
+     */
+    protected function getEraFacets(): array
+    {
+        return $this->getDisplayDates();
+    }
+
+    /**
+     * Get all geographic topics.
+     *
+     * @return array<int, string>
+     */
+    protected function getGeographicTopics()
+    {
+        return $this->getDisplayPlaces();
+    }
+
+    /**
+     * Get geographic facet fields.
+     *
+     * @return array<int, string> Topics
+     */
+    protected function getGeographicFacets()
+    {
+        // Index the other place forms only to facets:
+        return [
+            ...$this->getDisplayPlaces(),
+            ...$this->getSubjectPlaces(),
+        ];
+    }
+
+    /**
+     * Get thumbnail URL.
+     *
+     * @return string
+     */
+    protected function getThumbnailUrl(): string
+    {
+        // thumbnail field is not multivalued, so just store take the first one:
+        $urls = $this->getUrls();
+        return $urls[0] ?? '';
     }
 }

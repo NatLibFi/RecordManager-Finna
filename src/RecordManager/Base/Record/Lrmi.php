@@ -116,7 +116,7 @@ class Lrmi extends Qdc
      *
      * @return array
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         return $this->getTopicData(false);
     }
@@ -132,22 +132,22 @@ class Lrmi extends Qdc
     }
 
     /**
-     * Get primary authors
+     * Get primary authors.
      *
      * @return array
      */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         $authors = $this->getSecondaryAuthors();
         return [$authors[0] ?? ''];
     }
 
     /**
-     * Get secondary authors
+     * Get secondary authors.
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         $result = [];
         foreach ($this->doc->author ?? [] as $author) {
@@ -161,11 +161,11 @@ class Lrmi extends Qdc
     }
 
     /**
-     * Get corporate authors
+     * Get corporate authors.
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         $result = [];
         foreach ($this->doc->author ?? [] as $author) {

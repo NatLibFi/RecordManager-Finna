@@ -32,6 +32,7 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - [**BC**] MARC: Subfields containing record identifiers for linking between records (subfield w in fields 760-787) are no longer updated to use the indexed record ID by default. Instead of the built-in list of fields there is now an option in recordmanager.ini (MarcRecord/linking_id_fields) that can be used to define the linking ID fields if this functionality is desired.
 - [**BC**] All Record classes must now implement the getRecordFormat method and call AbtractRecord's toSolrArray in their overridden toSolrArray methods.
 - [**BC**] FullTextTrait's getFullTextFields was renamed to getFullTextField and refactored to return the fulltext field contents instead of a full data array.
+- [**BC**] Several methods in Record classes have been renamed to improve unity between the classes and to better reflect their nature. Also typing of return values has been added in many places.
 - Extending the EAD3 splitter was made easier by splitting code to additional methods.
 - Support for PHP 8.4 was improved. Some dependencies, such as json-ld, may still use deprecated functionality.
 - Rector was introduced to update code style.
@@ -39,7 +40,7 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - Deduplication now requires at least a partial title match even if ISBN or other identifier matches. This avoids invalid deduplication when cataloguing style differs between sources.
 - MusicBrainzEnrichment was adjusted for improved matching.
 - MARC indexing rules were updated to align with VuFind 11.0.
-- MARC, DC, QDC: toSolrArray method was refactored to collect the fields using other methods so that it's easier to override fields.
+- MARC, DC, QDC, LIDO, EAD, EAD3, ESE: toSolrArray method was refactored to collect the fields using other methods so that it's easier to override fields.
 
 ### Fixed
 

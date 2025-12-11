@@ -1,7 +1,7 @@
 <?php
 
 /**
- * DC Record Driver Test Class
+ * DOAJ Record Driver Test Class
  *
  * PHP version 8
  *
@@ -29,10 +29,10 @@
 
 namespace RecordManagerTest\Base\Record;
 
-use RecordManager\Base\Record\Dc;
+use RecordManager\Base\Record\Doaj;
 
 /**
- * DC Record Driver Test Class
+ * DOAJ Record Driver Test Class
  *
  * @category DataManagement
  * @package  RecordManager
@@ -40,18 +40,18 @@ use RecordManager\Base\Record\Dc;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-class DcTest extends RecordTestBase
+class DoajTest extends RecordTestBase
 {
     /**
-     * Test DC record handling
+     * Test DOAJ record handling
      *
      * @return void
      */
-    public function testDc1()
+    public function testDoaj1()
     {
         $record = $this->createRecord(
-            Dc::class,
-            'dc1.xml',
+            Doaj::class,
+            'doaj1.xml',
             [],
             'Base',
             [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
@@ -60,75 +60,53 @@ class DcTest extends RecordTestBase
         unset($fields['fullrecord']);
 
         $expected = [
-            'record_format' => 'dc',
+            'record_format' => 'doaj',
             'ctrlnum' => [
-                '1234',
+                '__unit_test_no_id__',
             ],
             'allfields' => [
-                'Title : Sub',
-                'Author, Primary',
-                'Topic',
-                'Testing',
-                'RecordManager',
-                'Long description',
-                'https://localhost',
-                'Publisher',
-                'Author, Secondary',
-                '2025',
-                'Text',
-                '345 pages',
-                '12345',
-                'http://localhost/12345',
-                'RecordManager',
-                'eng',
-                'http://localhost',
-                'Finland',
-                'http://localhost/cc0',
-                '1234',
+                'ger',
+                'Verlag Krause und Pachernegg GmbH',
+                'Journal für Mineralstoffwechsel',
+                '1023-7763',
+                '1680-9408',
+                '1998-01-01',
+                '5',
+                '1',
+                '25',
+                '29',
+                '648',
+                'Leitfaden zur medikamentösen Standardtherapie in der Osteoporose',
+                'http://www.kup.at/kup/pdf/648.pdf',
+                '',
+                '__unit_test_no_id__',
             ],
-            'language' => [
-                'eng',
+            'language'  => [
+                'ger',
             ],
-            'format' => 'Text',
-            'author' => [
-                'Author, Primary',
+            'format' => 'Article',
+            'author'  => [
             ],
-            'author2' => [
-                'Author, Secondary',
+            'title_full' => 'Leitfaden zur medikamentösen Standardtherapie in der Osteoporose',
+            'title' => 'Leitfaden zur medikamentösen Standardtherapie in der Osteoporose',
+            'title_short' => 'Leitfaden zur medikamentösen Standardtherapie in der Osteoporose',
+            'title_sort' => 'leitfaden zur medikamentösen standardtherapie in der osteoporose',
+            'title_sub' => '',
+            'publisher'  => [
+                'Verlag Krause und Pachernegg GmbH',
             ],
-            //'author_corporate' => [],
-            'author_sort' => 'Author, Primary',
-            'title_full' => 'Title : Sub',
-            'title' => 'Title : Sub',
-            'title_short' => 'Title',
-            'title_sub' => 'Sub',
-            'title_sort' => 'title sub',
-            'publisher' => [
-                'Publisher',
+            'publishDate' => '1998',
+            'topic_facet'  => [
+                'Empfehlung',
             ],
-            'publishDate' => '2025',
-            'isbn' => [],
-            'doi_str_mv' => [],
-            'topic_facet' => [
-                'Topic',
-                'Testing',
-                'RecordManager',
-            ],
-            'topic' => [
-                'Topic',
-                'Testing',
-                'RecordManager',
+            'topic'  => [
+                'Empfehlung',
             ],
             'url' => [
-                'http://localhost/12345',
-                'https://localhost',
+                'http://www.kup.at/kup/pdf/648.pdf',
             ],
-            'contents' => [
-                'Long description',
-            ],
-            'description' => '',
             'fulltext' => '',
-          ];
+        ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
 
@@ -136,22 +114,17 @@ class DcTest extends RecordTestBase
 
         $expected = [
             [
-                'authors' => [
-                    [
-                        'type' => 'author',
-                        'value' => 'Author, Primary',
-                    ],
-                ],
+                'authors' => [],
                 'authorsAltScript' => [
                 ],
                 'titles' => [
                     [
                         'type' => 'title',
-                        'value' => 'title sub',
+                        'value' => 'leitfaden zur medikamentösen standardtherapie in der osteoporose',
                     ],
                     [
                         'type' => 'title',
-                        'value' => 'Title : Sub',
+                        'value' => 'Leitfaden zur medikamentösen Standardtherapie in der Osteoporose',
                     ],
                 ],
                 'titlesAltScript' => [

@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2016-2019.
+ * Copyright (C) The National Library of Finland 2016-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -158,66 +158,35 @@ class Forward extends AbstractRecord
     {
         $data = parent::toSolrArray($db);
 
-        $doc = $this->getMainElement();
-        $data['ctrlnum'] = $this->getID();
-        $data['fullrecord'] = $this->toXML();
-        $publishDate = (string)$doc->YearOfReference;
-        $data['publishDate'] = $publishDate;
+        $data['ctrlnum'] = $this->getControlNumbers();
+        $data['fullrecord'] = $this->getFullRecord();
+        $data['publishDate'] = $this->getPublicationYear();
         $data['title'] = $this->getTitle();
-        foreach ($doc->Title as $title) {
-            $titleText = (string)$title->TitleText;
-            if ($titleText != $data['title']) {
-                $data['title_alt'][] = $titleText;
-            }
-        }
-        $data['title_short'] = $data['title_full'] = $data['title'];
+        $data['title_full'] = $this->getFullTitle();
+        $data['title_short'] = $this->getShortTitle();
         $data['title_sort'] = $this->getTitle(true);
-
-        $descriptions = $this->getDescriptions($this->primaryLanguage);
-        if (empty($descriptions)) {
-            $descriptions = $this->getDescriptions();
-        }
-        $contents = $this->getContents($this->primaryLanguage);
-        if (empty($contents)) {
-            $contents = $this->getContents();
-        }
-        $descriptions = [...$descriptions, ...$contents];
-        $data['description'] = implode(' ', $descriptions);
-
-        $data['topic'] = $data['topic_facet'] = $this->getSubjects();
+        $data['title_alt'] = $this->getAltTitles();
+        $data['description'] = $this->getDescription();
+        $data['topic'] = $this->getTopics();
+        $data['topic_facet'] = $this->getTopicFacets();
         $data['url'] = $this->getUrls();
-        $data['thumbnail'] = $this->getThumbnail();
-
-        $primaryAuthors = $this->getPrimaryAuthorsSorted();
-        $data['author'] = $primaryAuthors['names'];
-
+        $data['thumbnail'] = $this->getThumbnailUrl();
+        $data['author'] = $this->getPrimaryAuthorNamesSorted();
         // Support for author_variant is currently not implemented
-        $data['author_role'] = $primaryAuthors['relators'];
-        if (isset($primaryAuthors['names'][0])) {
-            $data['author_sort'] = $primaryAuthors['names'][0];
-        }
-
-        $secondaryAuthors = $this->getSecondaryAuthors();
-        $data['author2'] = $secondaryAuthors['names'];
+        $data['author_role'] = $this->getPrimaryAuthorRolesSorted();
+        $data['author_sort'] = $this->getAuthorSort($data['author']);
+        $data['author2'] = $this->getSecondaryAuthorNames();
         // Support for author2_variant is currently not implemented
-        $data['author2_role'] = $secondaryAuthors['relators'];
-
-        $corporateAuthors = $this->getCorporateAuthors();
-        $data['author_corporate'] = $corporateAuthors['names'];
-        $data['author_corporate_role'] = $corporateAuthors['relators'];
-
-        $data['geographic'] = $data['geographic_facet']
-            = $this->getGeographicSubjects();
-
-        $data['genre'] = $data['genre_facet'] = $this->getGenres();
-
+        $data['author2_role'] = $this->getSecondaryAuthorRoles();
+        $data['author_corporate'] = $this->getCorporateAuthorNames();
+        $data['author_corporate_role'] = $this->getCorporateAuthorRoles();
+        $data['geographic'] = $this->getGeographicTopics();
+        $data['geographic_facet'] = $this->getGeographicFacets();
+        $data['genre'] = $this->getGenres();
+        $data['genre_facet'] = $this->getGenreFacets();
         $data['url'] = $this->getUrls();
-
         $data['format'] = $this->getFormat();
-
         $data['publisher'] = $this->getPublishers();
-
-        // allfields
         $data['allfields'] = $this->getAllFields();
 
         return $data;
@@ -270,6 +239,16 @@ class Forward extends AbstractRecord
     public function getFormat()
     {
         return 'MotionPicture';
+    }
+
+    /**
+     * Dedup: Return publication year (four digits only)
+     *
+     * @return string
+     */
+    public function getPublicationYear()
+    {
+        return (string)$this->getMainElement()->YearOfReference;
     }
 
     /**
@@ -335,6 +314,11 @@ class Forward extends AbstractRecord
      */
     protected function getAuthorsByRelator($relators = [])
     {
+        $key = md5(__METHOD__ . json_encode($relators));
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
         $result = ['names' => [], 'ids' => [], 'relators' => []];
         foreach ($this->getMainElement()->HasAgent as $agent) {
             $relator = $this->getRelator($agent);
@@ -350,7 +334,7 @@ class Forward extends AbstractRecord
             $result['relators'][] = $relator;
         }
 
-        return $result;
+        return $this->resultCache[$key] = $result;
     }
 
     /**
@@ -370,7 +354,7 @@ class Forward extends AbstractRecord
      *
      * @return array
      */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         return $this->getAuthorsByRelator($this->primaryAuthorRelators);
     }
@@ -380,9 +364,29 @@ class Forward extends AbstractRecord
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         return $this->getAuthorsByRelator($this->secondaryAuthorRelators);
+    }
+
+    /**
+     * Get secondary author names.
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthorNames(): array
+    {
+        return $this->getAuthorsByRelator($this->secondaryAuthorRelators)['names'];
+    }
+
+    /**
+     * Get secondary author roles.
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthorRoles(): array
+    {
+        return $this->getAuthorsByRelator($this->secondaryAuthorRelators)['relators'];
     }
 
     /**
@@ -390,9 +394,29 @@ class Forward extends AbstractRecord
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         return $this->getAuthorsByRelator($this->corporateAuthorRelators);
+    }
+
+    /**
+     * Get corporate author names.
+     *
+     * @return array
+     */
+    protected function getCorporateAuthorNames(): array
+    {
+        return $this->getAuthorsByRelator($this->corporateAuthorRelators)['names'];
+    }
+
+    /**
+     * Get corporate author roles.
+     *
+     * @return array
+     */
+    protected function getCorporateAuthorRoles(): array
+    {
+        return $this->getAuthorsByRelator($this->corporateAuthorRelators)['relators'];
     }
 
     /**
@@ -402,6 +426,10 @@ class Forward extends AbstractRecord
      */
     protected function getPrimaryAuthorsSorted()
     {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
         $unsortedPrimaryAuthors = $this->getPrimaryAuthors();
         // Make sure directors are first of the primary authors
         $directors = $others = [
@@ -417,10 +445,30 @@ class Forward extends AbstractRecord
                 $others['relators'][] = $unsortedPrimaryAuthors['relators'][$i];
             }
         }
-        return [
+        return $this->resultCache[__METHOD__] = [
             'names' => [...$directors['names'], ...$others['names']],
             'relators' => [...$directors['relators'], ...$others['relators']],
         ];
+    }
+
+    /**
+     * Get sorted primary author names.
+     *
+     * @return array
+     */
+    protected function getPrimaryAuthorNamesSorted(): array
+    {
+        return $this->getPrimaryAuthorsSorted()['names'];
+    }
+
+    /**
+     * Get sorted primary author roles.
+     *
+     * @return array
+     */
+    protected function getPrimaryAuthorRolesSorted(): array
+    {
+        return $this->getPrimaryAuthorsSorted()['relators'];
     }
 
     /**
@@ -482,19 +530,13 @@ class Forward extends AbstractRecord
     }
 
     /**
-     * Get geographic subjects
+     * Get genre facet fields
      *
-     * @return array
+     * @return array Topics
      */
-    protected function getGeographicSubjects()
+    protected function getGenreFacets()
     {
-        $result = [];
-        foreach ($this->getMainElement()->CountryOfReference as $country) {
-            if (!empty($country->Country->RegionName)) {
-                $result[] = (string)$country->Country->RegionName;
-            }
-        }
-        return $result;
+        return [];
     }
 
     /**
@@ -508,27 +550,11 @@ class Forward extends AbstractRecord
     }
 
     /**
-     * Get all subjects
-     *
-     * @return array<int, string>
-     */
-    protected function getSubjects()
-    {
-        $results = [];
-        foreach ($this->getMainElement()->SubjectTerms as $subjectTerms) {
-            foreach ($subjectTerms->Term as $term) {
-                $results[] = (string)$term;
-            }
-        }
-        return $results;
-    }
-
-    /**
-     * Get thumbnail
+     * Get thumbnail URL.
      *
      * @return string
      */
-    protected function getThumbnail()
+    protected function getThumbnailUrl(): string
     {
         return '';
     }
@@ -541,5 +567,153 @@ class Forward extends AbstractRecord
     protected function getUrls()
     {
         return [];
+    }
+
+    /**
+     * Get control numbers.
+     *
+     * @return array
+     */
+    protected function getControlNumbers(): array
+    {
+        return [$this->getID()];
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return (string)$this->doc->asXML();
+    }
+
+    /**
+     * Get alternate titles.
+     *
+     * @return array
+     */
+    protected function getAltTitles(): array
+    {
+        $result = [];
+        $mainTitle = $this->getTitle();
+        foreach ($this->getMainElement()->Title as $title) {
+            $titleText = (string)$title->TitleText;
+            if ($titleText !== $mainTitle) {
+                $result[] = $titleText;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    protected function getFullTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get short title.
+     *
+     * @return string
+     */
+    protected function getShortTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get description.
+     *
+     * @return string
+     */
+    protected function getDescription(): string
+    {
+        $descriptions = $this->getDescriptions($this->primaryLanguage);
+        if (!$descriptions) {
+            $descriptions = $this->getDescriptions();
+        }
+        $contents = $this->getContents($this->primaryLanguage);
+        if (!$contents) {
+            $contents = $this->getContents();
+        }
+        $descriptions = [...$descriptions, ...$contents];
+        return implode(' ', $descriptions);
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    protected function getTopics(): array
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        $results = [];
+        foreach ($this->getMainElement()->SubjectTerms as $subjectTerms) {
+            foreach ($subjectTerms->Term as $term) {
+                $results[] = (string)$term;
+            }
+        }
+        return $this->resultCache[__METHOD__] = $results;
+    }
+
+    /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getTopics();
+    }
+
+    /**
+     * Get author sort field.
+     *
+     * @param array $authors Primary authors
+     *
+     * @return string
+     */
+    protected function getAuthorSort(array $authors): string
+    {
+        return $authors[0] ?? '';
+    }
+
+    /**
+     * Get geographic topics
+     *
+     * @return array
+     */
+    protected function getGeographicTopics()
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+        $result = [];
+        foreach ($this->getMainElement()->CountryOfReference as $country) {
+            if (!empty($country->Country->RegionName)) {
+                $result[] = (string)$country->Country->RegionName;
+            }
+        }
+        return $this->resultCache[__METHOD__] = $result;
+    }
+
+    /**
+     * Get geographic facets.
+     *
+     * @return array
+     */
+    protected function getGeographicFacets(): array
+    {
+        return $this->getGeographicTopics();
     }
 }
