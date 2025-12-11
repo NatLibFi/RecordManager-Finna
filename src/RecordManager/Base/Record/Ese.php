@@ -65,10 +65,9 @@ class Ese extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
         $doc = $this->doc;
-        $data['record_format'] = 'ese';
         $data['ctrlnum'] = (string)$doc->recordID;
         $data['fullrecord'] = $doc->asXML();
 
@@ -228,6 +227,16 @@ class Ese extends AbstractRecord
     public function getPageCount()
     {
         return '';
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'ese';
     }
 
     /**

@@ -127,6 +127,7 @@ class DcTest extends RecordTestBase
                 'Long description',
             ],
             'description' => '',
+            'fulltext' => '',
           ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

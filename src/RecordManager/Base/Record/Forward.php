@@ -156,10 +156,9 @@ class Forward extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
         $doc = $this->getMainElement();
-        $data['record_format'] = 'forward';
         $data['ctrlnum'] = $this->getID();
         $data['fullrecord'] = $this->toXML();
         $publishDate = (string)$doc->YearOfReference;
@@ -271,6 +270,16 @@ class Forward extends AbstractRecord
     public function getFormat()
     {
         return 'MotionPicture';
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'forward';
     }
 
     /**

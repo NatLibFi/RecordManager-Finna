@@ -222,7 +222,9 @@ abstract class AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        return [];
+        return [
+            'record_format' => $this->getRecordFormat(),
+        ];
     }
 
     /**
@@ -541,6 +543,13 @@ abstract class AbstractRecord
     {
         return $this->dataSourceConfig[$this->source];
     }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    abstract protected function getRecordFormat(): string;
 
     /**
      * Return a parameter specified in driverParams[] of datasources.ini

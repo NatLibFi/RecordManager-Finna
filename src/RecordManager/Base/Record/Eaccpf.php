@@ -71,9 +71,8 @@ class Eaccpf extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
-        $data['record_format'] = 'eaccpf';
         $data['fullrecord']
             = $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
         $data['allfields'] = $this->getAllFields();
@@ -91,6 +90,16 @@ class Eaccpf extends AbstractRecord
         $data['language'] = $this->getHeadingLanguage();
 
         return $data;
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'eaccpf';
     }
 
     /**

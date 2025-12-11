@@ -155,9 +155,8 @@ class Lido extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
-        $data['record_format'] = 'lido';
         $title = $this->getTitle(false);
         $data['title'] = $data['title_short'] = $data['title_full'] = $title;
         $data['title_sort'] = $this->metadataUtils->createSortTitle($title);
@@ -450,6 +449,16 @@ class Lido extends AbstractRecord
     public function getSecondaryAuthorIds(): array
     {
         return [];
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'lido';
     }
 
     /**

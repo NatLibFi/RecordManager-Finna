@@ -153,10 +153,9 @@ class Doaj extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = $this->getFullTextFields($this->doc);
+        $data = parent::toSolrArray($db);
 
         $doc = $this->doc->children($this->recordNs);
-        $data['record_format'] = 'doaj';
         $data['ctrlnum'] = $this->getID();
         $data['fullrecord'] = $doc->asXML();
 
@@ -215,6 +214,7 @@ class Doaj extends AbstractRecord
         );
 
         $data['url'] = $doc->fullTextUrl;
+        $data['fulltext'] = $this->getFullTextField($this->doc);
 
         return $data;
     }
@@ -322,6 +322,16 @@ class Doaj extends AbstractRecord
     public function getPageCount()
     {
         return '';
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'doaj';
     }
 
     /**

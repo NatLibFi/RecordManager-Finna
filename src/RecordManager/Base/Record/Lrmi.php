@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2020.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -30,8 +30,6 @@
 
 namespace RecordManager\Base\Record;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-
 use function in_array;
 
 /**
@@ -54,25 +52,6 @@ class Lrmi extends Qdc
      * @var array
      */
     protected $ignoredAllfields = [];
-
-    /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = parent::toSolrArray();
-        $data['record_format'] = 'lrmi';
-        $data['title'] = $data['title_full'] = $data['title_short']
-            = $this->getTitle();
-        $data['title_sort'] = $this->getTitle(true);
-        $data['language'] = $this->getLanguages();
-
-        return $data;
-    }
 
     /**
      * Return title
@@ -113,16 +92,6 @@ class Lrmi extends Qdc
     }
 
     /**
-     * Get topics.
-     *
-     * @return array
-     */
-    public function getTopics()
-    {
-        return $this->getTopicData(false);
-    }
-
-    /**
      * Get all topic identifiers (for enrichment)
      *
      * @return array
@@ -130,6 +99,36 @@ class Lrmi extends Qdc
     public function getRawTopicIds(): array
     {
         return $this->getTopicData(true);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'lrmi';
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    protected function getTopics()
+    {
+        return $this->getTopicData(false);
+    }
+
+    /**
+     * Get topics facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getTopicData(false);
     }
 
     /**

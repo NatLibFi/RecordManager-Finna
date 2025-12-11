@@ -158,10 +158,9 @@ class Ead extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
         $doc = $this->doc;
-        $data['record_format'] = 'ead';
         $data['ctrlnum'] = (string)$this->doc->attributes()->{'id'};
         $data['fullrecord'] = $this->metadataUtils->trimXMLWhitespace($doc->asXML());
         $data['allfields'] = $this->getAllFields($doc);
@@ -345,6 +344,16 @@ class Ead extends AbstractRecord
             }
         }
         return trim((string)$this->doc->creator);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'ead';
     }
 
     /**

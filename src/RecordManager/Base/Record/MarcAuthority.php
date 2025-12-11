@@ -70,9 +70,8 @@ class MarcAuthority extends Marc
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = [];
+        $data = parent::toSolrArray($db);
 
-        $data['record_format'] = 'marcAuthority';
         $data['fullrecord'] = $this->getFullRecord();
         $data['allfields'] = $this->getAllFields();
         $data['source'] = $this->getRecordSource();
@@ -140,6 +139,16 @@ class MarcAuthority extends Marc
     public function getUseForHeadings()
     {
         return $this->getAlternativeNames(['111', '411', '500', '510', '511']);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'marcAuthority';
     }
 
     /**

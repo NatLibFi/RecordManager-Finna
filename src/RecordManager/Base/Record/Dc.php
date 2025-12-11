@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2023.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -151,12 +151,10 @@ class Dc extends AbstractRecord
      */
     public function toSolrArray(?Database $db = null)
     {
-        $data = $this->getFullTextFields($this->doc);
+        $data = parent::toSolrArray($db);
 
-        $doc = $this->doc;
-        $data['record_format'] = 'dc';
         $data['ctrlnum'] = $this->getControlNumbers();
-        $data['fullrecord'] = $doc->asXML();
+        $data['fullrecord'] = $this->getFullRecord();
         $data['allfields'] = $this->getAllFields();
         $data['language'] = $this->getLanguages();
         $data['format'] = $this->getFormat();
@@ -171,9 +169,11 @@ class Dc extends AbstractRecord
         $data['publishDate'] = $this->getPublicationYear();
         $data['isbn'] = $this->getISBNs();
         $data['doi_str_mv'] = $this->getDOIs();
-        $data['topic'] = $data['topic_facet'] = $this->getTopics();
+        $data['topic'] = $this->getTopics();
+        $data['topic_facet'] = $this->getTopicFacets();
         $data['url'] = $this->getUrls();
         $data['contents'] = $this->getContents();
+        $data['fulltext'] = $this->getFullTextField($this->doc);
 
         return $data;
     }
@@ -326,13 +326,29 @@ class Dc extends AbstractRecord
      */
     protected function getValues($tag)
     {
-        $values = [];
+        $key = __METHOD__ . "$tag";
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
+        $result = [];
         foreach ($this->doc->{$tag} as $value) {
-            $values[] = $this->metadataUtils->stripTrailingPunctuation(
+            $result[] = $this->metadataUtils->stripTrailingPunctuation(
                 trim((string)$value)
             );
         }
-        return $values;
+        $this->resultCache[$key] = $result;
+        return $result;
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'dc';
     }
 
     /**
@@ -455,6 +471,16 @@ class Dc extends AbstractRecord
     }
 
     /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getValues('subject');
+    }
+
+    /**
      * Get URLs.
      *
      * @return array
@@ -493,5 +519,15 @@ class Dc extends AbstractRecord
             }
         }
         return $result;
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return (string)$this->doc->asXML();
     }
 }

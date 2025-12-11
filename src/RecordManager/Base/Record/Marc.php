@@ -284,9 +284,7 @@ class Marc extends AbstractRecord
     {
         $this->processLinkingFields($db);
 
-        $data = [
-            'record_format' => 'marc',
-        ];
+        $data = parent::toSolrArray($db);
 
         $data['building'] = $this->getBuilding();
         $this->addGeographicLocationFields($data);
@@ -1376,6 +1374,16 @@ class Marc extends AbstractRecord
         // Try to clean up the title but return original if it only contains
         // punctuation:
         return $this->metadataUtils->stripTrailingPunctuation($title, '', true);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'marc';
     }
 
     /**
