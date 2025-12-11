@@ -85,6 +85,8 @@ class MarcTest extends RecordTestBase
                 'nide',
                 'nc',
                 'rdacarrier',
+                'Series Double',
+                'Series 490',
                 '18. p. 2013',
                 'Summary field',
                 'oppaat',
@@ -101,6 +103,7 @@ class MarcTest extends RecordTestBase
                 'Sajavaara, Paula',
                 'Example Distributor',
                 'distributor',
+                'Series 830',
                 'urn:doi:doi2',
                 'urn:doif:not-doi',
                 'http://doi.org/doi%3a3',
@@ -150,8 +153,13 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [],
-            'series2' => [],
+            'series' => [
+                'Series Double',
+                'Series 830',
+            ],
+            'series2' => [
+                'Series 490',
+            ],
             'publisher' => [
                 'Tammi',
             ],
@@ -1128,6 +1136,8 @@ class MarcTest extends RecordTestBase
                 'nide',
                 'nc',
                 'rdacarrier',
+                'Series Double',
+                'Series 490',
                 '18. p. 2013',
                 'Summary field',
                 'oppaat',
@@ -1144,6 +1154,7 @@ class MarcTest extends RecordTestBase
                 'Sajavaara, Paula',
                 'Example Distributor',
                 'distributor',
+                'Series 830',
                 'urn:doi:doi2',
                 'urn:doif:not-doi',
                 'http://doi.org/doi%3a3',
@@ -1189,8 +1200,13 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [],
-            'series2' => [],
+            'series' => [
+                'Series Double',
+                'Series 830',
+            ],
+            'series2' => [
+                'Series 490',
+            ],
             'publisher' => [
                 'Tammi',
             ],

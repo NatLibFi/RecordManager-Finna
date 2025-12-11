@@ -79,6 +79,12 @@
     <subfield code="b">nc</subfield>
     <subfield code="2">rdacarrier</subfield>
   </datafield>
+  <datafield tag="490" ind1=" " ind2="0">
+    <subfield code="a">Series Double</subfield>
+  </datafield>
+  <datafield tag="490" ind1=" " ind2="0">
+    <subfield code="a">Series 490</subfield>
+  </datafield>
   <datafield tag="500" ind1=" " ind2=" ">
     <subfield code="a">18. p. 2013</subfield>
   </datafield>
@@ -136,6 +142,12 @@
   <datafield tag="710" ind1="1" ind2=" ">
     <subfield code="a">Example Distributor</subfield>
     <subfield code="e">distributor</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Series Double</subfield>
+  </datafield>
+  <datafield tag="830" ind1=" " ind2="0">
+    <subfield code="a">Series 830</subfield>
   </datafield>
   <datafield tag="852" ind1="8" ind2=" ">
     <subfield code="a">E</subfield>

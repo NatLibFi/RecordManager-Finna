@@ -2638,10 +2638,11 @@ class Marc extends AbstractRecord
      */
     protected function getSeries2(): array
     {
-        return $this->getFieldsSubfields(
-            [
-                [MarcHandler::GET_BOTH, '490', ['a']],
-            ]
+        return array_values(
+            array_diff(
+                $this->getFieldsSubfields([[MarcHandler::GET_BOTH, '490', ['a']]]),
+                $this->getSeries()
+            )
         );
     }
 
