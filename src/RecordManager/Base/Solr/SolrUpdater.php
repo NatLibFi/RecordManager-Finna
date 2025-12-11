@@ -433,6 +433,13 @@ class SolrUpdater
     protected $recordWorkers;
 
     /**
+     * How many record worker processes to keep as spares for unexpectedly gone ones.
+     *
+     * @var int
+     */
+    protected $spareRecordWorkers;
+
+    /**
      * How many deduplicated record worker processes to use
      *
      * @var int
@@ -440,11 +447,25 @@ class SolrUpdater
     protected $dedupWorkers;
 
     /**
+     * How many dedup worker processes to keep as spares for unexpectedly gone ones.
+     *
+     * @var int
+     */
+    protected $spareDedupWorkers;
+
+    /**
      * How many Solr update worker processes to use
      *
      * @var int
      */
     protected $solrUpdateWorkers;
+
+    /**
+     * How many Solr update worker processes to keep as spares for unexpectedly gone ones.
+     *
+     * @var int
+     */
+    protected $spareSolrUpdateWorkers;
 
     /**
      * Worker pool manager
@@ -707,9 +728,11 @@ class SolrUpdater
         $this->maxUpdateTries = $config['Solr']['max_update_tries'] ?? 15;
         $this->updateRetryWait = $config['Solr']['update_retry_wait'] ?? 60;
         $this->recordWorkers = $config['Solr']['record_workers'] ?? 0;
-        $this->dedupWorkers = $config['Solr']['dedup_workers']
-            ?? $this->recordWorkers;
+        $this->spareRecordWorkers = $config['Solr']['spare_record_workers'] ?? 4;
+        $this->dedupWorkers = $config['Solr']['dedup_workers'] ?? $this->recordWorkers;
+        $this->spareDedupWorkers = $config['Solr']['spare_dedup_workers'] ?? 4;
         $this->solrUpdateWorkers = $config['Solr']['solr_update_workers'] ?? 0;
+        $this->spareSolrUpdateWorkers = $config['Solr']['spare_solr_update_workers'] ?? 4;
         $this->clusterStateCheckInterval
             = $config['Solr']['cluster_state_check_interval'] ?? 0;
         if (empty($config['Solr']['admin_url'])) {
@@ -1806,18 +1829,21 @@ class SolrUpdater
         $this->workerPoolManager->createWorkerPool(
             'solr',
             $this->solrUpdateWorkers,
+            $this->spareSolrUpdateWorkers,
             $this->solrUpdateWorkers,
             [$this, 'solrRequest']
         );
         $this->workerPoolManager->createWorkerPool(
             'record',
             $this->recordWorkers,
+            $this->spareRecordWorkers,
             $this->recordWorkers,
             [$this, 'processSingleRecord']
         );
         $this->workerPoolManager->createWorkerPool(
             'dedup',
             $this->dedupWorkers,
+            $this->spareDedupWorkers,
             $this->dedupWorkers,
             [$this, 'processDedupRecord']
         );
