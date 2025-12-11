@@ -43,7 +43,7 @@ use RecordManager\Base\Record\Qdc;
 class QdcTest extends RecordTestBase
 {
     /**
-     * Test QQDC record handling
+     * Test QDC record handling
      *
      * @return void
      */
