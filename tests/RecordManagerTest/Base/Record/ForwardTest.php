@@ -59,6 +59,9 @@ class ForwardTest extends RecordTestBase
                 'elonet_elokuva_1511500',
             ],
             'publishDate' => '2011',
+            'publishDateRange' => [
+                '2011',
+            ],
             'title' => 'Le Havre',
             'title_alt' => [
                 0 => 'Mannen från Le Havre',

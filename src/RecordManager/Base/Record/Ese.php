@@ -81,6 +81,7 @@ class Ese extends AbstractRecord
         $data['title_sort'] = $this->getTitle(true);
         $data['publisher'] = $this->getPublishers();
         $data['publishDate'] = $this->getPublicationYear();
+        $data['publishDateRange'] = $this->getPublicationYears();
         $data['isbn'] = $this->getISBNs();
         $data['topic'] = $this->getTopics();
         $data['topic_facet'] = $this->getTopicFacets();
@@ -386,5 +387,21 @@ class Ese extends AbstractRecord
             }
         }
         return $urls;
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = (string)$date;
+            }
+        }
+        return $result;
     }
 }

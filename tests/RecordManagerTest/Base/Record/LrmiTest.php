@@ -164,6 +164,9 @@ class LrmiTest extends RecordTestBase
             'title_sort' => 'opetuksen ja oppimisen suunnittelu learning design',
             'publisher' => [],
             'publishDate' => '2019',
+            'publishDateRange' => [
+                '2019',
+            ],
             'isbn' => [],
             'issn' => [],
             'doi_str_mv' => [],

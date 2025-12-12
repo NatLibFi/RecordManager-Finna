@@ -120,6 +120,9 @@ class QdcTest extends RecordTestBase
                 'Sanitation Project, Research Institute for Humanity and Nature',
             ],
             'publishDate' => '2021',
+            'publishDateRange' => [
+                '2021',
+            ],
             'isbn' => [],
             'issn' => [
                 '2432-5058',

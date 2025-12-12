@@ -107,6 +107,9 @@ class DcTest extends RecordTestBase
                 'Publisher',
             ],
             'publishDate' => '2025',
+            'publishDateRange' => [
+                '2025',
+            ],
             'isbn' => [],
             'doi_str_mv' => [],
             'topic_facet' => [

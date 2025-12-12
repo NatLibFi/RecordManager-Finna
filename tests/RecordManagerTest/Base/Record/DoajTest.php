@@ -96,6 +96,9 @@ class DoajTest extends RecordTestBase
                 'Verlag Krause und Pachernegg GmbH',
             ],
             'publishDate' => '1998',
+            'publishDateRange' => [
+                '1998',
+            ],
             'topic_facet'  => [
                 'Empfehlung',
             ],

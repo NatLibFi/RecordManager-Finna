@@ -172,6 +172,7 @@ class Qdc extends AbstractRecord
         $data['title_alt'] = $this->getAltTitles();
         $data['publisher'] = $this->getPublishers();
         $data['publishDate'] = $this->getPublicationYear();
+        $data['publishDateRange'] = $this->getPublicationYears();
         $data['isbn'] = $this->getISBNs();
         $data['issn'] = $this->getISSNs();
         $data['doi_str_mv'] = $this->getDOIs();
@@ -733,5 +734,32 @@ class Qdc extends AbstractRecord
     protected function getFullRecord(): string
     {
         return (string)$this->doc->asXML();
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            $date = trim($date);
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = $date;
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
+                $result[] = $matches[1];
+            }
+        }
+        foreach ($this->doc->issued as $date) {
+            $date = trim($date);
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = $date;
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
+                $result[] = $matches[1];
+            }
+        }
+        return $result;
     }
 }

@@ -176,6 +176,7 @@ class Doaj extends AbstractRecord
         $data['title_sort'] = $this->getTitle(true);
         $data['publisher'] = $this->getPublishers();
         $data['publishDate'] = $this->getPublicationYear();
+        $data['publishDateRange'] = $this->getPublicationYears();
         $data['topic'] = $this->getTopics();
         $data['topic_facet'] = $this->getTopicFacets();
         $data['url'] = $this->getUrls();
@@ -463,6 +464,21 @@ class Doaj extends AbstractRecord
     {
         if ($url = (string)$this->recordDoc->fullTextUrl) {
             return [$url];
+        }
+        return [];
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $date = trim((string)$this->doc->children($this->recordNs)->publicationDate);
+        $date = substr($date, 0, 4);
+        if (preg_match('{^(\d{4})$}', $date)) {
+            return [$date];
         }
         return [];
     }

@@ -167,6 +167,7 @@ class Dc extends AbstractRecord
         $data['title_sort'] = $this->getTitle(true);
         $data['publisher'] = $this->getPublishers();
         $data['publishDate'] = $this->getPublicationYear();
+        $data['publishDateRange'] = $this->getPublicationYears();
         $data['isbn'] = $this->getISBNs();
         $data['doi_str_mv'] = $this->getDOIs();
         $data['topic'] = $this->getTopics();
@@ -529,5 +530,22 @@ class Dc extends AbstractRecord
     protected function getFullRecord(): string
     {
         return (string)$this->doc->asXML();
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            $date = trim((string)$date);
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = $date;
+            }
+        }
+        return $result;
     }
 }

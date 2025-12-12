@@ -842,56 +842,6 @@ class Marc extends AbstractRecord
     }
 
     /**
-     * Return publication years
-     *
-     * @return array
-     */
-    public function getPublicationYears(): array
-    {
-        $result = [];
-
-        // First check old-style 260c date:
-        $field = $this->record->getField('260');
-        if ($field) {
-            if ('' !== ($year = $this->extractYear($this->record->getSubfield($field, 'c')))) {
-                $result[] = $year;
-            }
-        }
-
-        // Now track down relevant RDA-style 264c dates; we only care about
-        // copyright and publication dates (and ignore copyright dates if
-        // publication dates are present).
-        $publicationYears = [];
-        $copyrightYears = [];
-        $fields = $this->record->getFields('264');
-        foreach ($fields as $field) {
-            if ('' === $year = $this->extractYear($this->record->getSubfield($field, 'c'))) {
-                continue;
-            }
-            $ind2 = $this->record->getIndicator($field, 2);
-            if ('1' === $ind2) {
-                $publicationYears[] = $year;
-            } elseif ('4' === $ind2) {
-                $copyrightYears[] = $year;
-            }
-        }
-
-        if ($publicationYears) {
-            $result = [
-                ...$result,
-                ...$publicationYears,
-            ];
-        } elseif ($copyrightYears) {
-            $result = [
-                ...$result,
-                ...$copyrightYears,
-            ];
-        }
-
-        return $result;
-    }
-
-    /**
      * Dedup: Return page count (number only)
      *
      * @return string
@@ -1374,6 +1324,56 @@ class Marc extends AbstractRecord
         // Try to clean up the title but return original if it only contains
         // punctuation:
         return $this->metadataUtils->stripTrailingPunctuation($title, '', true);
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+
+        // First check old-style 260c date:
+        $field = $this->record->getField('260');
+        if ($field) {
+            if ('' !== ($year = $this->extractYear($this->record->getSubfield($field, 'c')))) {
+                $result[] = $year;
+            }
+        }
+
+        // Now track down relevant RDA-style 264c dates; we only care about
+        // copyright and publication dates (and ignore copyright dates if
+        // publication dates are present).
+        $publicationYears = [];
+        $copyrightYears = [];
+        $fields = $this->record->getFields('264');
+        foreach ($fields as $field) {
+            if ('' === $year = $this->extractYear($this->record->getSubfield($field, 'c'))) {
+                continue;
+            }
+            $ind2 = $this->record->getIndicator($field, 2);
+            if ('1' === $ind2) {
+                $publicationYears[] = $year;
+            } elseif ('4' === $ind2) {
+                $copyrightYears[] = $year;
+            }
+        }
+
+        if ($publicationYears) {
+            $result = [
+                ...$result,
+                ...$publicationYears,
+            ];
+        } elseif ($copyrightYears) {
+            $result = [
+                ...$result,
+                ...$copyrightYears,
+            ];
+        }
+
+        return $result;
     }
 
     /**

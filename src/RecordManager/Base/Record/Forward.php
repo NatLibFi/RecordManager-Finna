@@ -161,6 +161,7 @@ class Forward extends AbstractRecord
         $data['ctrlnum'] = $this->getControlNumbers();
         $data['fullrecord'] = $this->getFullRecord();
         $data['publishDate'] = $this->getPublicationYear();
+        $data['publishDateRange'] = $this->getPublicationYears();
         $data['title'] = $this->getTitle();
         $data['title_full'] = $this->getFullTitle();
         $data['title_short'] = $this->getShortTitle();
@@ -715,5 +716,18 @@ class Forward extends AbstractRecord
     protected function getGeographicFacets(): array
     {
         return $this->getGeographicTopics();
+    }
+
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        if ($year = $this->getPublicationYear()) {
+            return [$year];
+        }
+        return [];
     }
 }

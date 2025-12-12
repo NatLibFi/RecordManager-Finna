@@ -300,7 +300,7 @@ class SolrUpdater
      */
     protected $mergedFields = [
         'institution', 'collection', 'building', 'language', 'physical', 'publisher',
-        'publishDate', 'contents', 'edition', 'description', 'url',
+        'publishDate', 'publishDateRange', 'contents', 'edition', 'description', 'url',
         'ctrlnum', 'oclc_num',
         'callnumber-raw', 'callnumber-search',
         'dewey-hundreds', 'dewey-tens', 'dewey-ones', 'dewey-full', 'dewey-raw',
