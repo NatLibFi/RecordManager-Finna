@@ -33,8 +33,6 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
 
 use function in_array;
 use function is_string;
-use function sprintf;
-use function strlen;
 
 /**
  * Lido record class
@@ -1060,83 +1058,6 @@ class Lido extends AbstractRecord
     protected function getDefaultLanguage()
     {
         return $this->getDriverParam('defaultDisplayLanguage', 'en');
-    }
-
-    /**
-     * Attempt to parse a string (in finnish) into a normalized date range.
-     *
-     * TODO: complicated normalizations like this should preferably reside within
-     * their own, separate component which should allow modification of the
-     * algorithm by methods other than hard-coding rules into source.
-     *
-     * @param string $input Date range
-     *
-     * @return string|null Two ISO 8601 dates separated with a comma on success, or
-     * null on failure
-     */
-    protected function parseDateRange($input)
-    {
-        static $dmyRe = '/(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)/';
-        $input = trim(strtolower($input));
-
-        if (preg_match('/(\d\d\d\d) ?- (\d\d\d\d)/', $input, $matches) > 0) {
-            $startDate = $matches[1];
-            $endDate = $matches[2];
-        } elseif (preg_match('/(\d\d\d\d)-(\d\d?)-(\d\d?)/', $input, $matches) > 0) {
-            $year = $matches[1];
-            $month = sprintf('%02d', $matches[2]);
-            $day = sprintf('%02d', $matches[3]);
-            $startDate = $year . '-' . $month . '-' . $day . 'T00:00:00Z';
-            $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
-            $noprocess = true;
-        } elseif (preg_match($dmyRe, $input, $matches) > 0) {
-            $year = $matches[3];
-            $month = sprintf('%02d', $matches[2]);
-            $day = sprintf('%02d', $matches[1]);
-            $startDate = $year . '-' . $month . '-' . $day . 'T00:00:00Z';
-            $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
-            $noprocess = true;
-        } elseif (preg_match('/(\d?\d?\d\d) ?\?/', $input, $matches) > 0) {
-            $year = (int)$matches[1];
-
-            $startDate = $year - 3;
-            $endDate = $year + 3;
-        } elseif (preg_match('/(\d?\d?\d\d)/', $input, $matches) > 0) {
-            $year = $matches[1];
-
-            $startDate = $year;
-            $endDate = $year;
-        } else {
-            return null;
-        }
-
-        if (strlen((string)$startDate) == 2) {
-            $startDate = 1900 + (int)$startDate;
-        }
-        if (strlen((string)$endDate) == 2) {
-            $century = substr((string)$startDate, 0, 2) . '00';
-            $endDate = (int)$century + (int)$endDate;
-        }
-
-        if (empty($noprocess)) {
-            $startDate .= '-01-01T00:00:00Z';
-            $endDate .= '-12-31T23:59:59Z';
-        }
-
-        // Trying to index dates into the future? I don't think so...
-        $yearNow = date('Y');
-        if ($startDate > $yearNow || $endDate > $yearNow) {
-            return null;
-        }
-
-        if (
-            $this->metadataUtils->validateISO8601Date((string)$startDate) === false
-            || $this->metadataUtils->validateISO8601Date((string)$endDate) === false
-        ) {
-            return null;
-        }
-
-        return "$startDate,$endDate";
     }
 
     /**
