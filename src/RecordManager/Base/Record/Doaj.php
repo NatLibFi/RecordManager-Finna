@@ -274,7 +274,7 @@ class Doaj extends AbstractRecord
     {
         $date = trim((string)$this->doc->children($this->recordNs)->publicationDate);
         $date = substr($date, 0, 4);
-        if (preg_match('{^(\d{4})$}', $date)) {
+        if ('' !== $date && preg_match('{^(\d{4})$}', $date)) {
             return $date;
         }
         return '';

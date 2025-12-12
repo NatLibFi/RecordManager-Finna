@@ -98,11 +98,12 @@ class LcCallNumber extends AbstractCallNumber
         $callnumber = trim($callnumber);
 
         $rest = '';
-        $found = preg_match(
-            '/^([a-zA-Z]+) *(?:(\d+)(\.\d+)?)?(.*)$/',
-            $callnumber,
-            $matches
-        );
+        $found = '' !== $callnumber
+            && preg_match(
+                '/^([a-zA-Z]+) *(?:(\d+)(\.\d+)?)?(.*)$/',
+                $callnumber,
+                $matches
+            );
         if ($found) {
             $this->classification = trim($matches[0]);
             $this->letters = trim($matches[1]);
@@ -111,7 +112,6 @@ class LcCallNumber extends AbstractCallNumber
             $rest = trim($matches[4]);
         }
 
-        $this->cutter = '';
         if ($rest) {
             preg_match(
                 '/(\\.?[A-Za-z]\\d+|^\\.[A-Za-z]| \\.[A-Za-z])/',

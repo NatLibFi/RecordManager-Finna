@@ -272,7 +272,7 @@ class Qdc extends AbstractRecord
         foreach ([$this->doc->identifier, $this->doc->isFormatOf] as $field) {
             foreach ($field as $identifier) {
                 $identifier = str_replace('-', '', trim($identifier));
-                if (!preg_match('{^([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+                if ('' === $identifier || !preg_match('{^([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
                     continue;
                 }
                 $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
@@ -437,7 +437,7 @@ class Qdc extends AbstractRecord
         foreach ($this->doc->description as $description) {
             $trimmed = trim((string)$description);
             if (!preg_match('/(^https?)|(^\d+\.\d+$)/', $trimmed)) {
-                $all[] = (string)$description;
+                $all[] = $trimmed;
                 if (!$primary) {
                     $descLang = (string)$description->attributes()->{'lang'};
                     if ($descLang === $lang) {

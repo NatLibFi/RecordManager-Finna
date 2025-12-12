@@ -450,7 +450,7 @@ class Marc extends AbstractRecord
     public function getVolume()
     {
         $field773g = $this->getFieldSubfields('773', ['g']);
-        if (!$field773g) {
+        if ('' === $field773g) {
             return '';
         }
 
@@ -470,7 +470,7 @@ class Marc extends AbstractRecord
     public function getIssue()
     {
         $field773g = $this->getFieldSubfields('773', ['g']);
-        if (!$field773g) {
+        if ('' === $field773g) {
             return '';
         }
 
@@ -493,7 +493,7 @@ class Marc extends AbstractRecord
     public function getStartPage()
     {
         $field773g = $this->getFieldSubfields('773', ['g']);
-        if (!$field773g) {
+        if ('' === $field773g) {
             return '';
         }
 
@@ -851,7 +851,7 @@ class Marc extends AbstractRecord
         $field = $this->record->getField('300');
         if ($field) {
             $extent = $this->record->getSubfield($field, 'a');
-            if ($extent && preg_match('/(\d+)/', $extent, $matches)) {
+            if ('' !== $extent && preg_match('/(\d+)/', $extent, $matches)) {
                 return $matches[1];
             }
         }
@@ -2485,6 +2485,9 @@ class Marc extends AbstractRecord
      */
     protected function extractYear($field)
     {
+        if ('' === $field) {
+            return '';
+        }
         // First look for a year in brackets
         if (preg_match('/\[(.+)\]/', $field, $matches)) {
             if (preg_match('/(\d{4})/', $matches[1], $matches)) {
@@ -2703,7 +2706,7 @@ class Marc extends AbstractRecord
                 [MarcHandler::GET_NORMAL, '050', ['a']],
             ]
         );
-        if ($value && preg_match('/^([A-Z]+)/', strtoupper($value), $matches)) {
+        if ('' !== $value && preg_match('/^([A-Z]+)/', strtoupper($value), $matches)) {
             return $matches[1];
         }
         return '';

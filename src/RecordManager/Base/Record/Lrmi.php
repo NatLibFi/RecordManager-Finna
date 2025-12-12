@@ -199,7 +199,7 @@ class Lrmi extends Qdc
             } else {
                 $id = (string)($subject->identifier ?? '');
 
-                if (preg_match('/(http|https):\/\/(.+)/', $id, $matches)) {
+                if ('' !== $id && preg_match('/(http|https):\/\/(.+)/', $id, $matches)) {
                     $result[] = 'http://' . $matches[2];
                 }
             }

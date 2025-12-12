@@ -99,7 +99,7 @@ trait FullTextTrait
         foreach ((array)$xpaths as $xpath) {
             foreach ($doc->xpath($xpath) as $field) {
                 $url = (string)$field;
-                if (preg_match('/^https?:\/\//', $url)) {
+                if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
                     try {
                         $fulltext[] = $this->getUrl($url);
                     } catch (\Exception $e) {

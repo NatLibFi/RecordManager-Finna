@@ -1617,7 +1617,7 @@ class Lido extends AbstractRecord
     protected function checkISBN($identifier = ''): string
     {
         $identifier = str_replace('-', '', trim($identifier));
-        if (preg_match('{^(URN:ISBN:)?([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+        if ('' !== $identifier && preg_match('{^(URN:ISBN:)?([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
             return $matches[2];
         }
         return '';

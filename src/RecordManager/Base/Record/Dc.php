@@ -229,7 +229,7 @@ class Dc extends AbstractRecord
         $arr = [];
         foreach ($this->doc->identifier as $identifier) {
             $identifier = str_replace('-', '', trim($identifier));
-            if (!preg_match('{([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+            if ('' === $identifier || !preg_match('{([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
                 continue;
             }
             $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
@@ -279,7 +279,7 @@ class Dc extends AbstractRecord
     {
         foreach ($this->doc->date as $date) {
             $date = trim((string)$date);
-            if (preg_match('{^(\d{4})$}', $date)) {
+            if ('' !== $date && preg_match('{^(\d{4})$}', $date)) {
                 return $date;
             }
         }
