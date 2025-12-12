@@ -355,7 +355,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $results[] = $id;
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -372,7 +372,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $results[] = $id;
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -391,7 +391,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -1211,7 +1211,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -1364,7 +1364,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
         $ids = [];
         $fileIds = [];
-        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds) {
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds): void {
             if ($check && $attrs = $check->attributes()) {
                 if ($identifier = trim((string)$attrs->identifier)) {
                     $ids[] = $identifier;

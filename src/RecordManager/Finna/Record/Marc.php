@@ -579,7 +579,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             ]
         );
         if (!empty($data['holdings_txtP_mv'])) {
-            $updateFunc = function (&$val, $k, $source) {
+            $updateFunc = function (&$val, $k, $source): void {
                 $val .= " $source";
             };
             array_walk($data['holdings_txtP_mv'], $updateFunc, $this->source);
@@ -1049,7 +1049,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
-        return array_values(array_unique(array_filter($results)));
+        return array_values(array_unique($results));
     }
 
     /**

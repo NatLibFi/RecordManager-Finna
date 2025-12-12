@@ -147,10 +147,9 @@ class DateSupportTraitTest extends \PHPUnit\Framework\TestCase
      * @param string $expected Expected value
      * @param array  $range    Range
      *
-     * @dataProvider dateRangeToStrProvider
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('dateRangeToStrProvider')]
     public function testDateRangeToStr(string $expected, array $range): void
     {
         $this->assertEquals($expected, $this->getAnonymousClass()->dateRangeToStr($range));

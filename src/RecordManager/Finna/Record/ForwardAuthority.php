@@ -29,8 +29,6 @@
 
 namespace RecordManager\Finna\Record;
 
-use function in_array;
-
 /**
  * Forward authority Record Class
  *
@@ -89,7 +87,7 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
         $results = [];
         foreach ($doc->CAgentName as $name) {
             if (!empty($name->AgentNameType) && !empty($name->PersonName)) {
-                if (in_array((string)$name->AgentNameType, ['00'])) {
+                if ((string)$name->AgentNameType == '00') {
                     $results[] = (string)$name->PersonName;
                 }
             }

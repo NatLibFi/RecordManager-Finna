@@ -397,10 +397,7 @@ trait QdcRecordTrait
         }
         // Note: Make sure not to use `empty()` for the file check since the element
         // will be empty.
-        if (!empty($this->getOnlineUrls()) || $this->doc->file) {
-            return true;
-        }
-        return false;
+        return !empty($this->getOnlineUrls()) || $this->doc->file;
     }
 
     /**

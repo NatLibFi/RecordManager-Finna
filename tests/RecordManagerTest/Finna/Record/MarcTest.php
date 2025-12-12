@@ -1281,10 +1281,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
     /**
      * Test MARC audio book formats
      *
-     * @dataProvider marcAudioBooksProvider
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('marcAudioBooksProvider')]
     public function testMarcAudioBooks()
     {
         $record = $this->createMarcRecord(
@@ -1538,9 +1537,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param array  $dsConfig Datasource config
      * @param array  $expected Expected results
      *
-     * @return       void
-     * @dataProvider getTestLinkingIdFieldData
+     * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getTestLinkingIdFieldData')]
     public function testLinkingIdField(string $path, array $dsConfig, array $expected): void
     {
         $record = $this->createMarcRecord(

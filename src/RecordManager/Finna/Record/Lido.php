@@ -502,7 +502,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -522,7 +522,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -780,7 +780,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($splitted as $value) {
             if ($value = trim($value)) {
                 $locationParts = explode(' ', $value);
-                array_walk($locationParts, function (&$part) {
+                array_walk($locationParts, function (&$part): void {
                     $part = trim($part, ', ');
                 });
                 // If there is only one unique name then it can be really difficult
@@ -1188,11 +1188,11 @@ class Lido extends \RecordManager\Base\Record\Lido
             } elseif (strlen($date) == 3) {
                 $date = '0' . $date . '-01-01T00:00:00Z';
             } elseif (strlen($date) == 4) {
-                $date = $date . '-01-01T00:00:00Z';
+                $date .= '-01-01T00:00:00Z';
             } elseif (strlen($date) == 7) {
-                $date = $date . '-01T00:00:00Z';
+                $date .= '-01T00:00:00Z';
             } elseif (strlen($date) == 10) {
-                $date = $date . 'T00:00:00Z';
+                $date .= 'T00:00:00Z';
             }
         } else {
             if (strlen($date) == 1) {
@@ -1202,7 +1202,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             } elseif (strlen($date) == 3) {
                 $date = '0' . $date . '-12-31T23:59:59Z';
             } elseif (strlen($date) == 4) {
-                $date = $date . '-12-31T23:59:59Z';
+                $date .= '-12-31T23:59:59Z';
             } elseif (strlen($date) == 7) {
                 try {
                     $d = new \DateTime($date . '-01');
@@ -1218,7 +1218,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
                 $date = $d->format('Y-m-t') . 'T23:59:59Z';
             } elseif (strlen($date) == 10) {
-                $date = $date . 'T23:59:59Z';
+                $date .= 'T23:59:59Z';
             }
         }
         if ($negative) {
@@ -1785,8 +1785,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         if (empty($noprocess)) {
-            $startDate = $startDate . '-01-01T00:00:00Z';
-            $endDate = $endDate . '-12-31T23:59:59Z';
+            $startDate .= '-01-01T00:00:00Z';
+            $endDate .= '-12-31T23:59:59Z';
         }
 
         // Trying to index dates into the future? I don't think so...

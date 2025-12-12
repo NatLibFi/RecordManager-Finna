@@ -60,8 +60,8 @@ trait AuthoritySupportTrait
      * Prepend authority ID with namespace.
      * The ids that do not pass validation are discarded.
      *
-     * @param string[] $ids  Array of authority ids
-     * @param string   $type Authority type
+     * @param string|string[] $ids  Array of authority ids
+     * @param string          $type Authority type
      *
      * @return array<int, string>
      */

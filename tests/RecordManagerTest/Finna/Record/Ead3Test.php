@@ -255,7 +255,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             $oldTag,
             $newTag,
             $fixture
-        );
+        ) ?? '';
     }
 
     /**
@@ -427,10 +427,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param array $driverParams Datasource settings
      * @param array $tests        Titles and results
      *
-     * @dataProvider getTestTitleYearRange
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getTestTitleYearRange')]
     public function testTitleYearRange($driverParams, $tests)
     {
         $fixture = $this->getFixture('record/ahaa14.xml', 'Finna');
@@ -584,10 +583,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param string  $addIdToHierarchyTitle    Value for addIdToHierarchyTitle driver param
      * @param ?string $expectedTitleInHierarchy Expected title_in_hierarchy field contents
      *
-     * @dataProvider sksProvider
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('sksProvider')]
     public function testSKS(string $addIdToHierarchyTitle, ?string $expectedTitleInHierarchy): void
     {
         $fields = $this->createRecord(
