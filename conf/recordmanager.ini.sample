@@ -151,6 +151,12 @@ unicode_normalization_form = NFKC
 ; Whether to add work identification keys from more than one author. Default is true.
 ;work_keys_from_all_authors = true
 
+; The following section can be used to define additional HTTP settings for Solr connections. These settings override any
+; defined in the [HTTP] section.
+[Solr HTTP]
+;sslcapath = "/etc/ssl/certs" ; e.g. for Debian systems
+;sslcafile = "/etc/pki/tls/cert.pem" ; e.g. for CentOS systems
+
 ; The following section can be used to change the Solr fields used when indexing
 ; records, particularly for hierarchical records. Any field can also be set to empty
 ; to disable it.
