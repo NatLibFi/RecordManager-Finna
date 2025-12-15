@@ -50,6 +50,8 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - Fixed the --inject-id-prefixed option in export.
 - Fixed HTTP redirection handling in FullTextTrait.
 - Fixed HTTP error handling in enrichments, FullTextTrait and Sierra API harvesting.
+- Excluding sources from indexing did not work with PDO database.
+- Sources excluded from indexing were included in the total count of records to process.
 
 ### Removed
 
