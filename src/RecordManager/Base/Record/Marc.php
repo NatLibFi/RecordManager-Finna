@@ -308,7 +308,7 @@ class Marc extends AbstractRecord
         $data['publisher'] = $this->getPublishers();
         $data['publishDateSort'] = $this->getPublicationYear();
         $data['publishDate'] = $this->getPublicationYears();
-        $data['publishDateRange'] = $this->getPublicationYears();
+        $data['publishDateRange'] = $this->getPublicationDateRange();
         $data['physical'] = $this->getPhysicalDescriptions();
         $data['dateSpan'] = $this->getDateSpans();
         $data['edition'] = $this->getEdition();
@@ -1374,6 +1374,16 @@ class Marc extends AbstractRecord
         }
 
         return $result;
+    }
+
+    /**
+     * Get publication date range.
+     *
+     * @return array
+     */
+    protected function getPublicationDateRange(): array
+    {
+        return $this->getPublicationYears();
     }
 
     /**
