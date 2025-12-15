@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2012-2023.
+ * Copyright (C) The National Library of Finland 2012-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -903,6 +903,10 @@ class SolrUpdater
             if ($singleId) {
                 $params['_id'] = $singleId;
                 $lastIndexingDate = null;
+                [, $sourceNor] = $this->createSourceFilter('');
+                if ($sourceNor) {
+                    $params['$nor'] = $sourceNor;
+                }
             } else {
                 if (null !== $fromTimestamp) {
                     $params['updated']
@@ -3231,12 +3235,17 @@ class SolrUpdater
      */
     protected function createSourceFilter($sourceIds)
     {
+        $sourceExclude = [];
+        foreach ($this->nonIndexedSources as $exclude) {
+            $sourceExclude[] = [
+                'source_id' => $exclude,
+            ];
+        }
         if (!$sourceIds || '*' === $sourceIds) {
-            return [null, null];
+            return [null, $sourceExclude];
         }
         $sources = explode(',', $sourceIds);
         $sourceParams = [];
-        $sourceExclude = [];
         foreach ($sources as $source) {
             if ('' === trim($source)) {
                 continue;
