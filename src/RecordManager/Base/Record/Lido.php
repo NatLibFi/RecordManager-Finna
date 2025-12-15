@@ -344,28 +344,6 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Get related ISBNs
-     *
-     * @return array
-     */
-    public function getRelatedISBNs(): array
-    {
-        $results = [];
-        foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
-            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
-                if ($isbn = $this->checkISBN((string)$identifier)) {
-                    // Include ISBNs in original format and in ISBN-13 format
-                    $results[] = $isbn;
-                    if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
-                        $results[] = $normalized;
-                    }
-                }
-            }
-        }
-        return array_unique($results);
-    }
-
-    /**
      * Dedup: Return ISSNs
      *
      * @return array
