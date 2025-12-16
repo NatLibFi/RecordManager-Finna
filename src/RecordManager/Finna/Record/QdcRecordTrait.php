@@ -277,7 +277,7 @@ trait QdcRecordTrait
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         return array_merge(
             parent::getSecondaryAuthors(),

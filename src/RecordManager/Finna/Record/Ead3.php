@@ -866,7 +866,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getSubtitle()
+    protected function getTitleSub()
     {
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
             foreach ($this->doc->did->unitid ?? [] as $id) {
@@ -972,11 +972,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         [$start, $end] = explode('/', $input);
 
         $parseDate = function (
-            $date,
-            $defaultYear = '0',
-            $defaultMonth = '01',
-            $defaultDay = '01',
-            $hour = '00:00:00'
+            string $date,
+            string $defaultYear = '0',
+            string $defaultMonth = '01',
+            ?string $defaultDay = '01',
+            string $hour = '00:00:00'
         ) {
             $unknown = false;
             // Set year/month/day to defaults
@@ -1139,7 +1139,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         $results = $this->getTopicTermsFromNodeWithRelators(
             'subject',
@@ -1291,7 +1291,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getInstitution()
+    protected function getInstitution(): string
     {
         $firstResult = $langResult = '';
         foreach ($this->doc->did->repository ?? [] as $repo) {
@@ -1317,7 +1317,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getDescription()
+    protected function getDescription(): string
     {
         if (!empty($this->doc->scopecontent)) {
             $desc = [];

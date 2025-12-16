@@ -146,6 +146,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Hintze Harry, kuvaaja',
             ],
             'author_sort' => 'Testaaja, Taavi, suunnittelija',
+            'author2' => [],
             'author2_id_str_mv' => [
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
             ],
@@ -314,6 +315,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'file_identifier_str_mv' => [
                 '111222',
                 'mau.jpg',
+            ],
+            'url' => [
+                'http://muisti.nba.fi/m/4878_1/00013199.jpg',
             ],
         ];
 

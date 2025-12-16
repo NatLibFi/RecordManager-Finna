@@ -93,6 +93,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'FOO',
                 'doi1',
                 'doi',
+                'uuid_lower',
+                'uuid',
+                'uuid_upper',
+                'UUID',
                 'Hirsjärvi, Sirkka',
                 'Tutki ja kirjoita',
                 'Sirkka Hirsjärvi, Pirkko Remes, Paula Sajavaara',
@@ -100,6 +104,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Helsinki',
                 'Tammi',
                 '2345 [2013?]',
+                'Series Double',
+                'Series 490',
                 '18. p. 2013',
                 'Summary field',
                 'oppaat',
@@ -116,6 +122,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Sajavaara, Paula',
                 'Example Distributor',
                 'distributor',
+                'Series 830',
             ],
             'language' => [
                 'fin',
@@ -163,13 +170,21 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_new' => [],
             'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [],
+            'series' => [
+                'Series Double',
+                'Series 490',
+                'Series Double',
+                'Series 830',
+            ],
             'publisher' => [
                 'Tammi',
             ],
             'publishDateSort' => '2013',
             'publishDate' => [
                 '2013',
+            ],
+            'publishDateRange' => [
+                '[2013-01-01 TO 2013-12-31]',
             ],
             'physical' => [],
             'dateSpan' => [],
@@ -220,6 +235,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'tutkimustyö',
                 'tutkimus',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -259,8 +275,16 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'ekl 38.03',
                 'ekl 38.03',
             ],
-            'callnumber-subject' => 'QC',
-            'callnumber-label' => 'QC861',
+            'callnumber-subject' => '',
+            'callnumber-label' => [
+                '38',
+                '38.0',
+                '38',
+                '38.0',
+                'QC',
+                'QC861',
+                'QC861.2',
+            ],
             'source_str_mv' => '__unit_test_no_source__',
             'datasource_str_mv' => [
                 '__unit_test_no_source__',
@@ -286,6 +310,12 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'FCC005246184',
                 '378890',
                 '401416',
+            ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [
+                'uuid_lower',
+                'uuid_upper',
             ],
         ];
 
@@ -417,6 +447,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '2001',
             ],
+            'publishDateRange' => [
+                '[2001-01-01 TO 2001-12-31]',
+            ],
             'physical' => [
                 'xxiii, 551 sivua : kuvitettu + CD-ROM -levy',
             ],
@@ -431,6 +464,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
+            'callnumber-subject' => '',
+            'callnumber-label' => [],
             'topic' => [
                 'neuropsykologia',
                 'biopsykologia',
@@ -447,6 +482,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'neuropsykologi',
                 'biopsykologi',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -493,6 +529,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 1 => '1558192',
                 2 => 'FCC002608043',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -587,6 +626,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '1946',
             ],
+            'publishDateRange' => [
+                '[1946-01-01 TO 1946-12-31]',
+            ],
             'physical' => [
                 '1 kartta : värillinen ; taitettuna 26 x 13 cm',
             ],
@@ -600,6 +642,11 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '42.02',
             ],
             'callnumber-sort' => '42.02',
+            'callnumber-subject' => '',
+            'callnumber-label' => [
+                '42',
+                '42.0',
+            ],
             'topic' => [
                 'tiekartat',
                 'kartat Suomi',
@@ -620,6 +667,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'tiekartat',
                 'kartat',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [
                 'Suomi',
@@ -680,6 +728,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 2 => '(PIKI)Ppro837_107786',
                 3 => '(FI-MELINDA)000963219',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
+            'isbn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -761,6 +813,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '2020',
             ],
+            'publishDateRange' => [
+                '[2020-01-01 TO 2020-12-31]',
+            ],
             'physical' => [],
             'dateSpan' => [],
             'edition' => '',
@@ -772,6 +827,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '614.8',
             ],
             'callnumber-sort' => '614.8',
+            'callnumber-subject' => '',
+            'callnumber-label' => [
+                '614',
+            ],
             'topic' => [
                 'testaus',
             ],
@@ -782,6 +841,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'topic_facet' => [
                 'testaus',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -824,6 +884,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'linking_id_str_mv' => [
                 '123',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
+            'isbn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -903,6 +967,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '2020',
             ],
+            'publishDateRange' => [
+                '[2020-01-01 TO 2020-12-31]',
+            ],
             'physical' => [],
             'dateSpan' => [],
             'edition' => '',
@@ -912,6 +979,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'callnumber-first' => '614.8',
             'callnumber-raw' => [
                 '614.8',
+            ],
+            'callnumber-subject' => '',
+            'callnumber-label' => [
+                '614',
             ],
             'callnumber-sort' => '614.8',
             'topic' => [
@@ -924,6 +995,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'topic_facet' => [
                 'testaus',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -966,6 +1038,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'linking_id_str_mv' => [
                 '123',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
+            'isbn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1035,6 +1111,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '2015',
             ],
+            'publishDateRange' => [
+                '[2015-01-01 TO 2015-12-31]',
+            ],
             'physical' => [],
             'dateSpan' => [],
             'edition' => '',
@@ -1043,6 +1122,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
+            'callnumber-subject' => '',
+            'callnumber-label' => [],
             'callnumber-sort' => '',
             'topic' => [
                 'Wiik, Maria',
@@ -1056,6 +1137,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Wiik, Maria',
                 'Berlioz, Hector',
             ],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -1088,6 +1170,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'linking_id_str_mv' => [
                 '123',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
+            'isbn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1154,6 +1240,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDate' => [
                 '1931',
             ],
+            'publishDateRange' => [
+                '[1931-01-01 TO 1943-12-31]',
+            ],
             'physical' => [],
             'dateSpan' => [],
             'edition' => '',
@@ -1162,6 +1251,8 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'doi_str_mv' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [],
+            'callnumber-subject' => '',
+            'callnumber-label' => [],
             'callnumber-sort' => '',
             'topic' => [],
             'genre' => [],
@@ -1169,6 +1260,7 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'geographic_id_str_mv' => [],
             'era' => [],
             'topic_facet' => [],
+            'topic_browse' => [],
             'genre_facet' => [],
             'geographic_facet' => [],
             'era_facet' => [],
@@ -1200,6 +1292,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'linking_id_str_mv' => [
                 '123',
             ],
+            'series2' => [],
+            'oclc_num' => [],
+            'uuid_str_mv' => [],
+            'isbn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

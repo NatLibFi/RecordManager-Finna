@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2023.
+ * Copyright (C) The National Library of Finland 2012-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -35,6 +35,7 @@ use RecordManager\Base\Marc\Marc as MarcHandler;
 use RecordManager\Base\Record\CreateRecordTrait;
 use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
+use RecordManager\Base\Utils\DeweyCallNumber;
 use RecordManager\Base\Utils\LcCallNumber;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
@@ -335,16 +336,15 @@ class Marc extends \RecordManager\Base\Record\Marc
             ),
         ];
 
-        if (isset($data['publishDate'])) {
-            $data['main_date_str']
-                = $this->metadataUtils->extractYear($data['publishDate'][0]);
-            $data['main_date']
-                = $this->validateDate($data['main_date_str'] . '-01-01T00:00:00Z');
+        if ($data['publishDate']) {
+            $data['main_date_str'] = $this->metadataUtils->extractYear($data['publishDate'][0]);
+            $data['main_date'] = $this->validateDate($data['main_date_str'] . '-01-01T00:00:00Z');
         }
-        if ($range = $this->getPublicationDateRange()) {
-            $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->dateRangeToStr($range);
-        }
+        $data['search_daterange_mv'] = [
+            ...($data['search_daterange_mv'] ?? []),
+            ...($data['publishDateRange'] ?? []),
+        ];
+        $data['publication_daterange'] = $data['publishDateRange'][0] ?? null;
         $data['publication_place_txt_mv'] = $this->metadataUtils->arrayTrim(
             $this->getFieldsSubfields(
                 [
@@ -516,12 +516,6 @@ class Marc extends \RecordManager\Base\Record\Marc
         if (isset($data['classification_txt_mv'])) {
             $data['classification_str_mv'] = $data['classification_txt_mv'];
         }
-
-        // Original Study Number
-        $data['ctrlnum'] = [
-            ...(array)$data['ctrlnum'],
-            ...$this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '036', ['a']]]),
-        ];
 
         // Source
         $data['source_str_mv'] = $this->source;
@@ -790,66 +784,6 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
-        // Call numbers
-        $data['callnumber-first'] = strtoupper(
-            str_replace(
-                ' ',
-                '',
-                $this->getFirstFieldSubfields(
-                    [
-                        [MarcHandler::GET_NORMAL, '080', ['a', 'b']],
-                        [MarcHandler::GET_NORMAL, '084', ['a', 'b']],
-                        [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
-                    ]
-                )
-            )
-        );
-        $data['callnumber-raw'] = array_map(
-            'strtoupper',
-            $this->getFieldsSubfields(
-                [
-                    [MarcHandler::GET_NORMAL, '080', ['a', 'b']],
-                    [MarcHandler::GET_NORMAL, '084', ['a', 'b']],
-                ]
-            )
-        );
-        $data['callnumber-sort'] = '';
-        if (!empty($data['callnumber-raw'])) {
-            $data['callnumber-sort'] = $data['callnumber-raw'][0];
-        }
-        $lccn = array_map(
-            'strtoupper',
-            $this->getFieldsSubfields(
-                [
-                    [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
-                ]
-            )
-        );
-        if ($lccn) {
-            $data['callnumber-raw'] = [
-                ...$data['callnumber-raw'],
-                ...$lccn,
-            ];
-            if (empty($data['callnumber-sort'])) {
-                // Try to find a valid call number
-                $firstCn = null;
-                foreach ($lccn as $callnumber) {
-                    $cn = new LcCallNumber($callnumber);
-                    if (null === $firstCn) {
-                        $firstCn = $cn;
-                    }
-                    if ($cn->isValid()) {
-                        $data['callnumber-sort'] = $cn->getSortKey();
-                        break;
-                    }
-                }
-                if (empty($data['callnumber-sort'])) {
-                    // No valid call number, take first
-                    $data['callnumber-sort'] = $cn->getSortKey();
-                }
-            }
-        }
-
         if ($rights = $this->getUsageRights()) {
             $data['usage_rights_str_mv'] = $rights;
             $data['usage_rights_ext_str_mv'] = $rights;
@@ -917,16 +851,6 @@ class Marc extends \RecordManager\Base\Record\Marc
                 ]
             )
         );
-
-        // Additional IDs from repeated 001 (Sierra):
-        $ids = $this->record->getFields('001');
-        array_shift($ids);
-        if ($ids) {
-            $data['ctrlnum'] = [
-                ...($data['ctrlnum'] ?? []),
-                ...$ids,
-            ];
-        }
 
         // Order and item count summary:
         foreach ($this->record->getFields('852') as $field) {
@@ -1389,7 +1313,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return bool
      */
-    public function getSuppressed()
+    public function getSuppressed(): bool
     {
         if (parent::getSuppressed()) {
             return true;
@@ -1427,6 +1351,20 @@ class Marc extends \RecordManager\Base\Record\Marc
         }
         $this->resultCache[__METHOD__] = $result;
         return $result;
+    }
+
+    /**
+     * Dedup: Return publication year (four digits only)
+     *
+     * @return string
+     */
+    public function getPublicationYear()
+    {
+        if (!isset($this->resultCache[__METHOD__])) {
+            $dateRanges = $this->getPublicationDateRanges();
+            $this->resultCache[__METHOD__] = $dateRanges ? substr($dateRanges[0], 1, 4) : '';
+        }
+        return $this->resultCache[__METHOD__];
     }
 
     /**
@@ -2137,10 +2075,63 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array Date range
      */
-    protected function getPublicationDateRange()
+    protected function getPublicationDateRanges(): array
     {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+        $result = [];
+
+        $addToResult = function (?string $startDate, ?string $endDate) use (&$result): void {
+            if (null === $startDate || null === $endDate) {
+                return;
+            }
+            if (
+                $this->metadataUtils->validateISO8601Date($startDate) !== false
+                && $this->metadataUtils->validateISO8601Date($endDate) !== false
+            ) {
+                if ($endDate < $startDate) {
+                    $this->logger->logDebug(
+                        'Marc',
+                        "Invalid date range $startDate - $endDate, record {$this->source}." . $this->getID(),
+                        true
+                    );
+                    $this->storeWarning('invalid date range in 008');
+                    $endDate = substr($startDate, 0, 4) . '-12-31T23:59:59Z';
+                }
+                $result[] = $this->dateRangeToStr([$startDate, $endDate]);
+            }
+        };
+
+        if ($field = $this->record->getField('260')) {
+            $year = $this->extractYear($this->record->getSubfield($field, 'c'));
+            if ($year) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
+        }
+
+        foreach ($this->record->getFields('264') as $field) {
+            if ($this->record->getIndicator($field, 2) !== '1') {
+                continue;
+            }
+            $publishDate = $this->record->getSubfield($field, 'c');
+            if ($years = $this->extractYearRange($publishDate)) {
+                $startDate = "{$years[0]}-01-01T00:00:00Z";
+                $endDate = "{$years[1]}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            } elseif ($year = $this->extractYear($publishDate)) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
+        }
+
         $field008 = $this->record->getControlField('008');
         if ($field008) {
+            $startDate = null;
+            $endDate = null;
             switch (substr($field008, 6, 1)) {
                 case 'c':
                     $year = substr($field008, 7, 4);
@@ -2177,66 +2168,24 @@ class Marc extends \RecordManager\Base\Record\Marc
                     $endDate = "$year-12-31T23:59:59Z";
                     break;
             }
+            $addToResult($startDate, $endDate);
         }
 
-        if (
-            !isset($startDate)
-            || !isset($endDate)
-            || $this->metadataUtils->validateISO8601Date($startDate) === false
-            || $this->metadataUtils->validateISO8601Date($endDate) === false
-        ) {
-            if ($field = $this->record->getField('260')) {
-                $year = $this->extractYear($this->record->getSubfield($field, 'c'));
-                if ($year) {
-                    $startDate = "{$year}-01-01T00:00:00Z";
-                    $endDate = "{$year}-12-31T23:59:59Z";
-                }
-            }
-        }
+        return $this->resultCache[__METHOD__] = array_unique($result);
+    }
 
-        if (
-            !isset($startDate)
-            || !isset($endDate)
-            || $this->metadataUtils->validateISO8601Date($startDate) === false
-            || $this->metadataUtils->validateISO8601Date($endDate) === false
-        ) {
-            foreach ($this->record->getFields('264') as $field) {
-                if ($this->record->getIndicator($field, 2) !== '1') {
-                    continue;
-                }
-                $publishDate = $this->record->getSubfield($field, 'c');
-                if ($years = $this->extractYearRange($publishDate)) {
-                    $startDate = "{$years[0]}-01-01T00:00:00Z";
-                    $endDate = "{$years[1]}-12-31T23:59:59Z";
-                    break;
-                }
-                if ($year = $this->extractYear($publishDate)) {
-                    $startDate = "{$year}-01-01T00:00:00Z";
-                    $endDate = "{$year}-12-31T23:59:59Z";
-                    break;
-                }
-            }
+    /**
+     * Return publication years
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        if (!isset($this->resultCache[__METHOD__])) {
+            $dateRanges = $this->getPublicationDateRanges();
+            $this->resultCache[__METHOD__] = $dateRanges ? array_map(fn ($s) => substr($s, 1, 4), $dateRanges) : [];
         }
-        if (
-            isset($startDate)
-            && isset($endDate)
-            && $this->metadataUtils->validateISO8601Date($startDate) !== false
-            && $this->metadataUtils->validateISO8601Date($endDate) !== false
-        ) {
-            if ($endDate < $startDate) {
-                $this->logger->logDebug(
-                    'Marc',
-                    "Invalid date range {$startDate} - {$endDate}, record "
-                        . "{$this->source}." . $this->getID(),
-                    true
-                );
-                $this->storeWarning('invalid date range in 008');
-                $endDate = substr($startDate, 0, 4) . '-12-31T23:59:59Z';
-            }
-            return [$startDate, $endDate];
-        }
-
-        return [];
+        return $this->resultCache[__METHOD__];
     }
 
     /**
@@ -2594,7 +2543,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array<int, string>
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         $result = [
             ...parent::getTopics(),
@@ -2641,7 +2590,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array
      */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'd', 'e'],
@@ -2682,7 +2631,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         $fieldSpecs = [
             '100' => ['a', 'b', 'c', 'd', 'e'],
@@ -2726,7 +2675,7 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         $fieldSpecs = [
             '110' => ['a', 'b', 'e'],
@@ -3038,5 +2987,191 @@ class Marc extends \RecordManager\Base\Record\Marc
             $result = $this->record->toFormat('MARCXML');
         }
         return $result;
+    }
+
+    /**
+     * Get control numbers.
+     *
+     * @return array
+     */
+    protected function getControlNumbers(): array
+    {
+        // Original Study Number:
+        $studyNumbers = $this->getFieldsSubfields([[MarcHandler::GET_NORMAL, '036', ['a']]]);
+        // Additional IDs from repeated 001 (Sierra):
+        $ids = $this->record->getFields('001');
+        array_shift($ids);
+        return [
+            ...parent::getControlNumbers(),
+            ...$studyNumbers,
+            ...$ids,
+        ];
+    }
+
+    /**
+     * Get first character of the call number.
+     *
+     * @return string
+     */
+    protected function getCallNumberFirst(): string
+    {
+        return $this->getFirstFieldSubfields(
+            [
+                [MarcHandler::GET_NORMAL, '080', ['a', 'b']],
+                [MarcHandler::GET_NORMAL, '084', ['a', 'b']],
+                [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
+            ]
+        );
+    }
+
+    /**
+     * Get call number subject.
+     *
+     * @return string
+     */
+    protected function getCallNumberSubject(): string
+    {
+        $value = $this->getFirstFieldSubfields(
+            [
+                [MarcHandler::GET_NORMAL, '080', ['a']],
+                [MarcHandler::GET_NORMAL, '084', ['a']],
+                [MarcHandler::GET_NORMAL, '050', ['a']],
+            ]
+        );
+        if ('' !== $value && preg_match('/^([A-Z]+)/', strtoupper($value), $matches)) {
+            return $matches[1];
+        }
+        return '';
+    }
+
+    /**
+     * Extract the call number labels from a record.
+     *
+     * Parameter fieldSpecs might include 952e for FOLIO, in which case we do not know the type of call number
+     * (also sometimes call numbers are in the wrong MARC field for their type).
+     * If LCC: classLetters, classLetters + classDigits, classLetters + classDigits + classDecimal
+     * If Dewey: classDigits, classDigits + classDecimal
+     * Otherwise: everything up until the dot (or everything if there is no dot)
+     *
+     * @param ?array $fieldSpecs Tag list for call number fields, or null for defaults
+     *
+     * @return array
+     */
+    protected function getCallNumberLabels(?array $fieldSpecs = null): array
+    {
+        $fieldSpecs ??= [
+            [MarcHandler::GET_NORMAL, '080', ['a']],
+            [MarcHandler::GET_NORMAL, '084', ['a']],
+            [MarcHandler::GET_NORMAL, '050', ['a']],
+        ];
+
+        $result = [];
+        foreach ($this->getFieldsSubfields($fieldSpecs) as $field) {
+            $cnUp = mb_strtoupper(trim($field), 'UTF-8');
+            $lcc = new LcCallNumber($cnUp);
+            $dewey = new DeweyCallNumber($cnUp);
+            $other = str_contains($cnUp, ':') || (!str_contains($cnUp, '.') && mb_strlen($cnUp, 'UTF-8') > 10);
+            $isLcc = !$other && $lcc->isValid();
+            $isDewey = !$other && $dewey->isValid();
+            if ($isLcc) {
+                $result[] = $lcc->getClassLetters();
+                $result[] = $lcc->getClassLetters() . $lcc->getClassDigits();
+                if ('' !== ($decimal = $lcc->getClassDecimal())) {
+                    $result[] = $lcc->getClassLetters() . $lcc->getClassDigits() . $decimal;
+                }
+            } elseif ($isDewey) {
+                $result[] = $dewey->getClassDigits();
+                $classDecimal = $dewey->getClassDecimal();
+                if ('' != $classDecimal) {
+                    $limit = min(5, mb_strlen($classDecimal, 'UTF-8') - 1);
+                    for ($i = 1; $i < $limit; $i++) {
+                        $result[] = $dewey->getClassDigits() . mb_substr($classDecimal, 0, $i + 1);
+                    }
+                }
+            } else {
+                // NOTE: we could add other classifications like SuDoc here (and add related MARC fields to fieldSpec)
+                $dotPos = strpos($cnUp, '.');
+                if (false === $dotPos) {
+                    $result[] = $cnUp;
+                    continue;
+                }
+                if (0 === $dotPos) {
+                    continue;
+                }
+                $result[] = trim(mb_substr($cnUp, 0, $dotPos));
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get raw call numbers.
+     *
+     * @return array
+     */
+    protected function getCallNumbersRaw(): array
+    {
+        return array_map(
+            'strtoupper',
+            $this->getFieldsSubfields(
+                [
+                    [MarcHandler::GET_NORMAL, '080', ['a', 'b']],
+                    [MarcHandler::GET_NORMAL, '084', ['a', 'b']],
+                    [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
+                ]
+            )
+        );
+    }
+
+    /**
+     * Augment call number fields with additional data.
+     *
+     * @param array $data Data array to manipulate
+     *
+     * @return void
+     */
+    protected function augmentCallNumberFields(array &$data): void
+    {
+        $data['callnumber-sort'] = '';
+        if (!empty($data['callnumber-raw'])) {
+            $data['callnumber-sort'] = $data['callnumber-raw'][0];
+        } else {
+            $lccn = array_map(
+                'strtoupper',
+                $this->getFieldsSubfields(
+                    [
+                        [MarcHandler::GET_NORMAL, '050', ['a', 'b']],
+                    ]
+                )
+            );
+            if ($lccn) {
+                // Try to find a valid call number
+                $firstCn = null;
+                foreach ($lccn as $callnumber) {
+                    $cn = new LcCallNumber($callnumber);
+                    if (null === $firstCn) {
+                        $firstCn = $cn;
+                    }
+                    if ($cn->isValid()) {
+                        $data['callnumber-sort'] = $cn->getSortKey();
+                        break;
+                    }
+                }
+                if (empty($data['callnumber-sort'])) {
+                    // No valid call number, take first
+                    $data['callnumber-sort'] = $cn->getSortKey();
+                }
+            }
+        }
+    }
+
+    /**
+     * Get all non-specific topics for browse
+     *
+     * @return array<int, string>
+     */
+    protected function getTopicsForBrowse()
+    {
+        return [];
     }
 }

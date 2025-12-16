@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2023.
+ * Copyright (C) The National Library of Finland 2012-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -350,6 +350,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
+        $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
         return $data;
     }
 
@@ -523,6 +524,28 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return array_values(array_unique($results));
+    }
+
+    /**
+     * Get related ISBNs
+     *
+     * @return array
+     */
+    public function getRelatedISBNs(): array
+    {
+        $results = [];
+        foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
+            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
+                if ($isbn = $this->checkISBN((string)$identifier)) {
+                    // Include ISBNs in original format and in ISBN-13 format
+                    $results[] = $isbn;
+                    if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
+                        $results[] = $normalized;
+                    }
+                }
+            }
+        }
+        return array_unique($results);
     }
 
     /**
@@ -2139,17 +2162,14 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
-        if ($this->getDriverParam('indexHierarchies', false)) {
-            parent::getHierarchyFields($data);
-        }
         // Add additional related work titles
         if ($furtherTitles = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended)) {
             // Check that number of indexed parent titles and ids match
@@ -2164,6 +2184,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 ...$furtherTitles,
             ];
         }
+
+        parent::addHierarchyFields($data);
     }
 
     /**

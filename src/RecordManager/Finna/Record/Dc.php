@@ -87,9 +87,8 @@ class Dc extends \RecordManager\Base\Record\Dc
     {
         $data = parent::toSolrArray($db);
 
-        if (isset($data['publishDate'])) {
-            $data['main_date_str']
-                = $this->metadataUtils->extractYear($data['publishDate']);
+        if ('' !== $data['publishDate']) {
+            $data['main_date_str'] = $this->metadataUtils->extractYear($data['publishDate']);
             $data['main_date'] = $this->validateDate(
                 $this->getPublicationYear() . '-01-01T00:00:00Z'
             );

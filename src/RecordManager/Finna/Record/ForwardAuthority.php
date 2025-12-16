@@ -29,6 +29,8 @@
 
 namespace RecordManager\Finna\Record;
 
+use RecordManager\Base\Database\DatabaseInterface as Database;
+
 /**
  * Forward authority Record Class
  *
@@ -43,6 +45,22 @@ namespace RecordManager\Finna\Record;
 class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
 {
     use ForwardRecordTrait;
+
+    /**
+     * Return fields to be indexed in Solr
+     *
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSolrArray(?Database $db = null)
+    {
+        $data = parent::toSolrArray($db);
+
+        $data['datasource_str_mv'] = $data['source_str_mv'] = $this->source;
+
+        return $data;
+    }
 
     /**
      * Get occupations
