@@ -702,6 +702,6 @@ class Ead3 extends Ead
      */
     protected function getTitleSort(): string
     {
-        return mb_strtolower($this->metadataUtils->stripPunctuation($this->getTitle()), 'UTF-8');
+        return mb_strtolower($this->metadataUtils->stripPunctuation($this->getTitleField()), 'UTF-8');
     }
 }
