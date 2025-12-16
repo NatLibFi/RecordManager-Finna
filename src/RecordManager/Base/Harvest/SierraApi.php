@@ -278,7 +278,7 @@ class SierraApi extends AbstractBase
         $apiParams = [
             'limit' => $this->batchSize,
             'offset' => $this->startPosition,
-            'fields' => 'id,deleted,locations,fixedFields,varFields',
+            'fields' => $this->harvestFields[$this->endpoint] ?? '',
             'id' => $id,
         ];
         if (null !== $this->suppressedRecords) {
