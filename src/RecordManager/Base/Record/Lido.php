@@ -1436,59 +1436,61 @@ class Lido extends AbstractRecord
      */
     protected function addHierarchyFields(array &$data): void
     {
-        foreach ($this->getRelatedWorkSetNodes(['is part of']) as $set) {
-            if (!($relatedWork = $set->relatedWork)) {
-                continue;
-            }
-            $relatedId = (string)($relatedWork->object->objectID ?? '');
-            if (!$relatedId) {
-                $this->logger
-                    ->logDebug('Lido', 'Related record ID missing', true);
-                continue;
-            }
-            $relatedTitle = (string)($relatedWork->displayObject ?? '');
-            if (!$relatedTitle) {
-                $this->logger
-                    ->logDebug('Lido', 'Related record title missing', true);
-                continue;
-            }
+        if ($this->getDriverParam('indexHierarchies', false)) {
+            foreach ($this->getRelatedWorkSetNodes(['is part of']) as $set) {
+                if (!($relatedWork = $set->relatedWork)) {
+                    continue;
+                }
+                $relatedId = (string)($relatedWork->object->objectID ?? '');
+                if (!$relatedId) {
+                    $this->logger
+                        ->logDebug('Lido', 'Related record ID missing', true);
+                    continue;
+                }
+                $relatedTitle = (string)($relatedWork->displayObject ?? '');
+                if (!$relatedTitle) {
+                    $this->logger
+                        ->logDebug('Lido', 'Related record title missing', true);
+                    continue;
+                }
 
-            $type = (string)($relatedWork->object->objectType->term ?? '');
-            if ('collection' === $type) {
-                $data['hierarchy_top_id'] = $relatedId;
-                $data['hierarchy_top_title'] = $relatedTitle;
-            } elseif ('parent' === $type) {
-                if ($relatedId === $this->getID()) {
-                    $data['is_hierarchy_id'] = $relatedId;
-                    $data['is_hierarchy_title'] = $relatedTitle;
-                } else {
-                    $data['hierarchy_parent_id'] = $relatedId;
-                    $data['hierarchy_parent_title'] = $relatedTitle;
+                $type = (string)($relatedWork->object->objectType->term ?? '');
+                if ('collection' === $type) {
+                    $data['hierarchy_top_id'] = $relatedId;
+                    $data['hierarchy_top_title'] = $relatedTitle;
+                } elseif ('parent' === $type) {
+                    if ($relatedId === $this->getID()) {
+                        $data['is_hierarchy_id'] = $relatedId;
+                        $data['is_hierarchy_title'] = $relatedTitle;
+                    } else {
+                        $data['hierarchy_parent_id'] = $relatedId;
+                        $data['hierarchy_parent_title'] = $relatedTitle;
+                    }
                 }
             }
-        }
-        // If there is hierarchy top id but no parent id, assume this is the top
-        // record:
-        if (
-            !empty($data['hierarchy_top_id'])
-            && empty($data['hierarchy_parent_id'])
-        ) {
-            $data['is_hierarchy_id'] = $data['hierarchy_top_id'];
-            $data['is_hierarchy_title'] = $data['hierarchy_top_title'];
-        }
-        if (!empty($data['hierarchy_parent_id'])) {
-            // Build a sequence for sorting:
-            $data['hierarchy_sequence'] = preg_replace_callback(
-                '/(\d+)/',
-                function ($matches) {
-                    return str_pad($matches[1], 9, '0', STR_PAD_LEFT);
-                },
-                $this->getIdentifier()
-            );
-            // Add title field if needed:
-            if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
-                $data['title_in_hierarchy']
-                    = trim($this->getIdentifier() . ' ' . $data['title']);
+            // If there is hierarchy top id but no parent id, assume this is the top
+            // record:
+            if (
+                !empty($data['hierarchy_top_id'])
+                && empty($data['hierarchy_parent_id'])
+            ) {
+                $data['is_hierarchy_id'] = $data['hierarchy_top_id'];
+                $data['is_hierarchy_title'] = $data['hierarchy_top_title'];
+            }
+            if (!empty($data['hierarchy_parent_id'])) {
+                // Build a sequence for sorting:
+                $data['hierarchy_sequence'] = preg_replace_callback(
+                    '/(\d+)/',
+                    function ($matches) {
+                        return str_pad($matches[1], 9, '0', STR_PAD_LEFT);
+                    },
+                    $this->getIdentifier()
+                );
+                // Add title field if needed:
+                if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+                    $data['title_in_hierarchy']
+                        = trim($this->getIdentifier() . ' ' . $data['title']);
+                }
             }
         }
 
