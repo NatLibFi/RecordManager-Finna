@@ -747,7 +747,7 @@ class Lido extends AbstractRecord
     protected function getActors($event = null, $role = null, $includeRoles = false)
     {
         $key = md5(__METHOD__ . ($event ? implode(',', (array)$event) : 'null') . '|'
-            . ($role ? implode(',', $role) : 'null') . '|' . ($includeRoles ? '1' : '0'));
+            . ($role ? implode(',', (array)$role) : 'null') . '|' . ($includeRoles ? '1' : '0'));
         if (isset($this->resultCache[$key])) {
             return $this->resultCache[$key];
         }
