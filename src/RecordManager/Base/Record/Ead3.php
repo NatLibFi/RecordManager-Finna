@@ -128,23 +128,13 @@ class Ead3 extends Ead
     }
 
     /**
-     * Return record title
-     *
-     * @param bool $forFiling Whether the title is to be used in filing
-     *                        (e.g. sorting, non-filing characters should be removed)
+     * Get short title for enrichment.
      *
      * @return string
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getTitle($forFiling = false)
+    public function getShortTitleForEnrichment(): string
     {
-        $title = (string)($this->doc->did->unittitle ?? '');
-        if ($forFiling) {
-            $title = $this->metadataUtils->createSortTitle($title);
-        }
-
-        return $title;
+        return (string)($this->doc->did->unittitle ?? '');
     }
 
     /**
@@ -215,7 +205,7 @@ class Ead3 extends Ead
      */
     public function getShortTitle(): string
     {
-        return $this->getTitle();
+        return (string)($this->doc->did->unittitle ?? '');
     }
 
     /**
@@ -225,7 +215,49 @@ class Ead3 extends Ead
      */
     public function getTitleSort(): string
     {
-        return mb_strtolower($this->metadataUtils->stripPunctuation($this->getTitleField()), 'UTF-8');
+        return mb_strtolower($this->metadataUtils->stripPunctuation($this->getTitle()), 'UTF-8');
+    }
+
+    /**
+     * Return record title
+     *
+     * @param bool $forFiling Whether the title is to be used in filing
+     *                        (e.g. sorting, non-filing characters should be removed)
+     *
+     * @return string
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function getTitle($forFiling = false): string
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        $titleSub = $this->getTitleSub();
+        $shortTitle = $this->getShortTitle();
+
+        $title = '';
+        // Ini handling returns true as '1':
+        $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
+        if (
+            '1' === $prependTitle
+            || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
+        ) {
+            if (
+                '' !== $titleSub
+                && $titleSub !== $shortTitle
+            ) {
+                $title = $titleSub . ' ';
+            }
+        }
+        $title .= $shortTitle;
+
+        if ($forFiling) {
+            $title = $this->metadataUtils->createSortTitle($title);
+        }
+
+        return $this->resultCache[__METHOD__] = $title;
     }
 
     /**
@@ -640,45 +672,12 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get title field.
-     *
-     * @return string
-     */
-    protected function getTitleField(): string
-    {
-        if (isset($this->resultCache[__METHOD__])) {
-            return $this->resultCache[__METHOD__];
-        }
-
-        $titleSub = $this->getTitleSub();
-        $shortTitle = $this->getShortTitle();
-
-        $title = '';
-        // Ini handling returns true as '1':
-        $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
-        if (
-            '1' === $prependTitle
-            || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
-        ) {
-            if (
-                '' !== $titleSub
-                && $titleSub !== $shortTitle
-            ) {
-                $title = $titleSub . ' ';
-            }
-        }
-        $title .= $shortTitle;
-
-        return $this->resultCache[__METHOD__] = $title;
-    }
-
-    /**
      * Get full title.
      *
      * @return string
      */
     protected function getFullTitle(): string
     {
-        return $this->getTitleField();
+        return $this->getTitle();
     }
 }

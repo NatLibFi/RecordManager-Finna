@@ -162,12 +162,14 @@ class Doaj extends AbstractRecord
     }
 
     /**
-     * Dedup: Return record title
+     * Return record title
      *
      * @param bool $forFiling Whether the title is to be used in filing
      *                        (e.g. sorting, non-filing characters should be removed)
      *
      * @return string
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function getTitle($forFiling = false)
     {
