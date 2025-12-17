@@ -3136,23 +3136,34 @@ class SolrUpdater
         /** @psalm-var list<string> $dsEnrichments */
         $dsEnrichments = (array)($settings['enrichments'] ?? []);
         $enrichments = array_unique(
-            [
-                ...$globalEnrichments,
-                ...$dsEnrichments,
-            ]
+            array_map(
+                function ($enrichment) use ($stage) {
+                    $exploded = explode(',', $enrichment, 2);
+                    $name = $exploded[0];
+                    $stage = $exploded[1] ?? '';
+                    return compact('name', 'stage');
+                },
+                [
+                        ...$globalEnrichments,
+                        ...$dsEnrichments,
+                    ]
+            ),
+            SORT_REGULAR
         );
-        foreach ($enrichments as $enrichmentSettings) {
-            $parts = explode(',', $enrichmentSettings);
-            $enrichment = $parts[0];
-            $enrichmentStage = $parts[1] ?? '';
-            if ($stage !== $enrichmentStage) {
+        foreach ($enrichments as $enrichment) {
+            if ($stage !== $enrichment['stage']) {
                 continue;
             }
-            if (!isset($this->enrichments[$enrichment])) {
-                $this->enrichments[$enrichment]
-                    = $this->enrichmentPluginManager->get($enrichment);
+            $enrichmentName = $enrichment['name'];
+            if (!$this->enrichmentPluginManager->has($enrichmentName)) {
+                continue;
             }
-            $this->enrichments[$enrichment]->enrich($source, $record, $data);
+            $enrichmentService = $this->enrichmentPluginManager->get($enrichmentName);
+            $enrichmentServiceName = $enrichmentService::class;
+            if (!isset($this->enrichments[$enrichmentServiceName])) {
+                $this->enrichments[$enrichmentServiceName] = $enrichmentService;
+            }
+            $this->enrichments[$enrichmentServiceName]->enrich($source, $record, $data);
         }
     }
 

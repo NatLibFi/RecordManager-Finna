@@ -52,7 +52,7 @@ use RecordManager\Base\Utils\MetadataUtils;
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
-abstract class AuthEnrichment extends AbstractEnrichment
+class AuthEnrichment extends AbstractEnrichment
 {
     use \RecordManager\Base\Record\CreateRecordTrait;
 
@@ -62,6 +62,21 @@ abstract class AuthEnrichment extends AbstractEnrichment
      * @var Database
      */
     protected $authorityDb;
+
+    /**
+     * Enrichment specifications. Key is the array in solrArray and value contains following:
+     * - pref, preferred field in solr
+     * - check, check field for existing values
+     *
+     * @var array<string, array>
+     */
+    protected array $enrichmentSpecs = [
+        'author2_id_str_mv' => [
+            'pref' => 'author_variant',
+            'check' => 'author_variant',
+            'includeInAllFields' => true,
+        ],
+    ];
 
     /**
      * Constructor
@@ -93,6 +108,36 @@ abstract class AuthEnrichment extends AbstractEnrichment
             $metadataUtils
         );
         $this->authorityDb = $authorityDb;
+    }
+
+    /**
+     * Enrich the record and return any additions in solrArray
+     *
+     * @param string $sourceId  Source ID
+     * @param object $record    Metadata Record
+     * @param array  $solrArray Metadata to be sent to Solr
+     *
+     * @throws \Exception
+     * @return void
+     */
+    public function enrich($sourceId, $record, &$solrArray)
+    {
+        foreach ($this->enrichmentSpecs as $key => $specs) {
+            if (empty($solrArray[$key])) {
+                continue;
+            }
+            foreach ($solrArray[$key] as $id) {
+                $this->enrichField(
+                    $sourceId,
+                    $record,
+                    $solrArray,
+                    $id,
+                    $specs['pref'],
+                    $specs['check'],
+                    $specs['includeInAllFields'] ?? false
+                );
+            }
+        }
     }
 
     /**
