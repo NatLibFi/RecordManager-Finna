@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2014-2023.
+ * Copyright (C) The National Library of Finland 2014-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -24,6 +24,7 @@
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -48,6 +49,7 @@ use function is_callable;
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Samuli Sillanpää <samuli.sillanpaa@helsinki.fi>
+ * @author   Juha Luoma <juha.luoma@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -72,14 +74,14 @@ class SkosmosEnrichment extends AbstractEnrichment
      *
      * @var string
      */
-    protected $apiBaseURL;
+    protected string $apiBaseURL;
 
     /**
      * List of allowed URL prefixes to try to fetch
      *
      * @var array
      */
-    protected $urlPrefixAllowedList;
+    protected array $urlPrefixAllowedList;
 
     /**
      * List of URI prefixes for which to process other vocabularies with
@@ -87,52 +89,52 @@ class SkosmosEnrichment extends AbstractEnrichment
      *
      * @var array
      */
-    protected $uriPrefixExactMatches;
+    protected array $uriPrefixExactMatches;
 
     /**
      * Solr field to use for the location data
      *
      * @var string
      */
-    protected $solrLocationField = '';
+    protected string $solrLocationField = '';
 
     /**
      * Solr field to use for the center coordinates of locations
      *
      * @var string
      */
-    protected $solrCenterField = '';
+    protected string $solrCenterField = '';
 
     /**
      * Languages to allow
      *
      * @var array
      */
-    protected $languages = [];
+    protected array $languages = [];
 
     /**
      * Cache for recent records
      *
      * @var ?\cash\LRUCache
      */
-    protected $recordCache = null;
+    protected ?\cash\LRUCache $recordCache = null;
 
     /**
      * Cache for recent enrichment results
      *
      * @var ?\cash\LRUCache
      */
-    protected $enrichmentCache = null;
+    protected ?\cash\LRUCache $enrichmentCache = null;
 
     /**
-     * Default fields to enrich. Key is the method in driver and value is array
+     * Enrichment specifications. Key is the method in driver and value is array
      * - pref, preferred field in solr
      * - alt, alternative field in solr
      * - check, check field for existing values
      *
      * @var array<string, array>
      */
-    protected $defaultFields = [
+    protected array $enrichmentSpecs = [
         'getRawTopicIds' => [
             'pref' => 'topic_add_txt_mv',
             'alt' => 'topic_alt_txt_mv',
@@ -142,6 +144,27 @@ class SkosmosEnrichment extends AbstractEnrichment
             'pref' => 'geographic_add_txt_mv',
             'alt' => 'geographic_alt_txt_mv',
             'check' => 'geographic',
+        ],
+        'getCorporateAuthorIds' => [
+            'pref' => 'author_corporate',
+            'alt' => 'author_variant',
+            'check' => 'author_corporate',
+        ],
+        'getAuthorIds' => [
+            'pref' => 'author',
+            'alt' => 'author_variant',
+            'check' => 'author',
+        ],
+        'getSecondaryAuthorIds' => [
+            'pref' => 'author2',
+            'alt' => 'author2_variant',
+            'check' => 'author2',
+        ],
+        'getOccupationIds' => [
+            'pref' => 'occupation_str_mv',
+            'alt' => '',
+            'check' => '',
+            'includeInAllFields' => true,
         ],
     ];
 
@@ -153,7 +176,7 @@ class SkosmosEnrichment extends AbstractEnrichment
      *
      * @var array
      */
-    protected $excludedLocationMatches = [];
+    protected array $excludedLocationMatches = [];
 
     /**
      * Initialize settings
@@ -196,7 +219,6 @@ class SkosmosEnrichment extends AbstractEnrichment
         if ($cacheSize = $settings['enrichment_cache_size'] ?? 10000) {
             $this->enrichmentCache = new \cash\LRUCache((int)$cacheSize);
         }
-
         foreach ((array)($settings['excluded_location_matches'] ?? []) as $type => $file) {
             $listFile = RECMAN_BASE_PATH . "/conf/$file";
             $ids = file($listFile, FILE_IGNORE_NEW_LINES);
@@ -210,7 +232,7 @@ class SkosmosEnrichment extends AbstractEnrichment
     }
 
     /**
-     * Enrich the record and return any additions in solrArray
+     * Enrich the record and save any additions in solrArray
      *
      * @param string $sourceId  Source ID
      * @param object $record    Metadata Record
@@ -219,9 +241,9 @@ class SkosmosEnrichment extends AbstractEnrichment
      * @throws \Exception
      * @return void
      */
-    public function enrich($sourceId, $record, &$solrArray)
+    public function enrich($sourceId, $record, &$solrArray): void
     {
-        foreach ($this->defaultFields as $method => $spec) {
+        foreach ($this->enrichmentSpecs as $method => $spec) {
             if (!is_callable([$record, $method])) {
                 continue;
             }
@@ -233,7 +255,8 @@ class SkosmosEnrichment extends AbstractEnrichment
                     $id,
                     $spec['pref'],
                     $spec['alt'],
-                    $spec['check']
+                    $spec['check'],
+                    $spec['includeInAllFields'] ?? false
                 );
             }
         }
@@ -407,7 +430,6 @@ class SkosmosEnrichment extends AbstractEnrichment
             if (!$this->isConceptNode($node)) {
                 continue;
             }
-
             if ($node->getId() === $id) {
                 if ($locs = $this->processLocationWgs84($node, $recordId)) {
                     $result['locations'] = [
