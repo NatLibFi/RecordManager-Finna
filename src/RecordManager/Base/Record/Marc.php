@@ -1794,7 +1794,7 @@ class Marc extends AbstractRecord
      *
      * @return array
      */
-    protected function getISSNFields(): array
+    protected function getISSNs(): array
     {
         $result = [];
         foreach ($this->issnFields as $fieldSpec) {

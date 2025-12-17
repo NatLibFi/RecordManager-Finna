@@ -177,7 +177,9 @@ class MarcTest extends RecordTestBase
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [],
+            'issn' => [
+                '0000-0000',
+            ],
             'doi_str_mv' => [
                 'doi1',
                 'doi2',
@@ -1224,7 +1226,9 @@ class MarcTest extends RecordTestBase
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [],
+            'issn' => [
+                '0000-0000',
+            ],
             'doi_str_mv' => [
                 'doi1',
                 'doi2',
