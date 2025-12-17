@@ -963,7 +963,7 @@ class ForwardTest extends RecordTestBase
                 'Suomi',
                 'Ranska',
                 'Saksa',
-                '2011',
+                '2011, 2012',
                 'Aki Kaurismäki',
                 'Aki Kaurismäki',
                 'Aki Kaurismäki',

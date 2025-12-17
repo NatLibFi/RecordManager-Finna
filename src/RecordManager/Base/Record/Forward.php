@@ -202,7 +202,7 @@ class Forward extends AbstractRecord
      */
     public function getPublicationYear()
     {
-        return (string)$this->getMainElement()->YearOfReference;
+        return $this->metadataUtils->extractYear((string)$this->getMainElement()->YearOfReference);
     }
 
     /**
