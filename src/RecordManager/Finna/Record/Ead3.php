@@ -205,7 +205,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     array_unique(
                         [
                             ...$this->getCorporateAuthorIds(),
-                            ...$this->getAuthorIds(),
+                            ...$this->getPrimaryAuthorIds(),
                             ...$this->getSecondaryAuthorIds(),
                         ]
                     ),
@@ -334,11 +334,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         $results = [];
         foreach ($this->getAuthorElements() as $node) {
@@ -493,11 +493,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get authors
+     * Get primary authors
      *
      * @return array<int, string>
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
         $results = [];
         foreach ($this->getAuthorElements() as $node) {

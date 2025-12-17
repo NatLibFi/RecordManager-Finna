@@ -336,9 +336,10 @@ class Marc extends \RecordManager\Base\Record\Marc
             ),
         ];
 
-        if ($data['publishDate']) {
-            $data['main_date_str'] = $this->metadataUtils->extractYear($data['publishDate'][0]);
-            $data['main_date'] = $this->validateDate($data['main_date_str'] . '-01-01T00:00:00Z');
+        if (null !== ($publishDate = $data['publishDate'][0] ?? null)) {
+            $year = $this->metadataUtils->extractYear($publishDate);
+            $data['main_date_str'] = $year;
+            $data['main_date'] = $this->validateDate($year . '-01-01T00:00:00Z');
         }
         $data['search_daterange_mv'] = [
             ...($data['search_daterange_mv'] ?? []),

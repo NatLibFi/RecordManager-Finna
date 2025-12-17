@@ -91,12 +91,10 @@ trait QdcRecordTrait
     {
         $data = parent::toSolrArray($db);
 
-        if (isset($data['publishDate'])) {
-            $data['main_date_str']
-                = $this->metadataUtils->extractYear($data['publishDate']);
-            $data['main_date'] = $this->validateDate(
-                $this->getPublicationYear() . '-01-01T00:00:00Z'
-            );
+        if (null !== ($publishDate = $data['publishDate'][0] ?? null)) {
+            $year = $this->metadataUtils->extractYear($publishDate);
+            $data['main_date_str'] = $year;
+            $data['main_date'] = $this->validateDate($year . '-01-01T00:00:00Z');
         }
 
         if ($ranges = $this->getPublicationDateRanges()) {

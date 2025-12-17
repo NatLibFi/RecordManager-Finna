@@ -211,9 +211,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['author_facet']
             = $this->getActors($this->getMainEvents(), null, false);
 
-        // Back-compatibility:
-        $data['material'] = $data['material_str_mv'];
-
         // This is just the display measurements! There's also the more granular
         // form, which could be useful for some interesting things eg. sorting by
         // size
@@ -336,7 +333,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             = $this->addNamespaceToAuthorityIds(
                 array_unique(
                     [
-                        ...$this->getAuthorIds(),
+                        ...$this->getPrimaryAuthorIds(),
                         ...$this->getSecondaryAuthorIds(),
                     ]
                 ),
@@ -351,6 +348,9 @@ class Lido extends \RecordManager\Base\Record\Lido
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
         $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
+        $data['material_str_mv'] = $this->getMaterials();
+        // Back-compatibility:
+        $data['material'] = $data['material_str_mv'];
         return $data;
     }
 
@@ -487,11 +487,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         $results = [];
         foreach ($this->getEventNodes($this->getMainEvents()) as $eventNode) {
@@ -2142,11 +2142,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get authors
+     * Get primary authors
      *
      * @return array
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
         return $this->getActors($this->getMainEvents(), null, true);
     }
@@ -2293,5 +2293,15 @@ class Lido extends \RecordManager\Base\Record\Lido
             array_map($filterUrls, $resourceIdentifiers['ids'])
         );
         return array_values(array_filter(array_unique($result)));
+    }
+
+    /**
+     * Get materials
+     *
+     * @return array
+     */
+    protected function getMaterials(): array
+    {
+        return $this->getEventMaterials($this->getMainEvents());
     }
 }

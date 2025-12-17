@@ -319,6 +319,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'url' => [
                 'http://muisti.nba.fi/m/4878_1/00013199.jpg',
             ],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

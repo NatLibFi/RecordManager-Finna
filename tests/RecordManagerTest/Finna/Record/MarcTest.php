@@ -193,7 +193,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [],
+            'issn' => [
+                '00000000',
+            ],
             'doi_str_mv' => [
                 'doi1',
                 'doi2',

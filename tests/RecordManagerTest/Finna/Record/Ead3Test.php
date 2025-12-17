@@ -605,7 +605,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $expected = [
             'record_format' => 'ead3',
-            'ctrlnum' => '',
+            'ctrlnum' => [],
             'allfields' => [
                 'Yksityisaineisto',
                 'Joku muu instituutio',
@@ -835,6 +835,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Tiedosto 5',
                 'Very good filename',
             ],
+            'isbn' => [],
+            'issn' => [],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
         if (null !== $expectedTitleInHierarchy) {
             $expected['title_in_hierarchy'] = $expectedTitleInHierarchy;

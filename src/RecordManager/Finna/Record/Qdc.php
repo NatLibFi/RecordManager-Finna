@@ -152,6 +152,19 @@ class Qdc extends \RecordManager\Base\Record\Qdc
     }
 
     /**
+     * Do any post-processing for the record after the main conversion to Solr array.
+     *
+     * @param ?Database $db   Database connection, if available
+     * @param array     $data Array of Solr fields
+     *
+     * @return void
+     */
+    protected function postProcessRecordForIndexing(?Database $db, &$data): void
+    {
+        $this->addHierarchyFields($data);
+    }
+
+    /**
      * Get languages
      *
      * @return array

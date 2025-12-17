@@ -147,14 +147,12 @@ class Forward extends \RecordManager\Base\Record\Forward
     {
         $data = parent::toSolrArray($db);
 
-        if (isset($data['publishDate'])) {
-            $year = $this->metadataUtils->extractYear($data['publishDate']);
+        if (null !== ($publishDate = $data['publishDate'][0] ?? null)) {
+            $year = $publishDate;
             $data['main_date_str'] = $year;
             $data['main_date'] = $this->validateDate("$year-01-01T00:00:00Z");
             $data['search_daterange_mv'][] = $data['publication_daterange']
-                = $this->dateRangeToStr(
-                    ["$year-01-01T00:00:00Z", "$year-12-31T23:59:59Z"]
-                );
+                = $this->dateRangeToStr(["$year-01-01T00:00:00Z", "$year-12-31T23:59:59Z"]);
         }
 
         $data['source_str_mv'] = $this->source;
@@ -331,7 +329,7 @@ class Forward extends \RecordManager\Base\Record\Forward
      *
      * @return array
      */
-    protected function getPrimaryAuthorsSorted()
+    protected function getPrimaryAuthorsSorted(): array
     {
         $unsortedPrimaryAuthors = parent::getPrimaryAuthorsSorted();
 
