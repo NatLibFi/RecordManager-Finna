@@ -98,10 +98,9 @@ trait QdcRecordTrait
         }
 
         if ($ranges = $this->getPublicationDateRanges()) {
-            $data['publication_daterange'] = $this->dateRangeToStr(reset($ranges));
+            $data['publication_daterange'] = reset($ranges);
             foreach ($ranges as $range) {
-                $stringDate = $this->dateRangeToStr($range);
-                $data['search_daterange_mv'][] = $stringDate;
+                $data['search_daterange_mv'][] = $range;
             }
         }
         $onlineUrls = $this->getOnlineUrls();
@@ -295,10 +294,10 @@ trait QdcRecordTrait
             foreach ($arr as $date) {
                 $years = $this->getYearRangeFromString($date);
                 if (isset($years['startYear'])) {
-                    $result[] = [
+                    $result[] = $this->dateRangeToStr([
                         $years['startYear'] . '-01-01T00:00:00Z',
                         $years['endYear'] . '-12-31T23:59:59Z',
-                    ];
+                    ]);
                 }
             }
         }
