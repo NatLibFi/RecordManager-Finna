@@ -34,6 +34,7 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - [**BC**] All Record classes must now implement the getRecordFormat method and call AbtractRecord's toSolrArray in their overridden toSolrArray methods.
 - [**BC**] FullTextTrait's getFullTextFields was renamed to getFullTextField and refactored to return the fulltext field contents instead of a full data array.
 - [**BC**] Several methods in Record classes have been renamed to improve unity between the classes and to better reflect their nature. Also typing of return values has been added in many places.
+- [**BC**] All format-specific Skosmos and authority enrichments have been consolidated to format-agnostic SkosmosEnrichment and AuthEnrichment.
 - Extending the EAD3 splitter was made easier by splitting code to additional methods.
 - Support for PHP 8.4 was improved. Some dependencies, such as json-ld, may still use deprecated functionality.
 - Rector was introduced to update code style.
