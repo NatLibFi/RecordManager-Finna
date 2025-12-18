@@ -29,6 +29,7 @@
 
 namespace RecordManager\Base\Record;
 
+use DOMDocument;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
 use function in_array;
@@ -47,7 +48,9 @@ use function is_string;
  */
 class Lido extends AbstractRecord
 {
-    use XmlRecordTrait;
+    use XmlRecordTrait {
+        setData as xmlRecordSetData;
+    }
 
     /**
      * Main event names reflecting the terminology in the particular LIDO records.
@@ -143,6 +146,35 @@ class Lido extends AbstractRecord
         'objectMeasurementsWrap', 'recordMetadataDate', 'recordType',
         'resourceWrap', 'relatedWorksWrap', 'rightsType', 'roleActor',
     ];
+
+    /**
+     * Set record data
+     *
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
+     *
+     * @return void
+     */
+    public function setData($source, $oaiID, $data, $extraData)
+    {
+        $this->xmlRecordSetData($source, $oaiID, $data, $extraData);
+
+        // Make sure we have a lidoWrap element as the root element as <lido> is also allowed in OAI-PMH:
+        if ($this->doc->getName() === 'lido') {
+            $schema = $this->doc['schemaLocation']
+                ?? 'http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd';
+            unset($this->doc['schemaLocation']);
+            $doc = new DOMDocument(encoding: 'UTF-8');
+            $lidoWrap = $doc->createElement('lidoWrap');
+            $lidoWrap->setAttribute('schemaLocation', $schema);
+            $lidoWrap->append($doc->importNode(dom_import_simplexml($this->doc), true));
+            $doc->appendChild($lidoWrap);
+            $this->doc = simplexml_import_dom($doc);
+        }
+    }
 
     /**
      * Return record ID (local)
