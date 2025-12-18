@@ -18,7 +18,6 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 
 - Sierra API: Added support for harvesting authority records.
 - Added support for defining additional HTTP headers for a data source.
-- LIDO: Related ISBNs are now indexed.
 - Added linking_id_str_mv field for search-time linking between records.
 - Added an option (mergeMultiLevelParts) to merge component parts to a parent record even when parent is a component part itself ()
 - MARC: Added support for ignoring authors by relators/roles (see hidden_author_relators setting).
@@ -27,6 +26,7 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - When multi-process support is enabled (i.e. record_workers and/or solr_update_workers set in recordmanager.ini), a few additional worker processes are initialized on startup to take the place of any worker that stops unexpectedly (typically due to an issue with a PHP or one of its extensions causing a segmentation fault).
 - Regular expression support for suppressOnField setting did not work properly. A new suppressOnFieldRegEx was introduced to make this option explicit.
 - Record classes can now implement methods preProcessRecordForIndexing and postProcessRecordForIndexing for additional preparation around toSolrArray method.
+- LIDO: Records without the lidoWrap root element are now supported (lidoWrap root element is automatically added).
 
 ### Changed
 
