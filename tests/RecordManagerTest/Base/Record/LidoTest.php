@@ -340,4 +340,51 @@ class LidoTest extends RecordTestBase
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
     }
+
+    /**
+     * Data provider for testLidoRootElementHandling
+     *
+     * @return \Iterator
+     */
+    public static function lidoRootElementProvider(): \Iterator
+    {
+        $schema10 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.0/lido-v1.0.xsd"';
+        $schema11 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd"';
+        yield 'lido 1.0 with lidoWrap' => [
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.1 with lidoWrap' => [
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.0 without lidoWrap' => [
+            "<lido $schema10><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.1 without lidoWrap' => [
+            "<lido $schema11><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'unspecified lido version without lidoWrap' => [
+            '<lido><lidoRecID type="ITEM">123</lidoRecID></lido>',
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+    }
+
+    /**
+     * Test LIDO root element handling.
+     *
+     * @param string $input    Input XML
+     * @param string $expected Expected result XML
+     *
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('lidoRootElementProvider')]
+    public function testLidoRootElementHandling(string $input, string $expected): void
+    {
+        $prolog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $record = $this->createRecordFromString($prolog . $input, Lido::class);
+        $this->assertEquals($prolog . $expected, trim($record->toXML()));
+    }
 }
