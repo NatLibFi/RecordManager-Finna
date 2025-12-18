@@ -164,8 +164,8 @@ class Lido extends AbstractRecord
 
         // Make sure we have a lidoWrap element as the root element as <lido> is also allowed in OAI-PMH:
         if ($this->doc->getName() === 'lido') {
-            $schema = $this->doc['schemaLocation']
-                ?? 'http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd';
+            $schema = (string)($this->doc['schemaLocation']
+                ?? 'http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd');
             unset($this->doc['schemaLocation']);
             $doc = new DOMDocument(encoding: 'UTF-8');
             $lidoWrap = $doc->createElement('lidoWrap');
