@@ -53,6 +53,11 @@
       <arg line="-c ${srcdir}/tests/phpunit.xml --display-all-issues ${srcdir}/tests ${phpunit_extra_params}" />
     </exec>
   </target>
+  <target name="phpunitfaster" description="Run tests until first failure">
+    <exec executable="${srcdir}/vendor/bin/phpunit" passthru="true" checkreturn="true" >
+      <arg line="-c ${srcdir}/tests/phpunit.xml --stop-on-defect --display-all-issues ${srcdir}/tests ${phpunit_extra_params}" />
+    </exec>
+  </target>
 
   <!-- PHP CodeSniffer -->
   <target name="phpcbf">
