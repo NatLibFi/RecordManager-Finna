@@ -126,6 +126,7 @@
                             <actorInRole>
                                 <actor>
                                     <actorID type="URI" source="finaf">http://urn.fi/URN:NBN:fi:au:finaf:000173713</actorID>
+                                    <actorID type="URI" source="ISNI">https://isni.org/isni/0000000073500621</actorID>
                                     <nameActorSet>
                                         <appellationValue>Hintze Harry</appellationValue>
                                     </nameActorSet>

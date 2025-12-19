@@ -340,6 +340,13 @@ class Lido extends \RecordManager\Base\Record\Lido
                 'author'
             );
         $data['author2_id_role_str_mv'] = $this->addNamespaceToAuthorityIds($this->getAllAuthorIdsAndRoles(), 'author');
+        // Add values with namespaces also to allfields
+        $data['allfields'] = [
+            ...$data['allfields'],
+            ...$data['topic_id_str_mv'],
+            ...$data['geographic_id_str_mv'],
+            ...$data['author2_id_str_mv'],
+        ];
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
@@ -473,7 +480,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getRawTopicIds(): array
     {
-        return parent::getTopicIDs();
+        return array_filter(array_unique([...parent::getTopicIDs(), ...$this->getSubjectActorIds()]));
     }
 
     /**
@@ -583,6 +590,26 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return $results;
+    }
+
+    /**
+     * Get subject actor ids
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActorIds(): array
+    {
+        $result = [];
+        foreach ($this->getSubjectNodes() as $subject) {
+            foreach ($subject->subjectActor as $subjectActor) {
+                foreach ($subjectActor->actor->actorID ?? [] as $actorID) {
+                    if ($id = trim((string)$actorID)) {
+                        $result[] = $id;
+                    }
+                }
+            }
+        }
+        return array_values(array_unique($result));
     }
 
     /**
@@ -922,7 +949,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getTopicIDs($exclude = ['iconclass']): array
     {
-        $result = parent::getTopicIDs($exclude);
+        $result = [...parent::getTopicIDs($exclude), ...$this->getSubjectActorIds()];
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 
