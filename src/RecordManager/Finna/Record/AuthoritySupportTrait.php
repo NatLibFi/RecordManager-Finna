@@ -79,13 +79,13 @@ trait AuthoritySupportTrait
         $ns = $this->getAuthorityNamespace($type);
         $result = [];
         foreach ($ids as $id) {
-            if (preg_match('/^(https:\/\/isni\.org\/isni\/)(.*)/', $id, $matches)) {
-                // Normalize ISNI URIs to match ISNI identifiers in authority sources
-                $result[] = '(isni)' . $matches[2];
+            // Normalize ISNI URIs to match ISNI identifiers in authority sources
+            if (preg_match('/^https:\/\/isni\.org\/isni\/(.*)/', $id, $matches)) {
+                $result[] = '(isni)' . $matches[1];
                 continue;
             }
+            // Never prefix other http(s) url's
             if (preg_match('/^https?:/', $id)) {
-                // Never prefix other http(s) url's
                 $result[] = $id;
                 continue;
             }
