@@ -163,7 +163,13 @@ class Aipa extends Qdc
      */
     public function getRawTopicIds(): array
     {
-        return $this->getTopicIDs();
+        $results = [];
+        foreach ($this->doc->subject ?? [] as $subject) {
+            if ($id = trim((string)($subject->attributes()->identifier))) {
+                $results[] = $id;
+            }
+        }
+        return array_unique($results);
     }
 
     /**
@@ -173,13 +179,7 @@ class Aipa extends Qdc
      */
     protected function getTopicIDs(): array
     {
-        $results = [];
-        foreach ($this->doc->subject ?? [] as $subject) {
-            if ($id = trim((string)($subject->attributes()->identifier))) {
-                $results[] = $id;
-            }
-        }
-        return array_unique($this->addNamespaceToAuthorityIds($results, 'topic'));
+        return $this->addNamespaceToAuthorityIds($this->getRawTopicIDs(), 'topic');
     }
 
     /**
