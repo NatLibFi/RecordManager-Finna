@@ -47,6 +47,7 @@ use RecordManager\Base\Utils\MetadataUtils;
  */
 class Aipa extends Qdc
 {
+    use AuthoritySupportTrait;
     use CreateRecordTrait;
 
     /**
@@ -116,6 +117,7 @@ class Aipa extends Qdc
 
         $data['record_format'] = 'aipa';
         $data['educational_material_type_str_mv'] = $this->getFormat();
+        $data['topic_id_str_mv'] = $this->getTopicIDs();
 
         // Merge fields from encapsulated records.
         foreach ($this->doc->item as $item) {
@@ -152,6 +154,32 @@ class Aipa extends Qdc
     public function getFormat()
     {
         return (string)($this->doc->type);
+    }
+
+    /**
+     * Get all topic identifiers (for enrichment)
+     *
+     * @return array
+     */
+    public function getRawTopicIds(): array
+    {
+        return $this->getTopicIDs();
+    }
+
+    /**
+     * Return subject identifiers associated with object.
+     *
+     * @return array
+     */
+    protected function getTopicIDs(): array
+    {
+        $results = [];
+        foreach ($this->doc->subject ?? [] as $subject) {
+            if ($id = trim((string)($subject->attributes()->identifier))) {
+                $results[] = $id;
+            }
+        }
+        return array_unique($this->addNamespaceToAuthorityIds($results, 'topic'));
     }
 
     /**
