@@ -673,6 +673,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Digitaalisen aineiston tiedostomuoto',
                 'TIFF - Tagged Image File Format',
                 'Gustaf Edvard Sundvallin kokoelma',
+                '238612737',
             ],
             'description' => 'G. E. Sundvallin tallentama murresatu Luvialta.',
             'author' => [
