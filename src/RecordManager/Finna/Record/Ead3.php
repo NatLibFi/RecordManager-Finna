@@ -162,7 +162,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $identifier = $p > 0
                 ? substr($identifier, $p + 1)
                 : $identifier;
-            $data['identifier'] = $identifier;
+            $data['allfields'][] = $data['identifier'] = $identifier;
         }
 
         if (isset($doc->did->dimensions)) {
