@@ -1663,6 +1663,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 case 'monografiaväitöskirja':
                 case 'esseeväitöskirja':
                 case 'artikkeliväitöskirja':
+                case 'doktorsavhandling':
                     return 'Dissertation';
             }
         }
