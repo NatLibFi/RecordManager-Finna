@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2017.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -28,8 +28,6 @@
  */
 
 namespace RecordManager\Base\Record;
-
-use RecordManager\Base\Database\DatabaseInterface as Database;
 
 /**
  * Ese record class
@@ -57,67 +55,6 @@ class Ese extends AbstractRecord
     }
 
     /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = [];
-
-        $doc = $this->doc;
-        $data['record_format'] = 'ese';
-        $data['ctrlnum'] = (string)$doc->recordID;
-        $data['fullrecord'] = $doc->asXML();
-
-        // allfields
-        $allFields = [];
-        foreach ($doc->children() as $field) {
-            $allFields[] = $field;
-        }
-        $data['allfields'] = $allFields;
-
-        // language
-        $data['language'] = $this->metadataUtils->normalizeLanguageStrings(
-            explode(' ', $doc->language)
-        );
-
-        $data['format'] = (string)$doc->type;
-        $data['author'] = (string)$doc->creator;
-        $data['author2'] = $this->getValues('contributor');
-
-        $data['title'] = $data['title_full'] = (string)$doc->title;
-        $titleParts = explode(' : ', $data['title']);
-        $data['title_short'] = $titleParts[0];
-        if (isset($titleParts[1])) {
-            $data['title_sub'] = $titleParts[1];
-        }
-        $data['title_sort'] = $this->getTitle(true);
-
-        $data['publisher'] = [(string)$doc->publisher];
-        $data['publishDate'] = $this->getPublicationYear();
-
-        $data['isbn'] = $this->getISBNs();
-
-        $data['topic'] = $data['topic_facet'] = $this->getValues('subject');
-
-        foreach ($this->getValues('identifier') as $identifier) {
-            if (preg_match('/^https?/', $identifier)) {
-                $data['url'] = $identifier;
-            }
-        }
-        foreach ($this->getValues('description') as $description) {
-            if (preg_match('/^https?/', $description)) {
-                $data['url'] = $description;
-            }
-        }
-
-        return $data;
-    }
-
-    /**
      * Dedup: Return full title (for debugging purposes only)
      *
      * @return string
@@ -137,11 +74,16 @@ class Ese extends AbstractRecord
      */
     public function getTitle($forFiling = false)
     {
+        $key = __METHOD__ . ($forFiling ? '1' : '0');
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
         $title = trim((string)$this->doc->title);
         if ($forFiling) {
             $title = $this->metadataUtils->createSortTitle($title);
         }
-        return $title;
+        return $this->resultCache[$key] = $title;
     }
 
     /**
@@ -152,47 +94,6 @@ class Ese extends AbstractRecord
     public function getMainAuthor()
     {
         return (string)$this->doc->creator;
-    }
-
-    /**
-     * Dedup: Return ISBNs in ISBN-13 format without dashes
-     *
-     * @return array
-     */
-    public function getISBNs()
-    {
-        $arr = [];
-        foreach ($this->doc->identifier as $identifier) {
-            $identifier = str_replace('-', '', $identifier);
-            if (!preg_match('{([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
-                continue;
-            }
-            $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
-            if ($isbn) {
-                $arr[] = $isbn;
-            }
-        }
-        return array_values(array_unique($arr));
-    }
-
-    /**
-     * Dedup: Return series ISSN
-     *
-     * @return string
-     */
-    public function getSeriesISSN()
-    {
-        return '';
-    }
-
-    /**
-     * Dedup: Return series numbering
-     *
-     * @return string
-     */
-    public function getSeriesNumbering()
-    {
-        return '';
     }
 
     /**
@@ -231,6 +132,37 @@ class Ese extends AbstractRecord
     }
 
     /**
+     * Get ISBNs in ISBN-13 format without dashes.
+     *
+     * @return array
+     */
+    protected function getISBNs(): array
+    {
+        $arr = [];
+        foreach ($this->doc->identifier as $identifier) {
+            $identifier = str_replace('-', '', $identifier);
+            if (!preg_match('{([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+                continue;
+            }
+            $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
+            if ($isbn) {
+                $arr[] = $isbn;
+            }
+        }
+        return array_values(array_unique($arr));
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'ese';
+    }
+
+    /**
      * Get values for a tag
      *
      * @param string $tag XML tag
@@ -244,5 +176,177 @@ class Ese extends AbstractRecord
             $values[] = (string)$value;
         }
         return $values;
+    }
+
+    /**
+     * Get control numbers.
+     *
+     * @return array
+     */
+    protected function getControlNumbers(): array
+    {
+        $id = trim((string)$this->doc->recordID);
+        return '' !== $id ? [$id] : [];
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return (string)$this->doc->asXML();
+    }
+
+    /**
+     * Get an array of all fields relevant to allfields search.
+     *
+     * @return array
+     */
+    protected function getAllFields()
+    {
+        $allFields = [];
+        foreach ($this->doc->children() as $field) {
+            $allFields[] = trim((string)$field);
+        }
+        return $allFields;
+    }
+
+    /**
+     * Get languages.
+     *
+     * @return array
+     */
+    protected function getLanguages(): array
+    {
+        return $this->metadataUtils->normalizeLanguageStrings(explode(' ', $this->doc->language));
+    }
+
+    /**
+     * Get primary authors.
+     *
+     * @return array
+     */
+    protected function getPrimaryAuthors(): array
+    {
+        $result = [];
+        foreach ($this->getValues('creator') as $author) {
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($author);
+        }
+        return $result;
+    }
+
+    /**
+     * Get secondary authors.
+     *
+     * @return array
+     */
+    protected function getSecondaryAuthors(): array
+    {
+        $result = [];
+        foreach ($this->getValues('contributor') as $contributor) {
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($contributor);
+        }
+        return $result;
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    protected function getFullTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get short title.
+     *
+     * @return string
+     */
+    protected function getShortTitle(): string
+    {
+        $titleParts = explode(' : ', $this->getFullTitle(), 2);
+        return $titleParts[0];
+    }
+
+    /**
+     * Get subtitle.
+     *
+     * @return string
+     */
+    protected function getTitleSub(): string
+    {
+        $titleParts = explode(' : ', $this->getFullTitle(), 2);
+        return $titleParts[1] ?? '';
+    }
+
+    /**
+     * Get publishers.
+     *
+     * @return array
+     */
+    protected function getPublishers(): array
+    {
+        return $this->getValues('publisher');
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    protected function getTopics(): array
+    {
+        return $this->getValues('subject');
+    }
+
+    /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getValues('subject');
+    }
+
+    /**
+     * Return URLs associated with object
+     *
+     * @return array
+     */
+    protected function getUrls()
+    {
+        $urls = [];
+        foreach ($this->getValues('identifier') as $identifier) {
+            if (preg_match('/^https?/', $identifier)) {
+                $urls[] = $identifier;
+            }
+        }
+        foreach ($this->getValues('description') as $description) {
+            if (preg_match('/^https?/', $description)) {
+                $urls[] = $description;
+            }
+        }
+        return $urls;
+    }
+
+    /**
+     * Get publication years.
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = (string)$date;
+            }
+        }
+        return $result;
     }
 }

@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2020-2022.
+ * Copyright (C) The National Library of Finland 2020-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -72,6 +72,7 @@ class LidoTest extends RecordTestBase
                 'Luhtanen, Raimo',
             ],
             'author_sort' => 'Designer, Test',
+            'author2' => [],
             'topic_facet' => [
                 'retkeily',
                 'ulkoilu',
@@ -80,7 +81,6 @@ class LidoTest extends RecordTestBase
                 'retkeily',
                 'ulkoilu',
             ],
-            'material_str_mv' => [],
             'geographic_facet' => [],
             'geographic' => [],
             'era' => [],
@@ -97,10 +97,8 @@ class LidoTest extends RecordTestBase
             'issn' => [
                 '0357-5284',
             ],
-            'related_isbn_isn_mv' => [
-                '9517186347',
-                '9789517186346',
-            ],
+            'url' => [],
+            'thumbnail' => '',
             'allfields' => [
                 'knp-247394',
                 'Kirja',
@@ -120,6 +118,9 @@ class LidoTest extends RecordTestBase
                 'Test Institution',
                 '247394',
             ],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -191,6 +192,7 @@ class LidoTest extends RecordTestBase
                 'Luhtanen, Raimo',
             ],
             'author_sort' => 'Designer, Test',
+            'author2' => [],
             'topic_facet' => [
                 'retkeily',
                 'ulkoilu',
@@ -199,7 +201,6 @@ class LidoTest extends RecordTestBase
                 'retkeily',
                 'ulkoilu',
             ],
-            'material_str_mv' => [],
             'geographic_facet' => [],
             'geographic' => [],
             'era' => [],
@@ -216,10 +217,8 @@ class LidoTest extends RecordTestBase
             'issn' => [
                 '0357-5284',
             ],
-            'related_isbn_isn_mv' => [
-                '9517186347',
-                '9789517186346',
-            ],
+            'url' => [],
+            'thumbnail' => '',
             'allfields' => [
                 'knp-247394',
                 'Kirja',
@@ -239,6 +238,9 @@ class LidoTest extends RecordTestBase
                 'Test Institution',
                 '247394',
             ],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -337,5 +339,52 @@ class LidoTest extends RecordTestBase
         ];
 
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
+    }
+
+    /**
+     * Data provider for testLidoRootElementHandling
+     *
+     * @return \Iterator
+     */
+    public static function lidoRootElementProvider(): \Iterator
+    {
+        $schema10 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.0/lido-v1.0.xsd"';
+        $schema11 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd"';
+        yield 'lido 1.0 with lidoWrap' => [
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.1 with lidoWrap' => [
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.0 without lidoWrap' => [
+            "<lido $schema10><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
+            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'lido 1.1 without lidoWrap' => [
+            "<lido $schema11><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+        yield 'unspecified lido version without lidoWrap' => [
+            '<lido><lidoRecID type="ITEM">123</lidoRecID></lido>',
+            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+        ];
+    }
+
+    /**
+     * Test LIDO root element handling.
+     *
+     * @param string $input    Input XML
+     * @param string $expected Expected result XML
+     *
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('lidoRootElementProvider')]
+    public function testLidoRootElementHandling(string $input, string $expected): void
+    {
+        $prolog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $record = $this->createRecordFromString($prolog . $input, Lido::class);
+        $this->assertEquals($prolog . $expected, trim($record->toXML()));
     }
 }

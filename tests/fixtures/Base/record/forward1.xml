@@ -113,7 +113,7 @@
         <RegionName elokuva-elomaa-maakoodi="DE">Saksa</RegionName>
       </Country>
     </CountryOfReference>
-    <YearOfReference elokuva-valmistumisvuodenlahde="elokuvatarkastamo">2011</YearOfReference>
+    <YearOfReference elokuva-valmistumisvuodenlahde="elokuvatarkastamo">2011, 2012</YearOfReference>
     <HasAgent elonet-tag="elotekija">
       <Activity tehtava="ohjaus" finna-activity-code="D02">D02</Activity>
       <AgentName>Aki Kaurism&#xE4;ki</AgentName>

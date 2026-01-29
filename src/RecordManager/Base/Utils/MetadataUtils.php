@@ -269,7 +269,7 @@ class MetadataUtils
      */
     public function isbn10to13($isbn)
     {
-        if (!preg_match('{^([0-9]{9})[0-9xX]$}', $isbn, $matches)) {
+        if ('' === $isbn || !preg_match('{^([0-9]{9})[0-9xX]$}', $isbn, $matches)) {
             // Invalid ISBN
             return false;
         }
@@ -442,7 +442,7 @@ class MetadataUtils
     public function normalizeISBN($isbn)
     {
         $isbn = str_replace('-', '', $isbn);
-        if (!preg_match('{([0-9]{9,12}[0-9xX])}', $isbn, $matches)) {
+        if ('' === $isbn || !preg_match('{([0-9]{9,12}[0-9xX])}', $isbn, $matches)) {
             return '';
         }
         $isbn = $matches[1];
@@ -600,11 +600,7 @@ class MetadataUtils
         // (e.g. string "Smith, A.")
         if (substr($str, -1) == '.' && substr($str, -3, 1) != ' ') {
             $p = strrpos($str, ' ');
-            if ($p > 0) {
-                $lastWord = substr($str, $p + 1, -1);
-            } else {
-                $lastWord = substr($str, 0, -1);
-            }
+            $lastWord = $p > 0 ? substr($str, $p + 1, -1) : substr($str, 0, -1);
             if (
                 !is_numeric($lastWord)
                 && !isset($this->abbreviations[mb_strtolower($lastWord, 'UTF-8')])
@@ -711,23 +707,21 @@ class MetadataUtils
     }
 
     /**
-     * Case-insensitive array_unique
+     * Case-insensitive counterpart for array_unique
      *
      * @param array $array Array
      *
      * @return array
      */
-    // @codingStandardsIgnoreStart
-    public function array_iunique($array)
+    public function arrayUniqueCaseInsensitive($array)
     {
         // This one handles UTF-8 properly, but mb_strtolower is SLOW
         $map = [];
         foreach ($array as $key => $value) {
-            $mb = preg_match('/[\x80-\xFF]/', $value); //mb_detect_encoding($value, 'ASCII', true);
+            $mb = preg_match('/[\x80-\xFF]/', $value);
             $map[$key] = $mb ? mb_strtolower($value, 'UTF-8') : strtolower($value);
         }
         return array_intersect_key($array, array_unique($map));
-        //return array_intersect_key($array, array_unique(array_map('strtolower', $array)));
     }
 
     // @codingStandardsIgnoreEnd
@@ -780,10 +774,13 @@ class MetadataUtils
      *
      * @param string $date Date to validate
      *
-     * @return boolean|int False if invalid, resulting time otherwise
+     * @return bool|int False if invalid, resulting time otherwise
      */
     public function validateISO8601Date($date)
     {
+        if ('' === $date) {
+            return false;
+        }
         $found = preg_match(
             '/^(\-?\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/',
             $date,
@@ -817,7 +814,7 @@ class MetadataUtils
      */
     public function trimXMLWhitespace($xml)
     {
-        return preg_replace('~\s*(<([^>]*)>[^<]*</\2>|<[^>]*>)\s*~', '$1', $xml);
+        return preg_replace('~\s*(<([^>]*)>[^<]*</\2>|<[^>]*>)\s*~', '$1', $xml) ?? '';
     }
 
     /**
@@ -827,7 +824,7 @@ class MetadataUtils
      * @param bool  $normalized Whether to return the original (false) or
      *                          normalized (true) record
      *
-     * @return string Metadata as a string
+     * @return string|false Metadata as a string
      */
     public function getRecordData(&$record, $normalized)
     {
@@ -864,6 +861,9 @@ class MetadataUtils
      */
     public function extractYear($str)
     {
+        if ('' === $str) {
+            return '';
+        }
         $matches = [];
         if (preg_match('/(\-?\d{4})/', $str, $matches)) {
             return $matches[1];
@@ -927,7 +927,7 @@ class MetadataUtils
     {
         array_walk(
             $array,
-            function (&$val, $key, $chars) {
+            function (&$val, $key, $chars): void {
                 $val = trim($val, $chars);
             },
             $chars
@@ -1078,6 +1078,11 @@ class MetadataUtils
     public function normalizeRelator($relator)
     {
         $relator = trim($relator);
+        foreach ($this->config['Relators']['strip_prefixes'] ?? [] as $strip) {
+            if (str_starts_with($relator, $strip)) {
+                $relator = substr($relator, strlen($strip));
+            }
+        }
         $relator = preg_replace('/\p{P}+/u', '', $relator);
         $relator = mb_strtolower($relator, 'UTF-8');
         return $relator;
@@ -1263,7 +1268,7 @@ class MetadataUtils
         }
         array_walk(
             $lines,
-            function (&$value) {
+            function (&$value): void {
                 $start = 0;
                 $end = null;
                 if (str_starts_with($value, "'")) {

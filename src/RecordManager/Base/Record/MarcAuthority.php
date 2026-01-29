@@ -29,8 +29,6 @@
 
 namespace RecordManager\Base\Record;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-
 /**
  * Forward authority Record Class
  *
@@ -44,6 +42,13 @@ use RecordManager\Base\Database\DatabaseInterface as Database;
  */
 class MarcAuthority extends Marc
 {
+    /**
+     * Is this an authority record?
+     *
+     * @var bool
+     */
+    protected bool $isAuthorityRecord = true;
+
     /**
      * Delimiter for separating name related subfields.
      *
@@ -59,46 +64,6 @@ class MarcAuthority extends Marc
     public function getID()
     {
         return $this->getFieldSubfield('035', 'a');
-    }
-
-    /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = [];
-
-        $data['record_format'] = 'marcAuthority';
-        $data['fullrecord'] = $this->getFullRecord();
-        $data['allfields'] = $this->getAllFields();
-        $data['source'] = $this->getRecordSource();
-
-        $heading = $this->getHeading();
-        $data['heading'] = $data['heading_keywords'] = $heading;
-        $data['use_for'] = $data['use_for_keywords'] = $this->getUseForHeadings();
-
-        $data['record_type'] = $this->getRecordType();
-
-        $data['birth_date']
-            = $this->metadataUtils->extractYear($this->getFieldSubField('046', 'f'));
-        $data['death_date']
-            = $this->metadataUtils->extractYear($this->getFieldSubField('046', 'g'));
-
-        $data['birth_place'] = $this->getFieldSubField('370', 'a');
-        $data['death_place'] = $this->getFieldSubField('370', 'b');
-        $data['country'] = $this->getFieldSubfield('370', 'c');
-        $data['related_places_str_mv'] = $this->getRelatedPlaces();
-
-        $data['field_of_activity'] = $this->getFieldsOfActivity();
-        $data['occupation'] = $this->getOccupations();
-
-        $data['datasource_str_mv'] = $data['source_str_mv'] = $this->source;
-
-        return $data;
     }
 
     /**
@@ -139,7 +104,31 @@ class MarcAuthority extends Marc
      */
     public function getUseForHeadings()
     {
-        return $this->getAlternativeNames(['111', '411', '500', '510', '511']);
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        return $this->resultCache[__METHOD__] = $this->getAlternativeNames(['111', '411', '500', '510', '511']);
+    }
+
+    /**
+     * Get use for heading keywords.
+     *
+     * @return array
+     */
+    public function getUseForHeadingKeywords(): array
+    {
+        return $this->getUseForHeadings();
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'marcAuthority';
     }
 
     /**
@@ -182,38 +171,40 @@ class MarcAuthority extends Marc
      */
     protected function getHeading()
     {
-        if ($name = $this->getFieldSubField('100', 'a', true)) {
-            return rtrim($name, ' .');
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
         }
-        foreach (['110', '111'] as $code) {
-            if ($field = $this->record->getField($code)) {
-                if (!($sub = $this->record->getSubfield($field, 'a'))) {
-                    continue;
+
+        $result = '';
+        if ($name = $this->getFieldSubField('100', 'a', true)) {
+            $result = rtrim($name, ' .');
+        } else {
+            foreach (['110', '111'] as $code) {
+                if ($field = $this->record->getField($code)) {
+                    if (!($sub = $this->record->getSubfield($field, 'a'))) {
+                        continue;
+                    }
+                    $fields = [$sub];
+                    $fields = [
+                        ...$fields,
+                        ...$this->getSubfieldsArray($field, ['b']),
+                    ];
+                    $result = implode($this->nameDelimiter, $this->trimFields($fields));
+                    break;
                 }
-                $fields = [$sub];
-                $fields = [
-                    ...$fields,
-                    ...$this->getSubfieldsArray($field, ['b']),
-                ];
-                return implode($this->nameDelimiter, $this->trimFields($fields));
             }
         }
-        return '';
+        return $this->resultCache[__METHOD__] = $result;
     }
 
     /**
-     * Get related places
+     * Get heading keywords
      *
-     * @return array
+     * @return string
      */
-    protected function getRelatedPlaces()
+    protected function getHeadingKeywords(): string
     {
-        return array_unique(
-            [
-                $this->getFieldSubField('370', 'e', true),
-                $this->getFieldSubField('370', 'f', true),
-            ]
-        );
+        return $this->getHeading();
     }
 
     /**
@@ -234,6 +225,56 @@ class MarcAuthority extends Marc
     protected function getRecordType()
     {
         return $this->isPerson() ? 'Personal Name' : 'Corporate Name';
+    }
+
+    /**
+     * Get birth date.
+     *
+     * @return string
+     */
+    protected function getBirthDate(): string
+    {
+        return $this->metadataUtils->extractYear($this->getFieldSubField('046', 'f'));
+    }
+
+    /**
+     * Get death date.
+     *
+     * @return string
+     */
+    protected function getDeathDate(): string
+    {
+        return $this->metadataUtils->extractYear($this->getFieldSubField('046', 'g'));
+    }
+
+    /**
+     * Get birth place.
+     *
+     * @return string
+     */
+    protected function getBirthPlace(): string
+    {
+        return $this->getFieldSubField('370', 'a');
+    }
+
+    /**
+     * Get death place.
+     *
+     * @return string
+     */
+    protected function getDeathPlace(): string
+    {
+        return $this->getFieldSubField('370', 'b');
+    }
+
+    /**
+     * Get country.
+     *
+     * @return string
+     */
+    protected function getCountry(): string
+    {
+        return $this->getFieldSubfield('370', 'c');
     }
 
     /**

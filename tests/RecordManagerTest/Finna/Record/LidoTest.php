@@ -146,12 +146,16 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Hintze Harry, kuvaaja',
             ],
             'author_sort' => 'Testaaja, Taavi, suunnittelija',
+            'author2' => [],
             'author2_id_str_mv' => [
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
+                '(isni)0000000073500621',
             ],
             'author2_id_role_str_mv' => [
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kuvaaja',
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713###kehittäjä',
+                '(isni)0000000073500621###kuvaaja',
+                '(isni)0000000073500621###kehittäjä',
             ],
             'topic_facet' => [],
             'topic' => [],
@@ -216,6 +220,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Helsinki',
                 'valmistus',
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
+                'https://isni.org/isni/0000000073500621',
                 'Hintze Harry',
                 '1897',
                 '1897',
@@ -239,6 +244,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Museovirasto/MV',
                 'Kansatieteen kuvakokoelma',
                 'Museovirasto/MV',
+                '(prt)Prt',
+                '(prt)Prt 2',
+                '(kiinteistötunnus)Kiinteistötunnus',
+                'http://www.yso.fi/onto/yso/p94413',
+                'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
+                '(isni)0000000073500621',
             ],
             'identifier' => '4878:1',
             'measurements' => [
@@ -315,6 +326,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '111222',
                 'mau.jpg',
             ],
+            'url' => [
+                'http://muisti.nba.fi/m/4878_1/00013199.jpg',
+            ],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

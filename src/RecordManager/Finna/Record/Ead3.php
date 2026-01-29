@@ -162,7 +162,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             $identifier = $p > 0
                 ? substr($identifier, $p + 1)
                 : $identifier;
-            $data['identifier'] = $identifier;
+            $data['allfields'][] = $data['identifier'] = $identifier;
         }
 
         if (isset($doc->did->dimensions)) {
@@ -205,7 +205,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                     array_unique(
                         [
                             ...$this->getCorporateAuthorIds(),
-                            ...$this->getAuthorIds(),
+                            ...$this->getPrimaryAuthorIds(),
                             ...$this->getSecondaryAuthorIds(),
                         ]
                     ),
@@ -334,11 +334,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         $results = [];
         foreach ($this->getAuthorElements() as $node) {
@@ -355,7 +355,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $results[] = $id;
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -372,7 +372,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 $results[] = $id;
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -391,7 +391,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -493,11 +493,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
-     * Get authors
+     * Get primary authors
      *
      * @return array<int, string>
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
         $results = [];
         foreach ($this->getAuthorElements() as $node) {
@@ -866,7 +866,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getSubtitle()
+    protected function getTitleSub()
     {
         if ($signumLabel = $this->getDriverParam('signumLabel', null)) {
             foreach ($this->doc->did->unitid ?? [] as $id) {
@@ -972,11 +972,11 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         [$start, $end] = explode('/', $input);
 
         $parseDate = function (
-            $date,
-            $defaultYear = '0',
-            $defaultMonth = '01',
-            $defaultDay = '01',
-            $hour = '00:00:00'
+            string $date,
+            string $defaultYear = '0',
+            string $defaultMonth = '01',
+            ?string $defaultDay = '01',
+            string $hour = '00:00:00'
         ) {
             $unknown = false;
             // Set year/month/day to defaults
@@ -1139,7 +1139,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return array
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
         $results = $this->getTopicTermsFromNodeWithRelators(
             'subject',
@@ -1211,7 +1211,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -1291,7 +1291,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getInstitution()
+    protected function getInstitution(): string
     {
         $firstResult = $langResult = '';
         foreach ($this->doc->did->repository ?? [] as $repo) {
@@ -1317,7 +1317,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
      *
      * @return string
      */
-    protected function getDescription()
+    protected function getDescription(): string
     {
         if (!empty($this->doc->scopecontent)) {
             $desc = [];
@@ -1364,7 +1364,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
         $ids = [];
         $fileIds = [];
-        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds) {
+        $matchAttributes = function (\SimpleXMLElement $check) use (&$ids, &$fileIds): void {
             if ($check && $attrs = $check->attributes()) {
                 if ($identifier = trim((string)$attrs->identifier)) {
                     $ids[] = $identifier;

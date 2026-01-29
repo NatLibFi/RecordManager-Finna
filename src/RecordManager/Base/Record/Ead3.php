@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2021.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -115,64 +115,6 @@ class Ead3 extends Ead
     }
 
     /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = [];
-
-        $doc = $this->doc;
-        $data['record_format'] = 'ead3';
-        $data['ctrlnum'] = $this->getOldIdentifier();
-        $data['fullrecord'] = $this->metadataUtils->trimXMLWhitespace($doc->asXML());
-        $data['allfields'] = $this->getAllFields($doc);
-        $data['description'] = $this->getDescription();
-        $data['author'] = $this->getAuthors();
-        $data['author_sort'] = reset($data['author']);
-        $data['author_corporate'] = $this->getCorporateAuthors();
-        $data['geographic'] = $data['geographic_facet']
-            = $this->getGeographicTopics();
-        $data['topic'] = $data['topic_facet'] = $this->getTopics();
-        $data['format'] = $this->getFormat();
-        $data['institution'] = $this->getInstitution();
-        $data['series'] = $this->getSeries();
-        $data['title_sub'] = $this->getSubtitle();
-        $data['title_short'] = $this->getTitle();
-        $data['title'] = '';
-        // Ini handling returns true as '1':
-        $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
-        if (
-            '1' === $prependTitle
-            || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
-        ) {
-            if (
-                !empty($data['title_sub'])
-                && $data['title_sub'] != $data['title_short']
-            ) {
-                $data['title'] = $data['title_sub'] . ' ';
-            }
-        }
-        $data['title'] .= $data['title_short'];
-        $data['title_full'] = $data['title_sort'] = $data['title'];
-        $data['title_sort'] = mb_strtolower(
-            $this->metadataUtils->stripPunctuation($data['title_sort']),
-            'UTF-8'
-        );
-
-        $data['language'] = $this->getLanguages();
-        $data['physical'] = $this->getPhysicalExtent();
-        $data['thumbnail'] = $this->getThumbnail();
-
-        $this->getHierarchyFields($data);
-
-        return $data;
-    }
-
-    /**
      * Return format from predefined values
      *
      * @return string|array
@@ -186,23 +128,13 @@ class Ead3 extends Ead
     }
 
     /**
-     * Return record title
-     *
-     * @param bool $forFiling Whether the title is to be used in filing
-     *                        (e.g. sorting, non-filing characters should be removed)
+     * Get short title for enrichment.
      *
      * @return string
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getTitle($forFiling = false)
+    public function getShortTitleForEnrichment(): string
     {
-        $title = (string)($this->doc->did->unittitle ?? '');
-        if ($forFiling) {
-            $title = $this->metadataUtils->createSortTitle($title);
-        }
-
-        return $title;
+        return (string)($this->doc->did->unittitle ?? '');
     }
 
     /**
@@ -212,7 +144,7 @@ class Ead3 extends Ead
      */
     public function getMainAuthor()
     {
-        $authors = $this->getAuthors();
+        $authors = $this->getPrimaryAuthors();
         return $authors[0] ?? '';
     }
 
@@ -237,11 +169,11 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         return [];
     }
@@ -267,6 +199,91 @@ class Ead3 extends Ead
     }
 
     /**
+     * Get short title
+     *
+     * @return string
+     */
+    public function getShortTitle(): string
+    {
+        return (string)($this->doc->did->unittitle ?? '');
+    }
+
+    /**
+     * Get sort title.
+     *
+     * @return string
+     */
+    public function getTitleSort(): string
+    {
+        return mb_strtolower($this->metadataUtils->stripPunctuation($this->getTitle()), 'UTF-8');
+    }
+
+    /**
+     * Return record title
+     *
+     * @param bool $forFiling Whether the title is to be used in filing
+     *                        (e.g. sorting, non-filing characters should be removed)
+     *
+     * @return string
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function getTitle($forFiling = false): string
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        $titleSub = $this->getTitleSub();
+        $shortTitle = $this->getShortTitle();
+
+        $title = '';
+        // Ini handling returns true as '1':
+        $prependTitle = $this->getDriverParam('prependTitleWithSubtitle', '1');
+        if (
+            '1' === $prependTitle
+            || ('children' === $prependTitle && $this->doc->{'add-data'}->{'parent'})
+        ) {
+            if (
+                '' !== $titleSub
+                && $titleSub !== $shortTitle
+            ) {
+                $title = $titleSub . ' ';
+            }
+        }
+        $title .= $shortTitle;
+
+        if ($forFiling) {
+            $title = $this->metadataUtils->createSortTitle($title);
+        }
+
+        return $this->resultCache[__METHOD__] = $title;
+    }
+
+    /**
+     * Do any post-processing for the record after the main conversion to Solr array.
+     *
+     * @param ?Database $db   Database connection, if available
+     * @param array     $data Array of Solr fields
+     *
+     * @return void
+     */
+    protected function postProcessRecordForIndexing(?Database $db, &$data): void
+    {
+        $this->addHierarchyFields($data);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'ead3';
+    }
+
+    /**
      * Get topic identifiers.
      *
      * @return array
@@ -281,7 +298,7 @@ class Ead3 extends Ead
      *
      * @return string
      */
-    protected function getDescription()
+    protected function getDescription(): string
     {
         if (!empty($this->doc->scopecontent)) {
             if (!empty($this->doc->scopecontent->p)) {
@@ -298,12 +315,16 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get authors
+     * Get primary authors.
      *
      * @return array<int, string>
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
         $result = [];
         foreach ($this->getAuthorElements() as $name) {
             foreach ($name->part as $part) {
@@ -312,7 +333,7 @@ class Ead3 extends Ead
                 }
             }
         }
-        return $result;
+        return $this->resultCache[__METHOD__] = $result;
     }
 
     /**
@@ -386,9 +407,22 @@ class Ead3 extends Ead
      *
      * @return array
      */
-    protected function getTopics()
+    protected function getTopics(): array
     {
-        return $this->getTopicTermsFromNode('subject');
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+        return $this->resultCache[__METHOD__] = $this->getTopicTermsFromNode('subject');
+    }
+
+    /**
+     * Get topic facet fields
+     *
+     * @return array<int, string> Topics
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getTopics();
     }
 
     /**
@@ -398,7 +432,20 @@ class Ead3 extends Ead
      */
     protected function getGeographicTopics()
     {
-        return $this->getTopicTermsFromNode('geogname');
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+        return $this->resultCache[__METHOD__] = $this->getTopicTermsFromNode('geogname');
+    }
+
+    /**
+     * Get geographic facets.
+     *
+     * @return array
+     */
+    protected function getGeographicFacets(): array
+    {
+        return $this->getGeographicTopics();
     }
 
     /**
@@ -434,7 +481,7 @@ class Ead3 extends Ead
      *
      * @return string
      */
-    protected function getInstitution()
+    protected function getInstitution(): string
     {
         return (string)($this->doc->did->repository->corpname->part ?? '');
     }
@@ -459,11 +506,11 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get physical extent
+     * Get physical descriptions.
      *
      * @return array
      */
-    protected function getPhysicalExtent()
+    protected function getPhysicalDescriptions(): array
     {
         $result = [];
         foreach ($this->doc->did->physdesc->extent ?? [] as $extent) {
@@ -475,11 +522,11 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get thumbnail
+     * Get thumbnail URL.
      *
      * @return string
      */
-    protected function getThumbnail()
+    protected function getThumbnailUrl(): string
     {
         foreach ([$this->doc->did ?? [], $this->doc->did->daoset ?? []] as $root) {
             foreach ($root as $set) {
@@ -524,13 +571,13 @@ class Ead3 extends Ead
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
         $data['hierarchytype'] = 'Default';
         $sequenceUnitId = $firstId = '';
@@ -569,8 +616,6 @@ class Ead3 extends Ead
             $data['is_hierarchy_title'] = $data['hierarchy_top_title']
                 = (string)($this->doc->did->unittitle ?? '');
         }
-
-        // We only need title_in_hierarchy if it differs from title:
         $sequenceUnitId = $sequenceUnitId ?: $firstId;
         if (
             $sequenceUnitId
@@ -584,12 +629,13 @@ class Ead3 extends Ead
     /**
      * Get all XML fields
      *
-     * @param \SimpleXMLElement $xml The XML document
+     * @param ?\SimpleXMLElement $xml XML fragment to process, or null to process whole document
      *
      * @return array<int, string>
      */
-    protected function getAllFields($xml)
+    protected function getAllFields($xml = null)
     {
+        $xml ??= $this->doc;
         $allFields = [];
         foreach ($xml->children() as $field) {
             $s = trim((string)$field);
@@ -602,5 +648,36 @@ class Ead3 extends Ead
             }
         }
         return $allFields;
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
+    }
+
+    /**
+     * Get author sort field.
+     *
+     * @return string
+     */
+    protected function getAuthorSort(): string
+    {
+        $authors = $this->getPrimaryAuthors();
+        return $authors[0] ?? '';
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    protected function getFullTitle(): string
+    {
+        return $this->getTitle();
     }
 }

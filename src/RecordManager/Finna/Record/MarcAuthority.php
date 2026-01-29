@@ -5,7 +5,7 @@
  *
  * PHP version 5
  *
- * Copyright (C) The National Library of Finland 2021-2023.
+ * Copyright (C) The National Library of Finland 2021-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -70,12 +70,15 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
         $data = parent::toSolrArray($db);
 
         $data['identifier_str_mv'] = $this->getIdentifiers();
+        $data['related_places_str_mv'] = $this->getRelatedPlaces();
+        $data['datasource_str_mv'] = $data['source_str_mv'] = $this->source;
 
         $data['allfields'][] = $this->getHeading();
         $data['allfields'] = [
             ...$data['allfields'],
             ...$this->getAlternativeNames(['500', '510']),
         ];
+
         return $data;
     }
 
@@ -148,5 +151,20 @@ class MarcAuthority extends \RecordManager\Base\Record\MarcAuthority
             }
         }
         return $result;
+    }
+
+    /**
+     * Get related places
+     *
+     * @return array
+     */
+    protected function getRelatedPlaces(): array
+    {
+        return array_unique(
+            [
+                $this->getFieldSubField('370', 'e', true),
+                $this->getFieldSubField('370', 'f', true),
+            ]
+        );
     }
 }

@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2022.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -29,13 +29,11 @@
 
 namespace RecordManager\Base\Record;
 
+use DOMDocument;
 use RecordManager\Base\Database\DatabaseInterface as Database;
 
-use function count;
 use function in_array;
 use function is_string;
-use function sprintf;
-use function strlen;
 
 /**
  * Lido record class
@@ -50,7 +48,9 @@ use function strlen;
  */
 class Lido extends AbstractRecord
 {
-    use XmlRecordTrait;
+    use XmlRecordTrait {
+        setData as xmlRecordSetData;
+    }
 
     /**
      * Main event names reflecting the terminology in the particular LIDO records.
@@ -137,6 +137,46 @@ class Lido extends AbstractRecord
     protected $excludedLocationAppellationValueLabels = [];
 
     /**
+     * LIDO elements excluded from allfields.
+     *
+     * @var array
+     */
+    protected $excludeFromAllFields = [
+        'conceptID', 'eventType', 'legalBodyWeblink', 'linkResource',
+        'objectMeasurementsWrap', 'recordMetadataDate', 'recordType',
+        'resourceWrap', 'relatedWorksWrap', 'rightsType', 'roleActor',
+    ];
+
+    /**
+     * Set record data
+     *
+     * @param string $source    Source ID
+     * @param string $oaiID     Record ID received from OAI-PMH (or empty string for
+     *                          file import)
+     * @param string $data      Record metadata
+     * @param array  $extraData Extra metadata
+     *
+     * @return void
+     */
+    public function setData($source, $oaiID, $data, $extraData)
+    {
+        $this->xmlRecordSetData($source, $oaiID, $data, $extraData);
+
+        // Make sure we have a lidoWrap element as the root element as <lido> is also allowed in OAI-PMH:
+        if ($this->doc->getName() === 'lido') {
+            $schema = (string)($this->doc['schemaLocation']
+                ?? 'http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd');
+            unset($this->doc['schemaLocation']);
+            $doc = new DOMDocument(encoding: 'UTF-8');
+            $lidoWrap = $doc->createElement('lidoWrap');
+            $lidoWrap->setAttribute('schemaLocation', $schema);
+            $lidoWrap->append($doc->importNode(dom_import_simplexml($this->doc), true));
+            $doc->appendChild($lidoWrap);
+            $this->doc = simplexml_import_dom($doc);
+        }
+    }
+
+    /**
      * Return record ID (local)
      *
      * @return string
@@ -144,82 +184,6 @@ class Lido extends AbstractRecord
     public function getID()
     {
         return (string)$this->doc->lido->lidoRecID;
-    }
-
-    /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = [];
-
-        $data['record_format'] = 'lido';
-        $title = $this->getTitle(false);
-        $data['title'] = $data['title_short'] = $data['title_full'] = $title;
-        $data['title_sort'] = $this->metadataUtils->createSortTitle($title);
-        $data['title_alt'] = $this->getAltTitles();
-
-        $data['description'] = $this->getDescription();
-
-        $data['format'] = $this->getObjectWorkType();
-        $data['institution'] = $this->getLegalBodyName();
-
-        $data['author'] = $this->getAuthors();
-        if (!empty($data['author'])) {
-            $data['author_sort'] = $data['author'][0];
-        }
-        if ($this->secondaryAuthorEvents) {
-            $data['author2'] = $this->getSecondaryAuthors();
-        }
-
-        $data['topic'] = $data['topic_facet'] = $this->getSubjectTerms();
-        $data['material_str_mv'] = $this->getMaterials();
-
-        $data['era'] = $data['era_facet'] = $this->getDisplayDates();
-
-        $data['geographic'] = $data['geographic_facet'] = $this->getDisplayPlaces();
-        // Index the other place forms only to facets:
-        $data['geographic_facet'] = [
-            ...$data['geographic_facet'],
-            ...$this->getSubjectPlaces(),
-        ];
-        $data['collection'] = $this->getCollection();
-
-        $urls = $this->getURLs();
-        if (count($urls)) {
-            // thumbnail field is not multivalued so can only store first image url
-            $data['thumbnail'] = $urls[0];
-        }
-
-        $data['ctrlnum'] = $this->getRecordInfoIDs();
-        $data['isbn'] = $this->getISBNs();
-        $data['issn'] = $this->getISSNs();
-        $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
-
-        $this->getHierarchyFields($data);
-
-        $data['allfields'] = $this->getAllFields($this->doc);
-
-        // Include hierarchy titles from relatedWorksWrap:
-        foreach (
-            ['is_hierarchy_title', 'hierarchy_parent_title', 'hierarchy_top_title', 'title_in_hierarchy'] as $field
-        ) {
-            // phpcs:ignore
-            /** @psalm-var list<string> */
-            $titles = (array)($data[$field] ?? []);
-            if ($titles) {
-                $data['allfields'] = [
-                    ...$data['allfields'],
-                    ...$titles,
-                ];
-            }
-        }
-
-        return $data;
     }
 
     /**
@@ -235,7 +199,7 @@ class Lido extends AbstractRecord
         $titles = $this->getTitles();
         $title = $titles['preferred'];
         if ($forFiling) {
-            $title = $this->metadataUtils->stripLeadingPunctuation($title);
+            $title = $this->metadataUtils->createSortTitle($title);
         }
         return $title;
     }
@@ -301,7 +265,7 @@ class Lido extends AbstractRecord
      */
     public function getMainAuthor()
     {
-        $authors = $this->getAuthors();
+        $authors = $this->getPrimaryAuthors();
         return $authors ? $authors[0] : '';
     }
 
@@ -362,52 +326,11 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Dedup: Return ISBNs in ISBN-13 format without dashes
-     *
-     * @return array
-     */
-    public function getISBNs()
-    {
-        $arr = [];
-        foreach ($this->getIdentifiersByType(['isbn'], []) as $identifier) {
-            if ($isbn = $this->metadataUtils->normalizeISBN($this->checkISBN((string)$identifier))) {
-                $arr[] = $isbn;
-            } else {
-                $this->storeWarning("Invalid ISBN '$identifier'");
-            }
-        }
-
-        return array_unique($arr);
-    }
-
-    /**
-     * Get related ISBNs
-     *
-     * @return array
-     */
-    public function getRelatedISBNs(): array
-    {
-        $results = [];
-        foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
-            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
-                if ($isbn = $this->checkISBN((string)$identifier)) {
-                    // Include ISBNs in original format and in ISBN-13 format
-                    $results[] = $isbn;
-                    if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
-                        $results[] = $normalized;
-                    }
-                }
-            }
-        }
-        return array_unique($results);
-    }
-
-    /**
      * Dedup: Return ISSNs
      *
      * @return array
      */
-    public function getISSNs()
+    public function getISSNs(): array
     {
         return $this->getIdentifiersByType(['issn'], []);
     }
@@ -433,11 +356,11 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         return [];
     }
@@ -450,6 +373,80 @@ class Lido extends AbstractRecord
     public function getSecondaryAuthorIds(): array
     {
         return [];
+    }
+
+    /**
+     * Get short title.
+     *
+     * @return string
+     */
+    public function getShortTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    public function getFullTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get format.
+     *
+     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
+     * #objectWorkTypeWrap
+     * @return string
+     */
+    public function getFormat()
+    {
+        return $this->getObjectWorkType();
+    }
+
+    /**
+     * Do any post-processing for the record after the main conversion to Solr array.
+     *
+     * @param ?Database $db   Database connection, if available
+     * @param array     $data Array of Solr fields
+     *
+     * @return void
+     */
+    protected function postProcessRecordForIndexing(?Database $db, &$data): void
+    {
+        $this->addHierarchyFields($data);
+    }
+
+    /**
+     * Get ISBNs in ISBN-13 format without dashes.
+     *
+     * @return array
+     */
+    protected function getISBNs(): array
+    {
+        $arr = [];
+        foreach ($this->getIdentifiersByType(['isbn'], []) as $identifier) {
+            if ($isbn = $this->metadataUtils->normalizeISBN($this->checkISBN((string)$identifier))) {
+                $arr[] = $isbn;
+            } else {
+                $this->storeWarning("Invalid ISBN '$identifier'");
+            }
+        }
+
+        return array_unique($arr);
+    }
+
+    /**
+     * Get record format.
+     *
+     * @return string
+     */
+    protected function getRecordFormat(): string
+    {
+        return 'lido';
     }
 
     /**
@@ -665,6 +662,16 @@ class Lido extends AbstractRecord
     }
 
     /**
+     * Get institution.
+     *
+     * @return string
+     */
+    protected function getInstitution(): string
+    {
+        return $this->getLegalBodyName();
+    }
+
+    /**
      * Return the legal body name.
      *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
@@ -744,7 +751,7 @@ class Lido extends AbstractRecord
      *
      * @return array
      */
-    protected function getURLs()
+    protected function getUrls()
     {
         $results = [];
         foreach ($this->getResourceSetNodes() as $set) {
@@ -763,15 +770,20 @@ class Lido extends AbstractRecord
     /**
      * Return names of actors associated with specified event
      *
-     * @param string|array $event        Event type(s) allowed (null = all types)
-     * @param string|array $role         Roles allowed (null = all roles)
-     * @param bool         $includeRoles Whether to include actor roles in the
-     *                                   results
+     * @param string|array|null $event        Event type(s) allowed (null = all types)
+     * @param string|array|null $role         Roles allowed (null = all roles)
+     * @param bool              $includeRoles Whether to include actor roles in the results
      *
      * @return array<int, string>
      */
     protected function getActors($event = null, $role = null, $includeRoles = false)
     {
+        $key = md5(__METHOD__ . ($event ? implode(',', (array)$event) : 'null') . '|'
+            . ($role ? implode(',', (array)$role) : 'null') . '|' . ($includeRoles ? '1' : '0'));
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
         $result = [];
         foreach ($this->getEventNodes($event) as $eventNode) {
             foreach ($eventNode->eventActor as $actorNode) {
@@ -796,7 +808,7 @@ class Lido extends AbstractRecord
             }
         }
 
-        return $result;
+        return $this->resultCache[$key] = $result;
     }
 
     /**
@@ -1028,21 +1040,16 @@ class Lido extends AbstractRecord
      *
      * A recursive method for fetching all relevant fields
      *
-     * @param \SimpleXMLElement $xml The XML document
+     * @param ?\SimpleXMLElement $xml XML fragment to process, or null to process whole document
      *
      * @return array<int, string>
      */
-    protected function getAllFields($xml)
+    protected function getAllFields($xml = null)
     {
-        $ignoredFields = [
-            'conceptID', 'eventType', 'legalBodyWeblink', 'linkResource',
-            'objectMeasurementsWrap', 'recordMetadataDate', 'recordType',
-            'resourceWrap', 'relatedWorksWrap', 'rightsType', 'roleActor',
-        ];
-
+        $xml ??= $this->doc;
         $allFields = [];
         foreach ($xml->children() as $tag => $field) {
-            if (in_array($tag, $ignoredFields)) {
+            if (in_array($tag, $this->excludeFromAllFields)) {
                 continue;
             }
             $s = trim((string)$field);
@@ -1065,83 +1072,6 @@ class Lido extends AbstractRecord
     protected function getDefaultLanguage()
     {
         return $this->getDriverParam('defaultDisplayLanguage', 'en');
-    }
-
-    /**
-     * Attempt to parse a string (in finnish) into a normalized date range.
-     *
-     * TODO: complicated normalizations like this should preferably reside within
-     * their own, separate component which should allow modification of the
-     * algorithm by methods other than hard-coding rules into source.
-     *
-     * @param string $input Date range
-     *
-     * @return string|null Two ISO 8601 dates separated with a comma on success, or
-     * null on failure
-     */
-    protected function parseDateRange($input)
-    {
-        static $dmyRe = '/(\d\d?)\s*.\s*(\d\d?)\s*.\s*(\d\d\d\d)/';
-        $input = trim(strtolower($input));
-
-        if (preg_match('/(\d\d\d\d) ?- (\d\d\d\d)/', $input, $matches) > 0) {
-            $startDate = $matches[1];
-            $endDate = $matches[2];
-        } elseif (preg_match('/(\d\d\d\d)-(\d\d?)-(\d\d?)/', $input, $matches) > 0) {
-            $year = $matches[1];
-            $month = sprintf('%02d', $matches[2]);
-            $day = sprintf('%02d', $matches[3]);
-            $startDate = $year . '-' . $month . '-' . $day . 'T00:00:00Z';
-            $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
-            $noprocess = true;
-        } elseif (preg_match($dmyRe, $input, $matches) > 0) {
-            $year = $matches[3];
-            $month = sprintf('%02d', $matches[2]);
-            $day = sprintf('%02d', $matches[1]);
-            $startDate = $year . '-' . $month . '-' . $day . 'T00:00:00Z';
-            $endDate = $year . '-' . $month . '-' . $day . 'T23:59:59Z';
-            $noprocess = true;
-        } elseif (preg_match('/(\d?\d?\d\d) ?\?/', $input, $matches) > 0) {
-            $year = (int)$matches[1];
-
-            $startDate = $year - 3;
-            $endDate = $year + 3;
-        } elseif (preg_match('/(\d?\d?\d\d)/', $input, $matches) > 0) {
-            $year = $matches[1];
-
-            $startDate = $year;
-            $endDate = $year;
-        } else {
-            return null;
-        }
-
-        if (strlen((string)$startDate) == 2) {
-            $startDate = 1900 + (int)$startDate;
-        }
-        if (strlen((string)$endDate) == 2) {
-            $century = substr((string)$startDate, 0, 2) . '00';
-            $endDate = (int)$century + (int)$endDate;
-        }
-
-        if (empty($noprocess)) {
-            $startDate = $startDate . '-01-01T00:00:00Z';
-            $endDate = $endDate . '-12-31T23:59:59Z';
-        }
-
-        // Trying to index dates into the future? I don't think so...
-        $yearNow = date('Y');
-        if ($startDate > $yearNow || $endDate > $yearNow) {
-            return null;
-        }
-
-        if (
-            $this->metadataUtils->validateISO8601Date((string)$startDate) === false
-            || $this->metadataUtils->validateISO8601Date((string)$endDate) === false
-        ) {
-            return null;
-        }
-
-        return "$startDate,$endDate";
     }
 
     /**
@@ -1308,7 +1238,7 @@ class Lido extends AbstractRecord
      *
      * @return array
      */
-    protected function getRecordInfoIDs()
+    protected function getControlNumbers()
     {
         $ids = [];
         foreach ($this->doc->lido->administrativeMetadata->recordWrap->recordInfoSet ?? [] as $set) {
@@ -1434,33 +1364,25 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Get authors
+     * Get primary authors.
      *
      * @return array
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
         return $this->getActors($this->getMainEvents());
     }
 
     /**
-     * Get secondary authors
+     * Get secondary authors.
      *
      * @return array
      */
     protected function getSecondaryAuthors(): array
     {
-        return $this->getActors($this->getSecondaryAuthorEvents());
-    }
-
-    /**
-     * Get materials
-     *
-     * @return array
-     */
-    protected function getMaterials(): array
-    {
-        return $this->getEventMaterials($this->getMainEvents());
+        return $this->secondaryAuthorEvents
+            ? $this->getActors($this->getSecondaryAuthorEvents())
+            : [];
     }
 
     /**
@@ -1532,68 +1454,83 @@ class Lido extends AbstractRecord
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
-        foreach ($this->getRelatedWorkSetNodes(['is part of']) as $set) {
-            if (!($relatedWork = $set->relatedWork)) {
-                continue;
-            }
-            $relatedId = (string)($relatedWork->object->objectID ?? '');
-            if (!$relatedId) {
-                $this->logger
-                    ->logDebug('Lido', 'Related record ID missing', true);
-                continue;
-            }
-            $relatedTitle = (string)($relatedWork->displayObject ?? '');
-            if (!$relatedTitle) {
-                $this->logger
-                    ->logDebug('Lido', 'Related record title missing', true);
-                continue;
-            }
+        if ($this->getDriverParam('indexHierarchies', false)) {
+            foreach ($this->getRelatedWorkSetNodes(['is part of']) as $set) {
+                if (!($relatedWork = $set->relatedWork)) {
+                    continue;
+                }
+                $relatedId = (string)($relatedWork->object->objectID ?? '');
+                if (!$relatedId) {
+                    $this->logger
+                        ->logDebug('Lido', 'Related record ID missing', true);
+                    continue;
+                }
+                $relatedTitle = (string)($relatedWork->displayObject ?? '');
+                if (!$relatedTitle) {
+                    $this->logger
+                        ->logDebug('Lido', 'Related record title missing', true);
+                    continue;
+                }
 
-            $type = (string)($relatedWork->object->objectType->term ?? '');
-            if ('collection' === $type) {
-                $data['hierarchy_top_id'] = $relatedId;
-                $data['hierarchy_top_title'] = $relatedTitle;
-            } elseif ('parent' === $type) {
-                if ($relatedId === $this->getID()) {
-                    $data['is_hierarchy_id'] = $relatedId;
-                    $data['is_hierarchy_title'] = $relatedTitle;
-                } else {
-                    $data['hierarchy_parent_id'] = $relatedId;
-                    $data['hierarchy_parent_title'] = $relatedTitle;
+                $type = (string)($relatedWork->object->objectType->term ?? '');
+                if ('collection' === $type) {
+                    $data['hierarchy_top_id'] = $relatedId;
+                    $data['hierarchy_top_title'] = $relatedTitle;
+                } elseif ('parent' === $type) {
+                    if ($relatedId === $this->getID()) {
+                        $data['is_hierarchy_id'] = $relatedId;
+                        $data['is_hierarchy_title'] = $relatedTitle;
+                    } else {
+                        $data['hierarchy_parent_id'] = $relatedId;
+                        $data['hierarchy_parent_title'] = $relatedTitle;
+                    }
+                }
+            }
+            // If there is hierarchy top id but no parent id, assume this is the top
+            // record:
+            if (
+                !empty($data['hierarchy_top_id'])
+                && empty($data['hierarchy_parent_id'])
+            ) {
+                $data['is_hierarchy_id'] = $data['hierarchy_top_id'];
+                $data['is_hierarchy_title'] = $data['hierarchy_top_title'];
+            }
+            if (!empty($data['hierarchy_parent_id'])) {
+                // Build a sequence for sorting:
+                $data['hierarchy_sequence'] = preg_replace_callback(
+                    '/(\d+)/',
+                    function ($matches) {
+                        return str_pad($matches[1], 9, '0', STR_PAD_LEFT);
+                    },
+                    $this->getIdentifier()
+                );
+                // Add title field if needed:
+                if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+                    $data['title_in_hierarchy']
+                        = trim($this->getIdentifier() . ' ' . $data['title']);
                 }
             }
         }
-        // If there is hierarchy top id but no parent id, assume this is the top
-        // record:
-        if (
-            !empty($data['hierarchy_top_id'])
-            && empty($data['hierarchy_parent_id'])
+
+        // Include hierarchy titles from relatedWorksWrap in allfields:
+        foreach (
+            ['is_hierarchy_title', 'hierarchy_parent_title', 'hierarchy_top_title', 'title_in_hierarchy'] as $field
         ) {
-            $data['is_hierarchy_id'] = $data['hierarchy_top_id'];
-            $data['is_hierarchy_title'] = $data['hierarchy_top_title'];
-        }
-        if (!empty($data['hierarchy_parent_id'])) {
-            // Build a sequence for sorting:
-            $data['hierarchy_sequence'] = preg_replace_callback(
-                '/(\d+)/',
-                function ($matches) {
-                    return str_pad($matches[1], 9, '0', STR_PAD_LEFT);
-                },
-                $this->getIdentifier()
-            );
-            // Add title field if needed:
-            if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
-                $data['title_in_hierarchy']
-                    = trim($this->getIdentifier() . ' ' . $data['title']);
-            }
+            // phpcs:ignore
+            /** @psalm-var list<string> */
+            $titles = (array)($data[$field] ?? []);
+            $data['allfields'] = [
+                ...$data['allfields'],
+                ...$titles,
+            ];
         }
     }
 
@@ -1607,9 +1544,96 @@ class Lido extends AbstractRecord
     protected function checkISBN($identifier = ''): string
     {
         $identifier = str_replace('-', '', trim($identifier));
-        if (preg_match('{^(URN:ISBN:)?([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+        if ('' !== $identifier && preg_match('{^(URN:ISBN:)?([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
             return $matches[2];
         }
         return '';
+    }
+
+    /**
+     * Get author sort field.
+     *
+     * @return string
+     */
+    protected function getAuthorSort(): string
+    {
+        $authors = $this->getPrimaryAuthors();
+        return $authors[0] ?? '';
+    }
+
+    /**
+     * Get topics.
+     *
+     * @return array
+     */
+    protected function getTopics(): array
+    {
+        return $this->getSubjectTerms();
+    }
+
+    /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
+    {
+        return $this->getSubjectTerms();
+    }
+
+    /**
+     * Get all era topics.
+     *
+     * @return array<int, string>
+     */
+    protected function getEras(): array
+    {
+        return $this->getDisplayDates();
+    }
+
+    /**
+     * Get era facet fields.
+     *
+     * @return array<int, string> Topics
+     */
+    protected function getEraFacets(): array
+    {
+        return $this->getDisplayDates();
+    }
+
+    /**
+     * Get all geographic topics.
+     *
+     * @return array<int, string>
+     */
+    protected function getGeographicTopics()
+    {
+        return $this->getDisplayPlaces();
+    }
+
+    /**
+     * Get geographic facet fields.
+     *
+     * @return array<int, string> Topics
+     */
+    protected function getGeographicFacets()
+    {
+        // Index the other place forms only to facets:
+        return [
+            ...$this->getDisplayPlaces(),
+            ...$this->getSubjectPlaces(),
+        ];
+    }
+
+    /**
+     * Get thumbnail URL.
+     *
+     * @return string
+     */
+    protected function getThumbnailUrl(): string
+    {
+        // thumbnail field is not multivalued, so just store take the first one:
+        $urls = $this->getUrls();
+        return $urls[0] ?? '';
     }
 }

@@ -67,6 +67,7 @@ class MarcTest extends RecordTestBase
                 '378890',
                 '401416',
             ],
+            'oclc_num' => [],
             'allfields' => [
                 'Hirsjärvi, Sirkka',
                 'Tutki ja kirjoita',
@@ -84,6 +85,8 @@ class MarcTest extends RecordTestBase
                 'nide',
                 'nc',
                 'rdacarrier',
+                'Series Double',
+                'Series 490',
                 '18. p. 2013',
                 'Summary field',
                 'oppaat',
@@ -100,6 +103,7 @@ class MarcTest extends RecordTestBase
                 'Sajavaara, Paula',
                 'Example Distributor',
                 'distributor',
+                'Series 830',
                 'urn:doi:doi2',
                 'urn:doif:not-doi',
                 'http://doi.org/doi%3a3',
@@ -149,12 +153,21 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [],
+            'series' => [
+                'Series Double',
+                'Series 830',
+            ],
+            'series2' => [
+                'Series 490',
+            ],
             'publisher' => [
                 'Tammi',
             ],
             'publishDateSort' => '2013',
             'publishDate' => [
+                '2013',
+            ],
+            'publishDateRange' => [
                 '2013',
             ],
             'physical' => [],
@@ -164,23 +177,41 @@ class MarcTest extends RecordTestBase
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [],
+            'issn' => [
+                '0000-0000',
+            ],
             'doi_str_mv' => [
                 'doi1',
                 'doi2',
                 'doi:3',
                 'doi4',
             ],
-            'callnumber-first' => 'QC861.2',
+            'callnumber-first' => 'Q',
             'callnumber-raw' => [
                 '38.04',
                 '38.03',
                 'QC861.2 .B36',
             ],
             'callnumber-subject' => 'QC',
-            'callnumber-label' => 'QC861',
+            'callnumber-label' => [
+                'QC',
+                'QC861',
+                'QC861.2',
+            ],
             'callnumber-sort' => 'QC 3861.2 B236',
             'topic' => [
+                'oppaat',
+                'ft: kirjoittaminen',
+                'apurahat',
+                'tutkimusrahoitus',
+                'tutkimuspolitiikka',
+                'opinnäytteet',
+                'tiedonhaku',
+                'kielioppaat',
+                'tutkimustyö',
+                'tutkimus',
+            ],
+            'topic_browse' => [
                 'oppaat',
                 'ft: kirjoittaminen',
                 'apurahat',
@@ -217,6 +248,10 @@ class MarcTest extends RecordTestBase
                 'https://dx.doi.org/doi4',
             ],
             'illustrated' => 'Not Illustrated',
+            'uuid_str_mv' => [
+                'uuid_lower',
+                'uuid_upper',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -281,6 +316,7 @@ class MarcTest extends RecordTestBase
                 '1558192',
                 'FCC002608043',
             ],
+            'oclc_num' => [],
             'allfields' => [
                 'Kalat, James W.',
                 'Biological psychology',
@@ -339,11 +375,15 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'biological psychology james w kalat',
             'series' => [],
+            'series2' => [],
             'publisher' => [
                 'Wadsworth',
             ],
             'publishDateSort' => '2001',
             'publishDate' => [
+                '2001',
+            ],
+            'publishDateRange' => [
                 '2001',
             ],
             'physical' => [
@@ -358,9 +398,18 @@ class MarcTest extends RecordTestBase
             ],
             'issn' => [],
             'doi_str_mv' => [],
+            'uuid_str_mv' => [],
             'callnumber-first' => '',
+            'callnumber-subject' => '',
             'callnumber-raw' => [],
+            'callnumber-label' => [],
             'topic' => [
+                'neuropsykologia',
+                'biopsykologia',
+                'neuropsykologi',
+                'biopsykologi',
+            ],
+            'topic_browse' => [
                 'neuropsykologia',
                 'biopsykologia',
                 'neuropsykologi',
@@ -449,6 +498,7 @@ class MarcTest extends RecordTestBase
                 '(PIKI)Ppro837_107786',
                 '(FI-MELINDA)000963219',
             ],
+            'oclc_num' => [],
             'allfields' => [
                 'Suomen tiekartta',
                 'Vägkarta över Finland',
@@ -509,11 +559,15 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'suomen tiekartta vägkarta över finland 1',
             'series' => [],
+            'series2' => [],
             'publisher' => [
                 '[Maanmittaushallitus]',
             ],
             'publishDateSort' => '1946',
             'publishDate' => [
+                '1946',
+            ],
+            'publishDateRange' => [
                 '1946',
             ],
             'physical' => [
@@ -522,8 +576,12 @@ class MarcTest extends RecordTestBase
             'dateSpan' => [],
             'edition' => '',
             'contents' => [],
+            'isbn' => [],
             'issn' => [],
             'doi_str_mv' => [],
+            'uuid_str_mv' => [],
+            'callnumber-subject' => '',
+            'callnumber-label' => [],
             'callnumber-first' => '',
             'callnumber-raw' => [
                 '42.02',
@@ -532,6 +590,10 @@ class MarcTest extends RecordTestBase
             'topic' => [
                 'tiekartat',
                 'kartat Suomi',
+            ],
+            'topic_browse' => [
+                'tiekartat',
+                "kartat\u{2002}Suomi",
             ],
             'genre' => [],
             'geographic' => [
@@ -666,11 +728,15 @@ class MarcTest extends RecordTestBase
                 . ' structures du quotidien le possible et l impossible fernand'
                 . ' braudel',
             'series' => [],
+            'series2' => [],
             'publisher' => [
                 'Armand Colin',
             ],
             'publishDateSort' => '1979',
             'publishDate' => [
+                '1979',
+            ],
+            'publishDateRange' => [
                 '1979',
             ],
             'physical' => [
@@ -684,7 +750,9 @@ class MarcTest extends RecordTestBase
             ],
             'issn' => [],
             'doi_str_mv' => [],
+            'uuid_str_mv' => [],
             'callnumber-first' => '',
+            'callnumber-subject' => '',
             'callnumber-raw' => [
                 '940.',
                 '909.',
@@ -692,6 +760,11 @@ class MarcTest extends RecordTestBase
                 '330.903.',
             ],
             'callnumber-sort' => '',
+            'callnumber-label' => [
+                '330',
+                '330.9',
+                '330.90',
+            ],
             'topic' => [
                 'Moeurs et coutumes Études transculturelles 1500-1800',
                 'Sociologie du quotidien Études transculturelles',
@@ -706,6 +779,21 @@ class MarcTest extends RecordTestBase
                 'Economic history',
                 'Social history',
                 'Civilization, Modern History',
+            ],
+            'topic_browse' => [
+                "Moeurs et coutumes\u{2002}Études transculturelles\u{2002}1500-1800",
+                "Sociologie du quotidien\u{2002}Études transculturelles",
+                "Civilisation\u{2002}Histoire",
+                "Histoire sociale\u{2002}1500-1800",
+                'Économie politique',
+                'Histoire moderne et contemporaine',
+                "Matérialisme\u{2002}Histoire",
+                "Capitalisme\u{2002}Histoire",
+                "Civilisation moderne\u{2002}Histoire",
+                'Histoire économique',
+                'Economic history',
+                'Social history',
+                "Civilization, Modern\u{2002}History",
             ],
             'genre' => [],
             'geographic' => [],
@@ -764,17 +852,18 @@ class MarcTest extends RecordTestBase
     {
         yield 'setting commented' => [
             [
-                '__unit_test_no_source__.4112121',
-                '__unit_test_no_source__.xyzzy',
+                '961827',
+                'xyzzy',
             ],
             [
-                '__unit_test_no_source__.4132317',
-                '__unit_test_no_source__.xyzzy',
+                '961827',
+                'xyzzy',
             ],
             [],
+            0,
         ];
 
-        yield 'default setting' => [
+        yield 'setting defined' => [
             [
                 '__unit_test_no_source__.4112121',
                 '__unit_test_no_source__.xyzzy',
@@ -816,9 +905,9 @@ class MarcTest extends RecordTestBase
      * @param array $config        Main configuration
      * @param int   $searchCount   Record db search expect
      *
-     * @return       void
-     * @dataProvider getTestMarcLinkingData
+     * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getTestMarcLinkingData')]
     public function testMarcLinking(array $firstExpects, array $secondExpects, array $config, int $searchCount = 5)
     {
         $db = $this->createMock(Database::class);
@@ -863,7 +952,7 @@ class MarcTest extends RecordTestBase
         ];
         $db->expects($this->exactly($searchCount))
             ->method('findRecord')
-            ->will($this->returnValueMap($map));
+            ->willReturnMap($map);
 
         $record = $this->createMarcRecord(Marc::class, 'marc_links.xml', config: $config);
         $record->toSolrArray($db);
@@ -1031,6 +1120,7 @@ class MarcTest extends RecordTestBase
                 '378890',
                 '401416',
             ],
+            'oclc_num' => [],
             'allfields' => [
                 'Hirsjärvi, Sirkka',
                 'Tutki ja kirjoita',
@@ -1048,6 +1138,8 @@ class MarcTest extends RecordTestBase
                 'nide',
                 'nc',
                 'rdacarrier',
+                'Series Double',
+                'Series 490',
                 '18. p. 2013',
                 'Summary field',
                 'oppaat',
@@ -1064,6 +1156,7 @@ class MarcTest extends RecordTestBase
                 'Sajavaara, Paula',
                 'Example Distributor',
                 'distributor',
+                'Series 830',
                 'urn:doi:doi2',
                 'urn:doif:not-doi',
                 'http://doi.org/doi%3a3',
@@ -1109,12 +1202,21 @@ class MarcTest extends RecordTestBase
             'title_new' => [],
             'title_sort' => 'tutki ja kirjoita sirkka hirsjärvi pirkko remes'
                 . ' paula sajavaara',
-            'series' => [],
+            'series' => [
+                'Series Double',
+                'Series 830',
+            ],
+            'series2' => [
+                'Series 490',
+            ],
             'publisher' => [
                 'Tammi',
             ],
             'publishDateSort' => '2013',
             'publishDate' => [
+                '2013',
+            ],
+            'publishDateRange' => [
                 '2013',
             ],
             'physical' => [],
@@ -1124,23 +1226,41 @@ class MarcTest extends RecordTestBase
             'isbn' => [
                 '9789513148362',
             ],
-            'issn' => [],
+            'issn' => [
+                '0000-0000',
+            ],
             'doi_str_mv' => [
                 'doi1',
                 'doi2',
                 'doi:3',
                 'doi4',
             ],
-            'callnumber-first' => 'QC861.2',
+            'callnumber-first' => 'Q',
             'callnumber-raw' => [
                 '38.04',
                 '38.03',
                 'QC861.2 .B36',
             ],
             'callnumber-subject' => 'QC',
-            'callnumber-label' => 'QC861',
+            'callnumber-label' => [
+                'QC',
+                'QC861',
+                'QC861.2',
+            ],
             'callnumber-sort' => 'QC 3861.2 B236',
             'topic' => [
+                'oppaat',
+                'ft: kirjoittaminen',
+                'apurahat',
+                'tutkimusrahoitus',
+                'tutkimuspolitiikka',
+                'opinnäytteet',
+                'tiedonhaku',
+                'kielioppaat',
+                'tutkimustyö',
+                'tutkimus',
+            ],
+            'topic_browse' => [
                 'oppaat',
                 'ft: kirjoittaminen',
                 'apurahat',
@@ -1177,6 +1297,10 @@ class MarcTest extends RecordTestBase
                 'https://dx.doi.org/doi4',
             ],
             'illustrated' => 'Not Illustrated',
+            'uuid_str_mv' => [
+                'uuid_lower',
+                'uuid_upper',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
@@ -1213,5 +1337,35 @@ class MarcTest extends RecordTestBase
         $this->compareArray($expected, $keys, 'getWorkIdentificationData');
 
         $this->assertEquals(['(FOO)2345'], $record->getUniqueIDs());
+    }
+
+    /**
+     * Test author relator mapping
+     *
+     * @return void
+     */
+    public function testRelatorMapping()
+    {
+        $config = [
+            'MarcRecord' => [
+                'hidden_author_relators' => 'distributor',
+            ],
+        ];
+        $record = $this->createMarcRecord(Marc::class, 'marc_relator.xml', config: $config);
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals(
+            [
+                'Author',
+                'aut',
+                'Another',
+                'https://id.loc.gov/vocabulary/relators/aut',
+            ],
+            $fields['allfields'] ?? [],
+        );
+        $this->assertEquals(['Author'], $fields['author'] ?? []);
+        $this->assertEquals(['aut'], $fields['author_role'] ?? []);
+        $this->assertEquals(['Another'], $fields['author2'] ?? []);
+        $this->assertEquals(['httpsidlocgovvocabularyrelatorsaut'], $fields['author2_role'] ?? []);
     }
 }

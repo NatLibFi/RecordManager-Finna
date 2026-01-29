@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2023.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -145,70 +145,6 @@ class Qdc extends AbstractRecord
     }
 
     /**
-     * Return fields to be indexed in Solr
-     *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSolrArray(?Database $db = null)
-    {
-        $data = $this->getFullTextFields($this->doc);
-
-        $doc = $this->doc;
-        $data['record_format'] = 'qdc';
-        $data['ctrlnum'] = trim((string)$doc->recordID);
-        $data['fullrecord'] = $doc->asXML();
-        $data['allfields'] = $this->getAllFields();
-        $data['language'] = $this->getLanguages();
-
-        $data['format'] = $this->getFormat();
-
-        $data['author'] = $this->getPrimaryAuthors();
-        $data['author2'] = $this->getSecondaryAuthors();
-        $data['author_corporate'] = $this->getCorporateAuthors();
-        if (!empty($data['author'])) {
-            $data['author_sort'] = $data['author'][0];
-        }
-
-        foreach ($doc->title as $title) {
-            if (
-                !isset($data['title'])
-                && $title->attributes()->{'type'} !== 'alternative'
-            ) {
-                $data['title'] = $data['title_full'] = trim((string)$title);
-                $titleParts = explode(' : ', $data['title']);
-                $data['title_short'] = $titleParts[0];
-                if (isset($titleParts[1])) {
-                    $data['title_sub'] = $titleParts[1];
-                }
-            } else {
-                $data['title_alt'][] = trim((string)$title);
-            }
-        }
-        $data['title_sort'] = $this->getTitle(true);
-
-        $data['publisher'] = [trim((string)$doc->publisher)];
-        $data['publishDate'] = $this->getPublicationYear();
-
-        $data['isbn'] = $this->getISBNs();
-        $data['issn'] = $this->getISSNs();
-        $data['doi_str_mv'] = $this->getDOIs();
-
-        $data['topic'] = $data['topic_facet'] = $this->getTopics();
-        $data['url'] = $this->getUrls();
-
-        $descriptions = $this->getDescriptions();
-        $data['contents'] = $descriptions['all'];
-        $data['description'] = $descriptions['primary'];
-
-        $data['series'] = $this->getSeries();
-        $this->getHierarchyFields($data);
-
-        return $data;
-    }
-
-    /**
      * Dedup: Return full title (for debugging purposes only)
      *
      * @return string
@@ -228,13 +164,27 @@ class Qdc extends AbstractRecord
      */
     public function getTitle($forFiling = false)
     {
-        $title = trim((string)$this->doc->title);
-        if ($forFiling) {
-            $title = $this->metadataUtils->createSortTitle($title);
-        } else {
-            $title = $this->metadataUtils->stripTrailingPunctuation($title);
+        $key = __METHOD__ . ($forFiling ? '1' : '0');
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
         }
-        return $title;
+
+        $preferred = null;
+        $default = '';
+        foreach ($this->doc->title as $title) {
+            if ('' === $default) {
+                $default = (string)$title;
+            }
+            if ((string)($title->attributes()->{'type'}) !== 'alternative') {
+                $preferred = (string)$title;
+                break;
+            }
+        }
+        $result = $forFiling
+            ? $this->metadataUtils->createSortTitle($preferred ?? $default)
+            : $this->metadataUtils->stripTrailingPunctuation($preferred ?? $default);
+
+        return $this->resultCache[$key] = $result;
     }
 
     /**
@@ -265,68 +215,6 @@ class Qdc extends AbstractRecord
         }
 
         return array_unique($arr);
-    }
-
-    /**
-     * Dedup: Return ISBNs in ISBN-13 format without dashes
-     *
-     * @return array
-     */
-    public function getISBNs()
-    {
-        $arr = [];
-        foreach ([$this->doc->identifier, $this->doc->isFormatOf] as $field) {
-            foreach ($field as $identifier) {
-                $identifier = str_replace('-', '', trim($identifier));
-                if (!preg_match('{^([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
-                    continue;
-                }
-                $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
-                if ($isbn) {
-                    $arr[] = $isbn;
-                }
-            }
-        }
-
-        return array_unique($arr);
-    }
-
-    /**
-     * Dedup: Return ISSNs
-     *
-     * @return array
-     */
-    public function getISSNs()
-    {
-        $result = [];
-        foreach ([$this->doc->relation, $this->doc->identifier] as $fields) {
-            foreach ($fields as $current) {
-                if ((string)$current->attributes()->{'type'} === 'issn') {
-                    $result[] = trim((string)$current);
-                }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * Dedup: Return series ISSN
-     *
-     * @return string
-     */
-    public function getSeriesISSN()
-    {
-        return '';
-    }
-
-    /**
-     * Dedup: Return series numbering
-     *
-     * @return string
-     */
-    public function getSeriesNumbering()
-    {
-        return '';
     }
 
     /**
@@ -397,11 +285,73 @@ class Qdc extends AbstractRecord
     }
 
     /**
+     * Get series information
+     *
+     * @return array
+     */
+    public function getSeries()
+    {
+        return [];
+    }
+
+    /**
+     * Get ISBNs in ISBN-13 format without dashes.
+     *
+     * @return array
+     */
+    protected function getISBNs(): array
+    {
+        $arr = [];
+        foreach ([$this->doc->identifier, $this->doc->isFormatOf] as $field) {
+            foreach ($field as $identifier) {
+                $identifier = str_replace('-', '', trim($identifier));
+                if ('' === $identifier || !preg_match('{^([0-9]{9,12}[0-9xX])}', $identifier, $matches)) {
+                    continue;
+                }
+                $isbn = $this->metadataUtils->normalizeISBN($matches[1]);
+                if ($isbn) {
+                    $arr[] = $isbn;
+                }
+            }
+        }
+
+        return array_unique($arr);
+    }
+
+    /**
+     * Get ISSNs.
+     *
+     * @return array
+     */
+    protected function getISSNs(): array
+    {
+        $result = [];
+        foreach ([$this->doc->relation, $this->doc->identifier] as $fields) {
+            foreach ($fields as $current) {
+                if ((string)$current->attributes()->{'type'} === 'issn') {
+                    $result[] = trim((string)$current);
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Get topics.
      *
      * @return array
      */
-    public function getTopics()
+    protected function getTopics(): array
+    {
+        return $this->getValues('subject');
+    }
+
+    /**
+     * Get topic facet fields.
+     *
+     * @return array
+     */
+    protected function getTopicFacets(): array
     {
         return $this->getValues('subject');
     }
@@ -411,15 +361,19 @@ class Qdc extends AbstractRecord
      *
      * @return array
      */
-    public function getDescriptions(): array
+    protected function getDescriptions(): array
     {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
         $all = [];
         $primary = '';
         $lang = $this->getDriverParam('defaultDisplayLanguage', 'en');
         foreach ($this->doc->description as $description) {
             $trimmed = trim((string)$description);
             if (!preg_match('/(^https?)|(^\d+\.\d+$)/', $trimmed)) {
-                $all[] = (string)$description;
+                $all[] = $trimmed;
                 if (!$primary) {
                     $descLang = (string)$description->attributes()->{'lang'};
                     if ($descLang === $lang) {
@@ -431,45 +385,33 @@ class Qdc extends AbstractRecord
         if (!$primary && $all) {
             $primary = $all[0];
         }
-        return compact('primary', 'all');
+        return $this->resultCache[__METHOD__] = compact('primary', 'all');
     }
 
     /**
-     * Get series information
+     * Get primary authors.
      *
      * @return array
      */
-    public function getSeries()
-    {
-        return [];
-    }
-
-    /**
-     * Get primary authors
-     *
-     * @return array
-     */
-    protected function getPrimaryAuthors()
+    protected function getPrimaryAuthors(): array
     {
         $result = [];
         foreach ($this->getValues('creator') as $author) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($author);
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($author);
         }
         return $result;
     }
 
     /**
-     * Get secondary authors
+     * Get secondary authors.
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         $result = [];
         foreach ($this->getValues('contributor') as $contributor) {
-            $result[]
-                = $this->metadataUtils->stripTrailingPunctuation($contributor);
+            $result[] = $this->metadataUtils->stripTrailingPunctuation($contributor);
         }
         return $result;
     }
@@ -479,7 +421,7 @@ class Qdc extends AbstractRecord
      *
      * @return array
      */
-    protected function getCorporateAuthors()
+    protected function getCorporateAuthors(): array
     {
         return [];
     }
@@ -534,11 +476,7 @@ class Qdc extends AbstractRecord
                 $identifier,
                 $matches
             );
-            if ($found) {
-                $result[] = urldecode($matches[2]);
-            } else {
-                $result[] = $identifier;
-            }
+            $result[] = $found ? urldecode($matches[2]) : $identifier;
         }
         return $result;
     }
@@ -574,26 +512,184 @@ class Qdc extends AbstractRecord
      */
     protected function getValues($tag, array $attributes = [])
     {
-        $values = [];
+        $key = md5(__METHOD__ . "$tag-" . json_encode($attributes));
+        if (isset($this->resultCache[$key])) {
+            return $this->resultCache[$key];
+        }
+
+        $result = [];
         foreach ($this->doc->{$tag} as $element) {
             foreach ($attributes as $attr => $value) {
                 if ((string)$element[$attr] !== $value) {
                     continue 2;
                 }
             }
-            $values[] = trim((string)$element);
+            $result[] = trim((string)$element);
         }
-        return $values;
+
+        $this->resultCache[$key] = $result;
+        return $result;
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Get record format.
      *
-     * @param array $data Reference to the target array
-     *
-     * @return void
+     * @return string
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function getRecordFormat(): string
     {
+        return 'qdc';
+    }
+
+    /**
+     * Get control numbers.
+     *
+     * @return array
+     */
+    protected function getControlNumbers(): array
+    {
+        $id = trim((string)$this->doc->recordID);
+        return '' !== $id ? [$id] : [];
+    }
+
+    /**
+     * Get author sort field.
+     *
+     * @return string
+     */
+    protected function getAuthorSort(): string
+    {
+        $authors = $this->getPrimaryAuthors();
+        return $authors[0] ?? '';
+    }
+
+    /**
+     * Get full title.
+     *
+     * @return string
+     */
+    protected function getFullTitle(): string
+    {
+        return $this->getTitle();
+    }
+
+    /**
+     * Get short title.
+     *
+     * @return string
+     */
+    protected function getShortTitle(): string
+    {
+        $titleParts = explode(' : ', $this->getFullTitle(), 2);
+        return $titleParts[0];
+    }
+
+    /**
+     * Get subtitle.
+     *
+     * @return string
+     */
+    protected function getTitleSub(): string
+    {
+        $titleParts = explode(' : ', $this->getFullTitle(), 2);
+        return $titleParts[1] ?? '';
+    }
+
+    /**
+     * Get alternate titles
+     *
+     * @return array
+     */
+    protected function getAltTitles(): array
+    {
+        $result = [];
+        $hasMainTitle = false;
+        foreach ($this->doc->title as $title) {
+            if (!$hasMainTitle && (string)($title->attributes()->{'type'}) !== 'alternative') {
+                $hasMainTitle = true;
+            } else {
+                $result[] = trim((string)$title);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get publishers.
+     *
+     * @return array
+     */
+    protected function getPublishers(): array
+    {
+        return $this->getValues('publisher');
+    }
+
+    /**
+     * Get contents.
+     *
+     * @return array
+     */
+    protected function getContents(): array
+    {
+        $descriptions = $this->getDescriptions();
+        return $descriptions['all'];
+    }
+
+    /**
+     * Get description.
+     *
+     * @return string
+     */
+    protected function getDescription(): string
+    {
+        $descriptions = $this->getDescriptions();
+        return $descriptions['primary'];
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return (string)$this->doc->asXML();
+    }
+
+    /**
+     * Get publication years.
+     *
+     * @return array
+     */
+    protected function getPublicationYears(): array
+    {
+        $result = [];
+        foreach ($this->doc->date as $date) {
+            $date = trim($date);
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = $date;
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
+                $result[] = $matches[1];
+            }
+        }
+        foreach ($this->doc->issued as $date) {
+            $date = trim($date);
+            if (preg_match('{^(\d{4})$}', $date)) {
+                $result[] = $date;
+            } elseif (preg_match('{^(\d{4})(-|\/)}', $date, $matches)) {
+                $result[] = $matches[1];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Get full text field for a given document
+     *
+     * @return string
+     */
+    protected function getFullTextField(): string
+    {
+        return $this->getFullTextFieldForDocument($this->doc);
     }
 }
