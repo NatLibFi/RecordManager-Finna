@@ -304,4 +304,40 @@ class MarcAuthority extends Marc
             $fields
         );
     }
+
+    /**
+     * Add author fields.
+     *
+     * @param array $data Data array to manipulate
+     *
+     * @return void
+     */
+    protected function addAuthorFields(array &$data): void
+    {
+        // Nothing to do for authority records.
+    }
+
+    /**
+     * Augment call number fields with additional data.
+     *
+     * @param array $data Data array to manipulate
+     *
+     * @return void
+     */
+    protected function augmentCallNumberFields(array &$data): void
+    {
+        // Nothing to do for authority records.
+    }
+
+    /**
+     * Add Dewey fields.
+     *
+     * @param array $data Data array to manipulate
+     *
+     * @return void
+     */
+    protected function addDeweyFields(array &$data): void
+    {
+        // Nothing to do for authority records.
+    }
 }
