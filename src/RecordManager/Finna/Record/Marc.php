@@ -1378,6 +1378,37 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
+     * Get series keys and series order
+     *
+     * @return array
+     */
+    public function getSeriesData()
+    {
+        $seriesKeys = [];
+        $seriesOrder = '';
+        $workIdSets = $this->getWorkIdentificationData();
+        if (!empty($workIdSets[0]['authors'])) {
+            $author = $this->metadataUtils->normalizeKey($workIdSets[0]['authors'][0]['value']);
+            foreach ($this->record->getFields('490') as $field490) {
+                if ($field490a = $this->record->getSubfield($field490, 'a')) {
+                    $series = $this->metadataUtils->normalizeKey($field490a);
+                    $seriesKey = "SA $series $author";
+                    if ($languages = $this->getLanguages()) {
+                        $seriesKey .= " $languages[0]";
+                    }
+                    $seriesKeys[] = $seriesKey;
+                    if ($seriesOrder === '') {
+                        if ($order = $this->getSeriesOrder($this->record->getSubfield($field490, 'v'))) {
+                            $seriesOrder = "$seriesKey $order";
+                        }
+                    }
+                }
+            }
+        }
+        return compact('seriesKeys', 'seriesOrder');
+    }
+
+    /**
      * Create field data from a component record
      *
      * @param array $data Component part data from getComponentPartMetadata
@@ -2826,37 +2857,6 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_BOTH, '830', ['a', 'v', 'n', 'p']],
             ]
         );
-    }
-
-    /**
-     * Get series keys and series order
-     *
-     * @return array
-     */
-    public function getSeriesData()
-    {
-        $seriesKeys = [];
-        $seriesOrder = '';
-        $workIdSets = $this->getWorkIdentificationData();
-        if (!empty($workIdSets[0]['authors'])) {
-            $author = $this->metadataUtils->normalizeKey($workIdSets[0]['authors'][0]['value']);
-            foreach ($this->record->getFields('490') as $field490) {
-                if ($field490a = $this->record->getSubfield($field490, 'a')) {
-                    $series = $this->metadataUtils->normalizeKey($field490a);
-                    $seriesKey = "SA $series $author";
-                    if ($languages = $this->getLanguages()) {
-                        $seriesKey .= " $languages[0]";
-                    }
-                    $seriesKeys[] = $seriesKey;
-                    if ($seriesOrder === '') {
-                        if ($order = $this->getSeriesOrder($this->record->getSubfield($field490, 'v'))) {
-                            $seriesOrder = "$seriesKey $order";
-                        }
-                    }
-                }
-            }
-        }
-        return compact('seriesKeys', 'seriesOrder');
     }
 
     /**
