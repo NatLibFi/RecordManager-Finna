@@ -2862,11 +2862,11 @@ class Marc extends \RecordManager\Base\Record\Marc
     /**
      * Normalize series order.
      *
-     * @param $field string Series order field to normalize
+     * @param string $field Series order field to normalize
      *
      * @return string
      */
-    protected function getSeriesOrder($field)
+    protected function getSeriesOrder(string $field)
     {
         if (!$field) {
             return '';
