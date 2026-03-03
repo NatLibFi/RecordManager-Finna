@@ -161,7 +161,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
      *
      * @param string $field Series order field to normalize
      *
-     * @return string
+     * @return string|null
      */
     protected function getSeriesOrder(string $field)
     {
