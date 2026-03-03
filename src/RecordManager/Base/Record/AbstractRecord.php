@@ -674,6 +674,16 @@ abstract class AbstractRecord
     }
 
     /**
+     * Get series data for series key and order
+     *
+     * @return array
+     */
+    public function getSeriesKeyData()
+    {
+        return [];
+    }
+
+    /**
      * Return datasource settings.
      *
      * @return array

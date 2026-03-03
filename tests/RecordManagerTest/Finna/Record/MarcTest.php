@@ -314,10 +314,6 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 '401416',
             ],
             'series2' => [],
-            'series_key_str_mv' => [
-                'SA seriesdouble hirsjarvisirkka fin',
-                'SA series490 hirsjarvisirkka fin',
-            ],
             'oclc_num' => [],
             'uuid_str_mv' => [
                 'uuid_lower',

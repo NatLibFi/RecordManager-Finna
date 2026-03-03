@@ -896,15 +896,6 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         }
 
-        // Series keys and series order
-        $seriesData = $this->getSeriesData();
-        if ($seriesKeys = $seriesData['seriesKeys']) {
-            $data['series_key_str_mv'] = $seriesKeys;
-        }
-        if ($seriesOrder = $seriesData['seriesOrder']) {
-            $data['series_order_str'] = $seriesOrder;
-        }
-
         // Merge any extra fields from e.g. merged component parts (also converts any
         // single-value field to an array):
         foreach ($this->extraFields as $field => $fieldData) {
@@ -1378,34 +1369,30 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
-     * Get series keys and series order
+     * Get series data for series key and order
      *
      * @return array
      */
-    public function getSeriesData()
+    public function getSeriesKeyData()
     {
-        $seriesKeys = [];
         $seriesOrder = '';
-        $workIdSets = $this->getWorkIdentificationData();
-        if (!empty($workIdSets[0]['authors'])) {
-            $author = $this->metadataUtils->normalizeKey($workIdSets[0]['authors'][0]['value']);
-            foreach ($this->record->getFields('490') as $field490) {
-                if ($field490a = $this->record->getSubfield($field490, 'a')) {
-                    $series = $this->metadataUtils->normalizeKey($field490a);
-                    $seriesKey = "SA $series $author";
-                    if ($languages = $this->getLanguages()) {
-                        $seriesKey .= " $languages[0]";
-                    }
-                    $seriesKeys[] = $seriesKey;
-                    if ($seriesOrder === '') {
-                        if ($order = $this->getSeriesOrder($this->record->getSubfield($field490, 'v'))) {
-                            $seriesOrder = "$seriesKey $order";
-                        }
+        $result = [];
+        foreach ($this->record->getFields('490') as $field490) {
+            $seriesKeyData = [];
+            if ($field490a = $this->record->getSubfield($field490, 'a')) {
+                $seriesKeyData['series'] = $field490a;
+                if ($languages = $this->getLanguages()) {
+                    $seriesKeyData['language'] = $languages[0];
+                }
+                if ($seriesOrder === '') {
+                    if ($seriesOrder = $this->record->getSubfield($field490, 'v')) {
+                        $seriesKeyData['order'] = $seriesOrder;
                     }
                 }
+                $result[] = $seriesKeyData;
             }
         }
-        return compact('seriesKeys', 'seriesOrder');
+        return $result;
     }
 
     /**
@@ -2857,32 +2844,6 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_BOTH, '830', ['a', 'v', 'n', 'p']],
             ]
         );
-    }
-
-    /**
-     * Normalize series order.
-     *
-     * @param string $field Series order field to normalize
-     *
-     * @return string
-     */
-    protected function getSeriesOrder(string $field)
-    {
-        if (!$field) {
-            return '';
-        }
-        preg_match_all('/\d+/', $field, $matches);
-        if (empty($matches[0])) {
-            return '';
-        }
-
-        $parts = [];
-
-        foreach ($matches[0] as $match) {
-            $parts[] = str_pad($match, 6, '0', STR_PAD_LEFT);
-        }
-
-        return implode('.', $parts);
     }
 
     /**

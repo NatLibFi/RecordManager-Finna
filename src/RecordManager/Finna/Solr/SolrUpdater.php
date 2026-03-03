@@ -31,7 +31,9 @@ namespace RecordManager\Finna\Solr;
 
 use RecordManager\Base\Record\AbstractRecord;
 
+use function intval;
 use function is_callable;
+use function strlen;
 
 /**
  * SolrUpdater Class
@@ -116,5 +118,89 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             $record['date'] = $changeDate;
         }
         return $mergedComponents;
+    }
+
+    /**
+     * Add series keys and series order
+     *
+     * @param array          $data           Field array
+     * @param AbstractRecord $metadataRecord Metadata record
+     *
+     * @return void
+     */
+    protected function addSeriesKeys(array &$data, AbstractRecord $metadataRecord)
+    {
+        $seriesKeys = [];
+        $seriesOrder = '';
+        $workIdSets = $metadataRecord->getWorkIdentificationData();
+        if ($author = $workIdSets[0]['authors'][0]['value'] ?? null) {
+            $author = $this->metadataUtils->normalizeKey($author);
+            $seriesData = $metadataRecord->getSeriesKeyData();
+            foreach ($seriesData as $sd) {
+                $series = $this->metadataUtils->normalizeKey($sd['series']);
+                $seriesKey = "SA $series $author";
+                if (!empty($sd['language'])) {
+                    $seriesKey .= ' ' . $sd['language'];
+                }
+                $seriesKeys[] = $seriesKey;
+                if (!empty($sd['order'])) {
+                    $seriesOrder = $this->getSeriesOrder($sd['order']);
+                }
+            }
+        }
+        if ($seriesKeys) {
+            $data['series_key_str_mv'] = $seriesKeys;
+        }
+        if ($seriesOrder) {
+            $data['series_order_str'] = $seriesOrder;
+        }
+    }
+
+    /**
+     * Normalize series order.
+     *
+     * @param string $field Series order field to normalize
+     *
+     * @return string
+     */
+    protected function getSeriesOrder(string $field)
+    {
+        if (!$field) {
+            return '';
+        }
+        $field = preg_replace_callback(
+            '/(\d+)/',
+            function ($matches) {
+                return strlen((string)(intval($matches[1]))) . $matches[1];
+            },
+            mb_strtoupper($field, 'UTF-8')
+        );
+        return preg_replace('/\s{2,}/', ' ', $field);
+    }
+
+    /**
+     * Create Solr array for the given record
+     *
+     * @param array $record           Database record
+     * @param int   $mergedComponents Number of component parts merged to the
+     *                                record
+     * @param array $dedupRecord      Database dedup record
+     *
+     * @return array|false
+     * @throws \TypeError
+     * @throws \Exception
+     *
+     * @psalm-suppress RedundantCondition
+     * @psalm-suppress DuplicateArrayKey
+     */
+    protected function createSolrArray(
+        array $record,
+        &$mergedComponents,
+        $dedupRecord = null
+    ) {
+        $data = parent::createSolrArray($record, $mergedComponents, $dedupRecord);
+        $metadataRecord = $this->createRecordFromDbRecord($record);
+        $this->addSeriesKeys($data, $metadataRecord);
+        return $data;
     }
 }
