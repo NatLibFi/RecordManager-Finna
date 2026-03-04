@@ -168,14 +168,12 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         if (!$field) {
             return '';
         }
-        $field = preg_replace_callback(
-            '/(\d+)/',
-            function ($matches) {
-                return strlen((string)(intval($matches[1]))) . $matches[1];
-            },
-            mb_strtoupper($field, 'UTF-8')
-        );
-        return preg_replace('/\s{2,}/', ' ', $field);
+        $result = '';
+        preg_match_all('/(\d+)/', $field, $matches);
+        foreach ($matches[1] ?? [] as $match) {
+            $result .= strlen((string)(intval($match))) . $match;
+        }
+        return $result;
     }
 
     /**
