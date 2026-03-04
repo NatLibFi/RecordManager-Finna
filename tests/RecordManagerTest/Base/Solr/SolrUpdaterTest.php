@@ -32,7 +32,9 @@ namespace RecordManagerTest\Base\Solr;
 use ArrayIterator;
 use RecordManager\Base\Database\DatabaseInterface;
 use RecordManager\Base\Database\MongoDatabase;
+use RecordManager\Base\Enrichment\AuthEnrichment;
 use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
+use RecordManager\Base\Enrichment\SkosmosEnrichment;
 use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Record\Marc\FormatCalculator;
 use RecordManager\Base\Record\PluginManager as RecordPluginManager;
@@ -40,9 +42,11 @@ use RecordManager\Base\Settings\Ini;
 use RecordManager\Base\Solr\SolrUpdater;
 use RecordManager\Base\Utils\FieldMapper;
 use RecordManager\Base\Utils\Logger;
+use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\WorkerPoolManager;
 use RecordManagerTest\Base\Feature\FixtureTrait;
 use RecordManagerTest\Base\Record\CreateSampleRecordTrait;
+use ReflectionClass;
 
 /**
  * Tests for SolrUpdater
@@ -182,7 +186,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
 
         $params = [
             'host_record_id' => [
-                '$in' => array_values((array)$dbRecord['linking_id']),
+                '$in' => array_values($dbRecord['linking_id']),
             ],
             'deleted' => false,
             'suppressed' => ['$in' => [null, false]],
@@ -409,10 +413,9 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
      * @param array $rules    Field processing rules
      * @param array $expected Expected results
      *
-     * @dataProvider processSingleRecordProvider
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('processSingleRecordProvider')]
     public function testFieldProcessingRules(array $rules, array $expected): void
     {
         $solrUpdater = $this->getSolrUpdater(
@@ -452,6 +455,60 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * Test enrichments using legacy names and new names.
+     *
+     * @return void
+     */
+    public function testLegacyEnrichments(): void
+    {
+        $dsOverride = [
+            'test' => [
+                'enrichments' => [
+                    'MarcOnkiLightEnrichment',
+                    'LidoOnkiLightEnrichment',
+                    'Ead3SkosmosEnrichment',
+                    'EadSkosmosEnrichment',
+                    'OnkiLightEnrichment',
+                    'MarcAuthEnrichment',
+                    'SomeAuthEnrichment,final',
+                    'BrokenEnrichment',
+                ],
+            ],
+        ];
+        $this->config['Solr']['enrichment'] = [
+            'LidoSkosmosEnrichment',
+            'LidoAuthEnrichment',
+            'EadOnkiLightEnrichment,start',
+        ];
+        $solrUpdater = $this->getSolrUpdater(
+            $dsOverride,
+        );
+        $record = $this->createMarcRecord(
+            \RecordManager\Base\Record\Marc::class,
+            'marc-broken.xml'
+        );
+
+        $date = strtotime('2020-10-20 13:01:00');
+        $dbRecord = [
+            '_id' => $record->getID(),
+            'oai_id' => '',
+            'linking_id' => $record->getLinkingIDs(),
+            'source_id' => 'test',
+            'deleted' => false,
+            'created' => $date,
+            'updated' => $date,
+            'date' => $date,
+            'format' => 'marc',
+            'original_data' => $record->serialize(),
+            'normalized_data' => null,
+        ];
+        $solrUpdater->processSingleRecord($dbRecord);
+        $reflectionClass = new ReflectionClass($solrUpdater);
+        $enrichments = array_keys($reflectionClass->getProperty('enrichments')->getValue($solrUpdater));
+        $this->assertEquals([SkosmosEnrichment::class, AuthEnrichment::class], $enrichments);
+    }
+
+    /**
      * Create SolrUpdater
      *
      * @param array              $dsConfigOverrides Data source config overrides
@@ -486,11 +543,53 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         $recordPM = $this->createMock(RecordPluginManager::class);
         $recordPM->expects($this->once())
             ->method('get')
-            ->will($this->returnValue($record));
+            ->willReturn($record);
         $fieldMapper = new FieldMapper(
             $this->getFixtureDir() . 'config/basic',
             [],
             $this->dataSourceConfig
+        );
+        $enrichmentTable = [
+            'AuthEnrichment' => \RecordManager\Base\Enrichment\AuthEnrichment::class,
+            'MusicBrainzEnrichment' => \RecordManager\Base\Enrichment\MusicBrainzEnrichment::class,
+            'NominatimGeocoder' => \RecordManager\Base\Enrichment\NominatimGeocoder::class,
+            'SkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+
+            // Legacy aliases:
+            'EadOnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'Ead3OnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'LidoOnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'LrmiOnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'MarcAuthOnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'MarcOnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'OnkiLightEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'EadSkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'Ead3SkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'LidoSkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'LrmiSkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'MarcAuthSkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+            'MarcSkosmosEnrichment' => \RecordManager\Base\Enrichment\SkosmosEnrichment::class,
+
+            'MarcAuthEnrichment' => \RecordManager\Base\Enrichment\AuthEnrichment::class,
+        ];
+        $enrichmentPluginManager = $this->createMock(EnrichmentPluginManager::class);
+        $enrichmentPluginManager->expects($this->any())->method('get')->willReturnCallback(
+            function ($name, $options = null) use ($enrichmentTable) {
+                return new $enrichmentTable[$name](
+                    [],
+                    $this->createMock(DatabaseInterface::class),
+                    $this->createMock(Logger::class),
+                    $this->createMock(RecordPluginManager::class),
+                    $this->createMock(HttpService::class),
+                    $this->createMock(MetadataUtils::class),
+                    $this->createMock(DatabaseInterface::class)
+                );
+            }
+        );
+        $enrichmentPluginManager->expects($this->any())->method('has')->willReturnCallback(
+            function ($name) use ($enrichmentTable) {
+                return isset($enrichmentTable[$name]);
+            }
         );
         $solrUpdater = new SolrUpdater(
             $this->config,
@@ -498,7 +597,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             $database,
             $logger,
             $recordPM,
-            $this->createMock(EnrichmentPluginManager::class),
+            $enrichmentPluginManager,
             $this->createMock(HttpService::class),
             $this->createMock(Ini::class),
             $fieldMapper,

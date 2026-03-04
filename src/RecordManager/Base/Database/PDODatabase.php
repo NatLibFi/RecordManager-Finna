@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (c) The National Library of Finland 2020-2021.
+ * Copyright (c) The National Library of Finland 2020-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -150,7 +150,8 @@ class PDODatabase extends AbstractDatabase
      */
     public function getUnixTime($timestamp): int
     {
-        return strtotime($timestamp);
+        $result = strtotime($timestamp);
+        return false === $result ? 0 : $result;
     }
 
     /**
@@ -942,7 +943,7 @@ class PDODatabase extends AbstractDatabase
             $findMethod,
             $filter,
             [],
-            function ($oldRecord) use ($collection, $fields, $remove) {
+            function ($oldRecord) use ($collection, $fields, $remove): void {
                 $record = array_replace($oldRecord, $fields);
                 foreach (array_keys($remove) as $key) {
                     if (isset($record[$key])) {
@@ -1034,6 +1035,18 @@ class PDODatabase extends AbstractDatabase
                 $params = array_merge($params, $subQueryParams);
                 continue;
             }
+            if ('$nor' === $field) {
+                $subQueries = [];
+                $subQueryParams = [];
+                foreach ($value as $subFilter) {
+                    [$subPartQuery, $subPartParams] = $this->filterToSQL($collection, $subFilter, 'AND');
+                    $subQueries[] = $subPartQuery;
+                    $subQueryParams = array_merge($subQueryParams, $subPartParams);
+                }
+                $where[] = 'NOT (' . implode(' OR ', $subQueries) . ')';
+                $params = array_merge($params, $subQueryParams);
+                continue;
+            }
             if (is_array($value)) {
                 $keys = array_keys($value);
                 $supportedKeys = [
@@ -1088,11 +1101,7 @@ class PDODatabase extends AbstractDatabase
                             = $this->mapFieldToQuery($collection, $field, '=?');
                         $params[] = reset($values);
                     }
-                    if (count($whereParts) > 1) {
-                        $where[] = '(' . implode(' ', $whereParts) . ')';
-                    } else {
-                        $where[] = reset($whereParts);
-                    }
+                    $where[] = count($whereParts) > 1 ? '(' . implode(' ', $whereParts) . ')' : reset($whereParts);
                 }
                 if (isset($value['$ne'])) {
                     $values = (array)$value['$ne'];

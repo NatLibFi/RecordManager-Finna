@@ -5,7 +5,7 @@
  *
  * PHP version 7
  *
- * Copyright (C) The National Library of Finland 2012-2023.
+ * Copyright (C) The National Library of Finland 2012-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -211,9 +211,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['author_facet']
             = $this->getActors($this->getMainEvents(), null, false);
 
-        // Back-compatibility:
-        $data['material'] = $data['material_str_mv'];
-
         // This is just the display measurements! There's also the more granular
         // form, which could be useful for some interesting things eg. sorting by
         // size
@@ -336,13 +333,20 @@ class Lido extends \RecordManager\Base\Record\Lido
             = $this->addNamespaceToAuthorityIds(
                 array_unique(
                     [
-                        ...$this->getAuthorIds(),
+                        ...$this->getPrimaryAuthorIds(),
                         ...$this->getSecondaryAuthorIds(),
                     ]
                 ),
                 'author'
             );
         $data['author2_id_role_str_mv'] = $this->addNamespaceToAuthorityIds($this->getAllAuthorIdsAndRoles(), 'author');
+        // Add values with namespaces also to allfields
+        $data['allfields'] = [
+            ...$data['allfields'],
+            ...$data['topic_id_str_mv'],
+            ...$data['geographic_id_str_mv'],
+            ...$data['author2_id_str_mv'],
+        ];
         $data['language'] = $this->getLanguages();
         // do not index online urls as they display extra information in Finna
         $onlineUrls = $this->getOnlineUrls();
@@ -350,6 +354,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['identifier_txtP_mv'] = $this->getOtherIdentifiers();
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
+        $data['related_isbn_isn_mv'] = $this->getRelatedISBNs();
+        $data['material_str_mv'] = $this->getMaterials();
+        // Back-compatibility:
+        $data['material'] = $data['material_str_mv'];
         return $data;
     }
 
@@ -472,7 +480,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getRawTopicIds(): array
     {
-        return parent::getTopicIDs();
+        return array_filter(array_unique([...parent::getTopicIDs(), ...$this->getSubjectActorIds()]));
     }
 
     /**
@@ -486,11 +494,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get author identifiers
+     * Get primary author identifiers
      *
      * @return array<int, string>
      */
-    public function getAuthorIds(): array
+    public function getPrimaryAuthorIds(): array
     {
         $results = [];
         foreach ($this->getEventNodes($this->getMainEvents()) as $eventNode) {
@@ -502,7 +510,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
     }
 
     /**
@@ -522,7 +530,29 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
         }
-        return array_filter(array_unique($results));
+        return array_values(array_unique($results));
+    }
+
+    /**
+     * Get related ISBNs
+     *
+     * @return array
+     */
+    public function getRelatedISBNs(): array
+    {
+        $results = [];
+        foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
+            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
+                if ($isbn = $this->checkISBN((string)$identifier)) {
+                    // Include ISBNs in original format and in ISBN-13 format
+                    $results[] = $isbn;
+                    if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
+                        $results[] = $normalized;
+                    }
+                }
+            }
+        }
+        return array_unique($results);
     }
 
     /**
@@ -560,6 +590,26 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return $results;
+    }
+
+    /**
+     * Get subject actor ids
+     *
+     * @return array<int, string>
+     */
+    protected function getSubjectActorIds(): array
+    {
+        $result = [];
+        foreach ($this->getSubjectNodes() as $subject) {
+            foreach ($subject->subjectActor as $subjectActor) {
+                foreach ($subjectActor->actor->actorID ?? [] as $actorID) {
+                    if ($id = trim((string)$actorID)) {
+                        $result[] = $id;
+                    }
+                }
+            }
+        }
+        return array_values(array_unique($result));
     }
 
     /**
@@ -780,7 +830,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($splitted as $value) {
             if ($value = trim($value)) {
                 $locationParts = explode(' ', $value);
-                array_walk($locationParts, function (&$part) {
+                array_walk($locationParts, function (&$part): void {
                     $part = trim($part, ', ');
                 });
                 // If there is only one unique name then it can be really difficult
@@ -899,7 +949,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getTopicIDs($exclude = ['iconclass']): array
     {
-        $result = parent::getTopicIDs($exclude);
+        $result = [...parent::getTopicIDs($exclude), ...$this->getSubjectActorIds()];
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
 
@@ -1188,11 +1238,11 @@ class Lido extends \RecordManager\Base\Record\Lido
             } elseif (strlen($date) == 3) {
                 $date = '0' . $date . '-01-01T00:00:00Z';
             } elseif (strlen($date) == 4) {
-                $date = $date . '-01-01T00:00:00Z';
+                $date .= '-01-01T00:00:00Z';
             } elseif (strlen($date) == 7) {
-                $date = $date . '-01T00:00:00Z';
+                $date .= '-01T00:00:00Z';
             } elseif (strlen($date) == 10) {
-                $date = $date . 'T00:00:00Z';
+                $date .= 'T00:00:00Z';
             }
         } else {
             if (strlen($date) == 1) {
@@ -1202,7 +1252,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             } elseif (strlen($date) == 3) {
                 $date = '0' . $date . '-12-31T23:59:59Z';
             } elseif (strlen($date) == 4) {
-                $date = $date . '-12-31T23:59:59Z';
+                $date .= '-12-31T23:59:59Z';
             } elseif (strlen($date) == 7) {
                 try {
                     $d = new \DateTime($date . '-01');
@@ -1218,7 +1268,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
                 $date = $d->format('Y-m-t') . 'T23:59:59Z';
             } elseif (strlen($date) == 10) {
-                $date = $date . 'T23:59:59Z';
+                $date .= 'T23:59:59Z';
             }
         }
         if ($negative) {
@@ -1785,8 +1835,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
 
         if (empty($noprocess)) {
-            $startDate = $startDate . '-01-01T00:00:00Z';
-            $endDate = $endDate . '-12-31T23:59:59Z';
+            $startDate .= '-01-01T00:00:00Z';
+            $endDate .= '-12-31T23:59:59Z';
         }
 
         // Trying to index dates into the future? I don't think so...
@@ -2119,11 +2169,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get authors
+     * Get primary authors
      *
      * @return array
      */
-    protected function getAuthors(): array
+    protected function getPrimaryAuthors(): array
     {
         return $this->getActors($this->getMainEvents(), null, true);
     }
@@ -2139,17 +2189,14 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
-        if ($this->getDriverParam('indexHierarchies', false)) {
-            parent::getHierarchyFields($data);
-        }
         // Add additional related work titles
         if ($furtherTitles = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended)) {
             // Check that number of indexed parent titles and ids match
@@ -2164,6 +2211,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 ...$furtherTitles,
             ];
         }
+
+        parent::addHierarchyFields($data);
     }
 
     /**
@@ -2271,5 +2320,15 @@ class Lido extends \RecordManager\Base\Record\Lido
             array_map($filterUrls, $resourceIdentifiers['ids'])
         );
         return array_values(array_filter(array_unique($result)));
+    }
+
+    /**
+     * Get materials
+     *
+     * @return array
+     */
+    protected function getMaterials(): array
+    {
+        return $this->getEventMaterials($this->getMainEvents());
     }
 }

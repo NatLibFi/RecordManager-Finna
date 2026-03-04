@@ -94,7 +94,7 @@ class Qdc extends \RecordManager\Base\Record\Qdc
      *
      * @return array
      */
-    public function getPrimaryAuthors()
+    public function getPrimaryAuthors(): array
     {
         $authors = $this->getValues('author');
         if ($authors) {
@@ -135,13 +135,13 @@ class Qdc extends \RecordManager\Base\Record\Qdc
     }
 
     /**
-     * Get hierarchy fields. Must be called after title is present in the array.
+     * Add hierarchy fields. Must be called after title is present in the array.
      *
      * @param array $data Reference to the target array
      *
      * @return void
      */
-    protected function getHierarchyFields(array &$data): void
+    protected function addHierarchyFields(array &$data): void
     {
         $data['hierarchy_parent_title'] = $this->getValues('isPartOf');
         foreach ($this->doc->relation as $rel) {
@@ -149,6 +149,19 @@ class Qdc extends \RecordManager\Base\Record\Qdc
                 $data['hierarchy_parent_title'][] = trim((string)$rel);
             }
         }
+    }
+
+    /**
+     * Do any post-processing for the record after the main conversion to Solr array.
+     *
+     * @param ?Database $db   Database connection, if available
+     * @param array     $data Array of Solr fields
+     *
+     * @return void
+     */
+    protected function postProcessRecordForIndexing(?Database $db, &$data): void
+    {
+        $this->addHierarchyFields($data);
     }
 
     /**

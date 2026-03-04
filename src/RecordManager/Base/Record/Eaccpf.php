@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2011-2020.
+ * Copyright (C) The National Library of Finland 2011-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -30,8 +30,6 @@
 
 namespace RecordManager\Base\Record;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-
 /**
  * EAC-CPF Record Class
  *
@@ -49,6 +47,13 @@ class Eaccpf extends AbstractRecord
     use XmlRecordTrait;
 
     /**
+     * Is this an authority record?
+     *
+     * @var bool
+     */
+    protected bool $isAuthorityRecord = true;
+
+    /**
      * Return record ID (local)
      *
      * @return string
@@ -63,34 +68,13 @@ class Eaccpf extends AbstractRecord
     }
 
     /**
-     * Return fields to be indexed in Solr
+     * Get record format.
      *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
+     * @return string
      */
-    public function toSolrArray(?Database $db = null)
+    protected function getRecordFormat(): string
     {
-        $data = [];
-
-        $data['record_format'] = 'eaccpf';
-        $data['fullrecord']
-            = $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
-        $data['allfields'] = $this->getAllFields();
-        $data['source'] = $this->getRecordSource();
-        $data['record_type'] = $this->getRecordType();
-        $data['heading'] = $this->getHeading();
-        $data['use_for'] = $this->getUseForHeadings();
-        $data['birth_date'] = $this->getBirthDate();
-        $data['death_date'] = $this->getDeathDate();
-        $data['birth_place'] = $this->getBirthPlace();
-        $data['death_place'] = $this->getDeathPlace();
-        $data['related_place'] = $this->getRelatedPlaces();
-        $data['field_of_activity'] = $this->getFieldsOfActivity();
-        $data['occupation'] = $this->getOccupations();
-        $data['language'] = $this->getHeadingLanguage();
-
-        return $data;
+        return 'eaccpf';
     }
 
     /**
@@ -379,5 +363,15 @@ class Eaccpf extends AbstractRecord
             }
         }
         return $result;
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
     }
 }

@@ -60,8 +60,8 @@ trait AuthoritySupportTrait
      * Prepend authority ID with namespace.
      * The ids that do not pass validation are discarded.
      *
-     * @param string[] $ids  Array of authority ids
-     * @param string   $type Authority type
+     * @param string|string[] $ids  Array of authority ids
+     * @param string          $type Authority type
      *
      * @return array<int, string>
      */
@@ -79,8 +79,13 @@ trait AuthoritySupportTrait
         $ns = $this->getAuthorityNamespace($type);
         $result = [];
         foreach ($ids as $id) {
+            // Normalize ISNI URIs to match ISNI identifiers in authority sources
+            if (preg_match('/^https:\/\/isni\.org\/isni\/(.*)/', $id, $matches)) {
+                $result[] = '(isni)' . $matches[1];
+                continue;
+            }
+            // Never prefix other http(s) url's
             if (preg_match('/^https?:/', $id)) {
-                // Never prefix http(s) url's
                 $result[] = $id;
                 continue;
             }

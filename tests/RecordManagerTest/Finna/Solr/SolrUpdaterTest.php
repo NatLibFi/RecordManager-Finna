@@ -143,7 +143,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
 
         $params = [
             'host_record_id' => [
-                '$in' => array_values((array)$dbRecord['linking_id']),
+                '$in' => array_values($dbRecord['linking_id']),
             ],
             'deleted' => false,
             'suppressed' => ['$in' => [null, false]],

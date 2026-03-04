@@ -91,19 +91,16 @@ trait QdcRecordTrait
     {
         $data = parent::toSolrArray($db);
 
-        if (isset($data['publishDate'])) {
-            $data['main_date_str']
-                = $this->metadataUtils->extractYear($data['publishDate']);
-            $data['main_date'] = $this->validateDate(
-                $this->getPublicationYear() . '-01-01T00:00:00Z'
-            );
+        if (null !== ($publishDate = $data['publishDate'][0] ?? null)) {
+            $year = $this->metadataUtils->extractYear($publishDate);
+            $data['main_date_str'] = $year;
+            $data['main_date'] = $this->validateDate($year . '-01-01T00:00:00Z');
         }
 
         if ($ranges = $this->getPublicationDateRanges()) {
-            $data['publication_daterange'] = $this->dateRangeToStr(reset($ranges));
+            $data['publication_daterange'] = reset($ranges);
             foreach ($ranges as $range) {
-                $stringDate = $this->dateRangeToStr($range);
-                $data['search_daterange_mv'][] = $stringDate;
+                $data['search_daterange_mv'][] = $range;
             }
         }
         $onlineUrls = $this->getOnlineUrls();
@@ -277,7 +274,7 @@ trait QdcRecordTrait
      *
      * @return array
      */
-    protected function getSecondaryAuthors()
+    protected function getSecondaryAuthors(): array
     {
         return array_merge(
             parent::getSecondaryAuthors(),
@@ -297,10 +294,10 @@ trait QdcRecordTrait
             foreach ($arr as $date) {
                 $years = $this->getYearRangeFromString($date);
                 if (isset($years['startYear'])) {
-                    $result[] = [
+                    $result[] = $this->dateRangeToStr([
                         $years['startYear'] . '-01-01T00:00:00Z',
                         $years['endYear'] . '-12-31T23:59:59Z',
-                    ];
+                    ]);
                 }
             }
         }
@@ -397,10 +394,7 @@ trait QdcRecordTrait
         }
         // Note: Make sure not to use `empty()` for the file check since the element
         // will be empty.
-        if (!empty($this->getOnlineUrls()) || $this->doc->file) {
-            return true;
-        }
-        return false;
+        return !empty($this->getOnlineUrls()) || $this->doc->file;
     }
 
     /**

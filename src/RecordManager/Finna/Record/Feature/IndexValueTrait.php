@@ -92,7 +92,7 @@ trait IndexValueTrait
     public function createOnlineURLsArray(array $urls): array
     {
         return array_map(
-            fn ($url) => json_encode($url),
+            fn ($url) => (string)json_encode($url),
             $urls
         );
     }

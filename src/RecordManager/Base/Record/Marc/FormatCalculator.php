@@ -113,10 +113,7 @@ class FormatCalculator
                 // If it is 'Document', 'Interactive multimedia', 'Combination',
                 // 'Unknown', 'Other', it could be a book; otherwise, it is not a book:
                 $fileType = $this->get008Value($marc008, 26);
-                if (in_array($fileType, ['d', 'i', 'm', 'u', 'z'])) {
-                    return false;
-                }
-                return true;
+                return !in_array($fileType, ['d', 'i', 'm', 'u', 'z']);
             case 'e':   // Cartographic material
             case 'f':   // Manuscript cartographic material
             case 'g':   // Projected medium
@@ -243,7 +240,15 @@ class FormatCalculator
                         return 'VideoCartridge';
                     case 'd':
                         $formatCode5 = substr($formatString, 4, 1) ?: ' ';
-                        return $formatCode5 === 's' ? 'BRDisc' : 'VideoDisc';
+                        switch ($formatCode5) {
+                            case 'g':
+                                return 'LaserDisc';
+                            case 's':
+                                return 'BRDisc';
+                            case 'v':
+                                return 'DVD';
+                        }
+                        return 'VideoDisc';
                     case 'f':
                         return 'VideoCassette';
                     case 'r':
@@ -339,6 +344,8 @@ class FormatCalculator
                 break;
                 // Serial
             case 's':
+                // For some materials, we may want to know if this is an online item:
+                $isOnline = ($recordType == 'a' || $recordType == 'm') && ($this->get008Value($marc008, 23) == 'o');
                 // Look in 008 to determine what type of Continuing Resource
                 // Make sure we have the applicable LDR/06: Language Material
                 if ($recordType === 'a') {
@@ -346,7 +353,7 @@ class FormatCalculator
                         case 'n':
                             return 'Newspaper';
                         case 'p':
-                            return 'Journal';
+                            return $isOnline ? 'eJournal' : 'Journal';
                         default:
                             break;
                     }
@@ -533,10 +540,7 @@ class FormatCalculator
         }
         // The 711 could possibly have more than one entry, although probably
         // unlikely
-        if ($record->getField('711')) {
-            return true;
-        }
-        return false;
+        return (bool)$record->getField('711');
     }
 
     /**
@@ -572,12 +576,7 @@ class FormatCalculator
         if ($recordType === 'm') {
             return true;
         }
-
-        if ($this->isOnlineAccordingTo338($record)) {
-            return true;
-        }
-
-        return false;
+        return $this->isOnlineAccordingTo338($record);
     }
 
     /**
@@ -618,8 +617,7 @@ class FormatCalculator
         // The 773 could possibly have more then one entry, although probably
         // unlikely.
         // If any contain a subfield 'g' return true to indicate the host is a serial
-        // see https://www.oclc.org/bibformats/en/specialcataloging.html
-        // #relatedpartsandpublications
+        // see https://www.oclc.org/bibformats/en/specialcataloging.html#relatedpartsandpublications
         foreach ($record->getFields('773') as $hostField) {
             if ($record->getSubfield($hostField, 'g')) {
                 return true;

@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2020.
+ * Copyright (C) The National Library of Finland 2020-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -55,8 +55,16 @@ class ForwardTest extends RecordTestBase
 
         $expected = [
             'record_format' => 'forward',
-            'ctrlnum' => 'elonet_elokuva_1511500',
-            'publishDate' => '2011',
+            'ctrlnum' => [
+                'elonet_elokuva_1511500',
+            ],
+            'publishDate' => [
+                '2011',
+            ],
+            'publishDateSort' => '2011',
+            'publishDateRange' => [
+                '2011',
+            ],
             'title' => 'Le Havre',
             'title_alt' => [
                 0 => 'Mannen från Le Havre',
@@ -955,7 +963,7 @@ class ForwardTest extends RecordTestBase
                 'Suomi',
                 'Ranska',
                 'Saksa',
-                '2011',
+                '2011, 2012',
                 'Aki Kaurismäki',
                 'Aki Kaurismäki',
                 'Aki Kaurismäki',
@@ -1429,6 +1437,12 @@ class ForwardTest extends RecordTestBase
                 'Marcelin asuinkorttelit aiottiin purkaa kesken elokuvan kuvausten.'
                     . ' Talot purettiin heti kun elokuva oli kuvattu[...]',
             ],
+            'contents' => [
+                'Marcel Marx, entinen kirjailija, elää Ranskassa Le Havressa vaatimattomasti kengänkiillottajana'
+                    . ' vaimonsa Arlettyn kanssa[...]',
+            ],
+            'isbn' => [],
+            'issn' => [],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');

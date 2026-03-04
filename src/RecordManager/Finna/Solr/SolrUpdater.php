@@ -99,7 +99,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             $mergedComponents = $metadataRecord->mergeComponentPartsExtended(
                 $components,
                 $changeDate,
-                function (&$data) use ($source) {
+                function (&$data) use ($source): void {
                     $format = $data['format'] ?? null;
                     if (!$format) {
                         return;

@@ -32,14 +32,6 @@ namespace RecordManager\Finna\Module\Config;
 return [
     'recordmanager' => [
         'plugin_managers' => [
-            'enrichment' => [
-                'factories' => [
-                    \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class => \RecordManager\Base\Enrichment\AuthEnrichmentFactory::class,
-                ],
-                'aliases' => [
-                    'MarcAuthEnrichment' => \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class,
-                ],
-            ],
             'harvest' => [
                 'factories' => [
                     \RecordManager\Finna\Harvest\SierraApi::class => \RecordManager\Base\Harvest\AbstractBaseFactory::class,
@@ -64,7 +56,6 @@ return [
                     \RecordManager\Finna\Record\Qdc::class => \RecordManager\Base\Record\AbstractRecordWithHttpAndDbFactory::class,
                 ],
                 'aliases' => [
-                    \RecordManager\Base\Enrichment\MarcAuthEnrichment::class => \RecordManager\Finna\Enrichment\MarcAuthEnrichment::class,
                     \RecordManager\Base\Record\Dc::class => \RecordManager\Finna\Record\Dc::class,
                     \RecordManager\Base\Record\Eaccpf::class => \RecordManager\Finna\Record\Eaccpf::class,
                     \RecordManager\Base\Record\Ead::class => \RecordManager\Finna\Record\Ead::class,

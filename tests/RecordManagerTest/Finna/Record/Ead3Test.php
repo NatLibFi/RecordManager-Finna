@@ -255,7 +255,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             $oldTag,
             $newTag,
             $fixture
-        );
+        ) ?? '';
     }
 
     /**
@@ -427,10 +427,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param array $driverParams Datasource settings
      * @param array $tests        Titles and results
      *
-     * @dataProvider getTestTitleYearRange
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getTestTitleYearRange')]
     public function testTitleYearRange($driverParams, $tests)
     {
         $fixture = $this->getFixture('record/ahaa14.xml', 'Finna');
@@ -584,10 +583,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param string  $addIdToHierarchyTitle    Value for addIdToHierarchyTitle driver param
      * @param ?string $expectedTitleInHierarchy Expected title_in_hierarchy field contents
      *
-     * @dataProvider sksProvider
-     *
      * @return void
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('sksProvider')]
     public function testSKS(string $addIdToHierarchyTitle, ?string $expectedTitleInHierarchy): void
     {
         $fields = $this->createRecord(
@@ -607,7 +605,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
 
         $expected = [
             'record_format' => 'ead3',
-            'ctrlnum' => '',
+            'ctrlnum' => [],
             'allfields' => [
                 'Yksityisaineisto',
                 'Joku muu instituutio',
@@ -675,6 +673,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Digitaalisen aineiston tiedostomuoto',
                 'TIFF - Tagged Image File Format',
                 'Gustaf Edvard Sundvallin kokoelma',
+                '238612737',
             ],
             'description' => 'G. E. Sundvallin tallentama murresatu Luvialta.',
             'author' => [
@@ -837,6 +836,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Tiedosto 5',
                 'Very good filename',
             ],
+            'isbn' => [],
+            'issn' => [],
+            'publishDate' => [],
+            'publishDateRange' => [],
+            'publishDateSort' => '',
         ];
         if (null !== $expectedTitleInHierarchy) {
             $expected['title_in_hierarchy'] = $expectedTitleInHierarchy;

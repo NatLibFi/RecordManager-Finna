@@ -435,11 +435,11 @@ class MongoDatabase extends AbstractDatabase
                 "Invalid tracking collection name: '$collectionName'"
             );
         }
-        $res = (array)$this->getDb()->dropCollection($collectionName);
+        $this->getDb()->dropCollection($collectionName);
         if (isset($this->trackingCollections[$collectionName])) {
             unset($this->trackingCollections[$collectionName]);
         }
-        return (bool)$res['ok'];
+        return true;
     }
 
     /**
@@ -686,7 +686,7 @@ class MongoDatabase extends AbstractDatabase
         if ($filter) {
             array_walk_recursive(
                 $filter,
-                function (&$value) {
+                function (&$value): void {
                     if ($value instanceof Regex) {
                         $value = new \MongoDB\BSON\Regex((string)$value);
                     }

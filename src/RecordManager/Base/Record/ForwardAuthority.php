@@ -5,7 +5,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) The National Library of Finland 2019.
+ * Copyright (C) The National Library of Finland 2019-2025.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -29,8 +29,7 @@
 
 namespace RecordManager\Base\Record;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-
+use function assert;
 use function is_array;
 
 /**
@@ -49,6 +48,13 @@ class ForwardAuthority extends AbstractRecord
     use XmlRecordTrait;
 
     /**
+     * Is this an authority record?
+     *
+     * @var bool
+     */
+    protected bool $isAuthorityRecord = true;
+
+    /**
      * Return record ID (local)
      *
      * @return string
@@ -61,37 +67,13 @@ class ForwardAuthority extends AbstractRecord
     }
 
     /**
-     * Return fields to be indexed in Solr
+     * Get record format.
      *
-     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
-     *
-     * @return array<string, mixed>
+     * @return string
      */
-    public function toSolrArray(?Database $db = null)
+    protected function getRecordFormat(): string
     {
-        $data = [];
-
-        $data['record_format'] = 'forwardAuthority';
-        $data['fullrecord']
-            = $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
-        $data['allfields'] = $this->getAllFields();
-        $data['source'] = $this->getRecordSource();
-        $data['record_type'] = $this->getRecordType();
-        $data['heading'] = $this->getHeading();
-        $data['use_for'] = $this->getUseForHeadings();
-        $data['birth_date']
-            = $this->metadataUtils->extractYear($this->getBirthDate());
-        $data['death_date']
-            = $this->metadataUtils->extractYear($this->getDeathDate());
-        $data['birth_place'] = $this->getBirthPlace();
-        $data['death_place'] = $this->getDeathPlace();
-        $data['related_place'] = $this->getRelatedPlaces();
-        $data['field_of_activity'] = $this->getFieldsOfActivity();
-        $data['occupation'] = $this->getOccupations();
-        $data['language'] = $this->getHeadingLanguage();
-        $data['datasource_str_mv'] = $data['source_str_mv'] = $this->source;
-
-        return $data;
+        return 'forwardAuthority';
     }
 
     /**
@@ -140,9 +122,22 @@ class ForwardAuthority extends AbstractRecord
     protected function getBirthDate()
     {
         if ($date = $this->getAgentDate('birth')) {
-            return $date['date'];
+            return $this->metadataUtils->extractYear($date['date']);
         }
 
+        return '';
+    }
+
+    /**
+     * Get death date
+     *
+     * @return string
+     */
+    protected function getDeathDate()
+    {
+        if ($date = $this->getAgentDate('death')) {
+            return $this->metadataUtils->extractYear($date['date']);
+        }
         return '';
     }
 
@@ -155,19 +150,6 @@ class ForwardAuthority extends AbstractRecord
     {
         if ($date = $this->getAgentDate('birth')) {
             return $date['place'];
-        }
-        return '';
-    }
-
-    /**
-     * Get death date
-     *
-     * @return string
-     */
-    protected function getDeathDate()
-    {
-        if ($date = $this->getAgentDate('death')) {
-            return $date['date'];
         }
         return '';
     }
@@ -331,6 +313,18 @@ class ForwardAuthority extends AbstractRecord
     {
         $nodes = (array)$this->doc->children();
         $node = reset($nodes);
-        return is_array($node) ? reset($node) : $node;
+        $result = is_array($node) ? reset($node) : $node;
+        assert($result instanceof \SimpleXMLElement);
+        return $result;
+    }
+
+    /**
+     * Get full record.
+     *
+     * @return string
+     */
+    protected function getFullRecord(): string
+    {
+        return $this->metadataUtils->trimXMLWhitespace($this->doc->asXML());
     }
 }

@@ -29,7 +29,7 @@
 
 namespace RecordManager\Finna\Record;
 
-use function in_array;
+use RecordManager\Base\Database\DatabaseInterface as Database;
 
 /**
  * Forward authority Record Class
@@ -45,6 +45,22 @@ use function in_array;
 class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
 {
     use ForwardRecordTrait;
+
+    /**
+     * Return fields to be indexed in Solr
+     *
+     * @param ?Database $db Database connection. Omit to avoid database lookups for related records.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSolrArray(?Database $db = null)
+    {
+        $data = parent::toSolrArray($db);
+
+        $data['datasource_str_mv'] = $data['source_str_mv'] = $this->source;
+
+        return $data;
+    }
 
     /**
      * Get occupations
@@ -89,7 +105,7 @@ class ForwardAuthority extends \RecordManager\Base\Record\ForwardAuthority
         $results = [];
         foreach ($doc->CAgentName as $name) {
             if (!empty($name->AgentNameType) && !empty($name->PersonName)) {
-                if (in_array((string)$name->AgentNameType, ['00'])) {
+                if ((string)$name->AgentNameType == '00') {
                     $results[] = (string)$name->PersonName;
                 }
             }
