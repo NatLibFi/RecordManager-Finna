@@ -170,7 +170,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         }
         $result = '';
         preg_match_all('/(\d+)/', $field, $matches);
-        foreach ($matches[1] ?? [] as $match) {
+        foreach ($matches[1] as $match) {
             $result .= strlen((string)(intval($match))) . $match;
         }
         return $result;
