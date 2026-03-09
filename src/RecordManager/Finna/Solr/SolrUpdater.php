@@ -128,24 +128,21 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
      *
      * @return void
      */
-    protected function addSeriesKeys(array &$data, AbstractRecord $metadataRecord)
+    protected function addSeriesKeys(array &$data, AbstractRecord $metadataRecord): void
     {
         $seriesKeys = [];
-        $seriesOrder = '';
-        $workIdSets = $metadataRecord->getWorkIdentificationData();
-        if ($author = $workIdSets[0]['authors'][0]['value'] ?? null) {
-            $author = $this->metadataUtils->normalizeKey($author);
-            $seriesData = $metadataRecord->getSeriesKeyData();
-            foreach ($seriesData as $sd) {
-                $series = $this->metadataUtils->normalizeKey($sd['series']);
-                $seriesKey = "SA $series $author";
-                if (!empty($sd['language'])) {
-                    $seriesKey .= ' ' . $sd['language'];
-                }
-                $seriesKeys[] = $seriesKey;
-                if (!empty($sd['order'])) {
-                    $seriesOrder = $this->getSeriesOrder($sd['order']);
-                }
+        $seriesOrder = null;
+        $seriesData = $metadataRecord->getSeriesKeyData();
+        foreach ($seriesData as $sd) {
+            $series = $this->metadataUtils->normalizeKey($sd['series']);
+            $author = $this->metadataUtils->normalizeKey($sd['author']);
+            $seriesKey = "SA $series $author";
+            if ($language = $sd['language'] ?? null) {
+                $seriesKey .= ' ' . $language;
+            }
+            $seriesKeys[] = $seriesKey;
+            if (empty($seriesOrder) && !empty($sd['order'])) {
+                $seriesOrder = $seriesKey . ' ' . $this->getSeriesOrder($sd['order']);
             }
         }
         if ($seriesKeys) {
@@ -161,9 +158,9 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
      *
      * @param string $field Series order field to normalize
      *
-     * @return string|null
+     * @return ?string
      */
-    protected function getSeriesOrder(string $field)
+    protected function getSeriesOrder(string $field): ?string
     {
         if (!$field) {
             return '';

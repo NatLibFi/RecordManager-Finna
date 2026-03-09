@@ -1373,23 +1373,27 @@ class Marc extends \RecordManager\Base\Record\Marc
      *
      * @return array
      */
-    public function getSeriesKeyData()
+    public function getSeriesKeyData(): array
     {
         $seriesOrder = '';
         $result = [];
-        foreach ($this->record->getFields('490') as $field490) {
-            $seriesKeyData = [];
-            if ($field490a = $this->record->getSubfield($field490, 'a')) {
-                $seriesKeyData['series'] = $field490a;
-                if ($languages = $this->getLanguages()) {
-                    $seriesKeyData['language'] = $languages[0];
-                }
-                if ($seriesOrder === '') {
-                    if ($seriesOrder = $this->record->getSubfield($field490, 'v')) {
-                        $seriesKeyData['order'] = $seriesOrder;
+        $workIdSets = $this->getWorkIdentificationData();
+        if ($author = $workIdSets[0]['authors'][0]['value'] ?? null) {
+            foreach ($this->record->getFields('490') as $field490) {
+                $seriesKeyData = [];
+                if ($field490a = $this->record->getSubfield($field490, 'a')) {
+                    $seriesKeyData['series'] = $field490a;
+                    $seriesKeyData['author'] = $author;
+                    if ($languages = $this->getLanguages()) {
+                        $seriesKeyData['language'] = $languages[0];
                     }
+                    if ($seriesOrder === '') {
+                        if ($seriesOrder = $this->record->getSubfield($field490, 'v')) {
+                            $seriesKeyData['order'] = $seriesOrder;
+                        }
+                    }
+                    $result[] = $seriesKeyData;
                 }
-                $result[] = $seriesKeyData;
             }
         }
         return $result;

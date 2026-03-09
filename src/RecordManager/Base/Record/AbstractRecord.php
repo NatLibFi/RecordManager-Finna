@@ -678,7 +678,7 @@ abstract class AbstractRecord
      *
      * @return array
      */
-    public function getSeriesKeyData()
+    public function getSeriesKeyData(): array
     {
         return [];
     }
