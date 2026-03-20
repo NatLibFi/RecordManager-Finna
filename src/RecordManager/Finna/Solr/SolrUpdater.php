@@ -73,6 +73,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
+        $this->addSeriesKeys($data, $metadataRecord);
     }
 
     /**
