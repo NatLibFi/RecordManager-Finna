@@ -73,6 +73,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
+        $this->addSeriesKeys($data, $metadataRecord);
     }
 
     /**
@@ -171,31 +172,5 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             $result .= strlen((string)(intval($match))) . $match;
         }
         return $result;
-    }
-
-    /**
-     * Create Solr array for the given record
-     *
-     * @param array $record           Database record
-     * @param int   $mergedComponents Number of component parts merged to the
-     *                                record
-     * @param array $dedupRecord      Database dedup record
-     *
-     * @return array|false
-     * @throws \TypeError
-     * @throws \Exception
-     *
-     * @psalm-suppress RedundantCondition
-     * @psalm-suppress DuplicateArrayKey
-     */
-    protected function createSolrArray(
-        array $record,
-        &$mergedComponents,
-        $dedupRecord = null
-    ) {
-        $data = parent::createSolrArray($record, $mergedComponents, $dedupRecord);
-        $metadataRecord = $this->createRecordFromDbRecord($record);
-        $this->addSeriesKeys($data, $metadataRecord);
-        return $data;
     }
 }
