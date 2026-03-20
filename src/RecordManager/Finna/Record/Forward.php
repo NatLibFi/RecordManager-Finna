@@ -368,7 +368,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         $result = $this->getProductionEventAttribute('elokuva-genre');
 
         foreach ($this->getMainElement()->ProductionEvent as $event) {
-            if (null !== ($event->elokuva_laji2fin)) {
+            if (!empty($event->elokuva_laji2fin)) {
                 $parts = explode(',', $event->elokuva_laji2fin);
 
                 foreach ($parts as $part) {
