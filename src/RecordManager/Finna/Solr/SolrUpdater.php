@@ -131,26 +131,28 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
      */
     protected function addSeriesKeys(array &$data, AbstractRecord $metadataRecord): void
     {
-        $seriesKeys = [];
-        $seriesOrder = null;
-        $seriesData = $metadataRecord->getSeriesKeyData();
-        foreach ($seriesData as $sd) {
-            $series = $this->metadataUtils->normalizeKey($sd['series']);
-            $author = $this->metadataUtils->normalizeKey($sd['author']);
-            $seriesKey = "SA $series $author";
-            if ($language = $sd['language'] ?? null) {
-                $seriesKey .= ' ' . $language;
+        if (is_callable([$metadataRecord, 'getSeriesKeyData'])) {
+            $seriesKeys = [];
+            $seriesOrder = null;
+            $seriesData = $metadataRecord->getSeriesKeyData();
+            foreach ($seriesData as $sd) {
+                $series = $this->metadataUtils->normalizeKey($sd['series']);
+                $author = $this->metadataUtils->normalizeKey($sd['author']);
+                $seriesKey = "SA $series $author";
+                if ($language = $sd['language'] ?? null) {
+                    $seriesKey .= ' ' . $language;
+                }
+                $seriesKeys[] = $seriesKey;
+                if (empty($seriesOrder) && !empty($sd['order'])) {
+                    $seriesOrder = $seriesKey . ' ' . $this->getSeriesOrder($sd['order']);
+                }
             }
-            $seriesKeys[] = $seriesKey;
-            if (empty($seriesOrder) && !empty($sd['order'])) {
-                $seriesOrder = $seriesKey . ' ' . $this->getSeriesOrder($sd['order']);
+            if ($seriesKeys) {
+                $data['series_key_str_mv'] = $seriesKeys;
             }
-        }
-        if ($seriesKeys) {
-            $data['series_key_str_mv'] = $seriesKeys;
-        }
-        if ($seriesOrder) {
-            $data['series_order_str'] = $seriesOrder;
+            if ($seriesOrder) {
+                $data['series_order_str'] = $seriesOrder;
+            }
         }
     }
 
