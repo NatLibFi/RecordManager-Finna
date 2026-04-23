@@ -119,7 +119,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $data = parent::toSolrArray($db);
         $doc = $this->doc;
-
         $first = true;
         foreach ($this->getDateRanges() as $unitDateRange) {
             $range = $unitDateRange['date'];
@@ -197,7 +196,6 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         }
 
         $data['author_variant'] = $this->getAuthorVariants();
-        $data['author2'] = $this->getSecondaryAuthors();
 
         $data['author_facet'] = $this->createAuthorFacetArray($data);
         $data['author2_id_str_mv']
@@ -395,6 +393,95 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     }
 
     /**
+     * Return record title in English
+     *
+     * @return string
+     */
+    protected function getTitleEn(): string
+    {
+        return $this->getTitleByLanguage(false, 'en');
+    }
+
+    /**
+     * Return record title in Finnish
+     *
+     * @return string
+     */
+    protected function getTitleFi(): string
+    {
+        return $this->getTitleByLanguage(false, 'fi');
+    }
+
+    /**
+     * Return record title in Northern Sami
+     *
+     * @return string
+     */
+    protected function getTitleSe(): string
+    {
+        return $this->getTitleByLanguage(false, 'se');
+    }
+
+    /**
+     * Return record title in Swedish
+     *
+     * @return string
+     */
+    protected function getTitleSv(): string
+    {
+        return $this->getTitleByLanguage(false, 'sv');
+    }
+
+    /**
+     * Get alternate titles
+     *
+     * @return array
+     */
+    protected function getAltTitles()
+    {
+        return array_unique(
+            array_filter([$this->getTitleFi(), $this->getTitleSv(), $this->getTitleEn(), $this->getTitleSe()])
+        );
+    }
+
+    /**
+     * Add hierarchy titles.
+     *
+     * @param array  $data           Reference to the target array
+     * @param string $sequenceUnitId Id to be added
+     *
+     * @return void
+     */
+    protected function addHierarchyTitles(array &$data, string $sequenceUnitId): void
+    {
+        if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+            $data['title_in_hierarchy'] = trim("$sequenceUnitId " . $data['title']);
+            foreach (['fi', 'sv', 'en', 'se'] as $language) {
+                if ($data['title_' . $language . '_txt']) {
+                    $data['title_in_hierarchy_' . $language . '_str'] =
+                        trim("$sequenceUnitId " . $data['title_' . $language . '_txt']);
+                }
+            }
+        }
+    }
+
+    /**
+     * Add additional titles.
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function addAdditionalTitles(array &$data): void
+    {
+        // Language specific title fields
+        $data['title_en_txt'] = $this->getTitleEn();
+        $data['title_fi_txt'] = $this->getTitleFi();
+        $data['title_se_txt'] = $this->getTitleSe();
+        $data['title_sv_txt'] = $this->getTitleSv();
+    }
+
+    /**
      * Enrich titles with year ranges.
      *
      * @param array $data          Record as a solr array
@@ -420,50 +507,65 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
             'enrichTitleWithYearRange',
             'no_match_exists'
         );
-        if ('never' === $type) {
+        if ('never' === $type || $unitDateRange['startDateUnknown']) {
             return $data;
         }
-        if (!$unitDateRange['startDateUnknown']) {
-            $range = $unitDateRange['date'];
-            $startYear
-                = $this->metadataUtils->extractYear($range[0]);
-            $endYear = $this->metadataUtils->extractYear($range[1]);
-            $yearRange[] = $startYear !== '-9999' ? $startYear : '';
-            $yearRange[] = $endYear !== '9999' ? $endYear : '';
-            $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
-            $yearRangeStr = trim(implode($ndash, array_unique($yearRange)));
-            if (!$yearRangeStr) {
-                return $data;
+        $range = $unitDateRange['date'];
+        $startYear
+            = $this->metadataUtils->extractYear($range[0]);
+        $endYear = $this->metadataUtils->extractYear($range[1]);
+        $yearRange[] = $startYear !== '-9999' ? $startYear : '';
+        $yearRange[] = $endYear !== '9999' ? $endYear : '';
+        $ndash = html_entity_decode('&#x2013;', ENT_NOQUOTES, 'UTF-8');
+        $yearRangeStr = trim(implode($ndash, array_unique($yearRange)));
+        if (!$yearRangeStr) {
+            return $data;
+        }
+        // Append with LTR mark first to ensure correct text direction
+        $yearRangeStr = "\u{200E} ($yearRangeStr)";
+
+        $appendYear = function (string $title) use ($type, $yearRangeStr, $yearRange): string {
+            if ('' === $title) {
+                return $title;
             }
-            // Append with LTR mark first to ensure correct text direction
-            $yearRangeStr = "\u{200E} ($yearRangeStr)";
-            foreach (
-                ['title_full', 'title_sort', 'title', 'title_short'] as $field
-            ) {
-                $yearsFound = $this->getYearsFromString($data[$field]);
-                switch ($type) {
-                    case 'always':
-                        $data[$field] .= $yearRangeStr;
-                        break;
-                    case 'no_year_exists':
-                        if (!$yearsFound) {
-                            $data[$field] .= $yearRangeStr;
-                        }
-                        break;
-                    case 'no_match_exists':
-                        if (!array_intersect($yearRange, $yearsFound)) {
-                            $data[$field] .= $yearRangeStr;
-                        }
-                        break;
-                    case 'no_matches_exist':
-                        $yearRange = array_filter(array_unique($yearRange));
-                        if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
-                            $data[$field] .= $yearRangeStr;
-                        }
-                        break;
+            $yearsFound = $this->getYearsFromString($title);
+            if ($type === 'always') {
+                return $title .= $yearRangeStr;
+            } elseif ($type === 'no_year_exists') {
+                if (!$yearsFound) {
+                    return $title .= $yearRangeStr;
+                }
+            } elseif ($type === 'no_match_exists') {
+                if (!array_intersect($yearRange, $yearsFound)) {
+                    return $title .= $yearRangeStr;
+                }
+            } elseif ($type === 'no_matches_exist') {
+                $yearRange = array_filter(array_unique($yearRange));
+                if (array_intersect($yearRange, $yearsFound) !== $yearRange) {
+                    return $title .= $yearRangeStr;
                 }
             }
+            return $title;
+        };
+
+        foreach (
+            [
+                'title_full',
+                'title_sort',
+                'title',
+                'title_en_txt',
+                'title_fi_txt',
+                'title_se_txt',
+                'title_sv_txt',
+                'title_short',
+            ] as $field
+        ) {
+            $data[$field] = $data[$field] ? $appendYear($data[$field]) : '';
         }
+        $data['title_alt'] = array_map(
+            $appendYear,
+            $data['title_alt'] ?? []
+        );
         return $data;
     }
 
