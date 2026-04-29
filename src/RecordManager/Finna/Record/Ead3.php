@@ -119,6 +119,7 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
     {
         $data = parent::toSolrArray($db);
         $doc = $this->doc;
+
         $first = true;
         foreach ($this->getDateRanges() as $unitDateRange) {
             $range = $unitDateRange['date'];
