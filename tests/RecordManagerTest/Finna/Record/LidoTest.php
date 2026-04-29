@@ -128,7 +128,22 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testMusketti2()
     {
-        $fields = $this->createRecord(Lido::class, 'musketti2.xml', [], 'Finna')
+        $fields = $this->createRecord(
+            Lido::class,
+            'musketti2.xml',
+            [],
+            'Finna',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        )
             ->toSolrArray();
         unset($fields['fullrecord']);
 

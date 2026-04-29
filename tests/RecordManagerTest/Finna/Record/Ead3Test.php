@@ -602,7 +602,17 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
             ],
-            'Finna'
+            'Finna',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
         )->toSolrArray();
         unset($fields['fullrecord']);
         $ltr = "\u{200E}";
