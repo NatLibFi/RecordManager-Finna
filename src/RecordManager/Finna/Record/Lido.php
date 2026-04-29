@@ -166,7 +166,7 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
-     * Hiearchy fields included in allfields.
+     * Hierarchy fields included in allfields.
      *
      * @var array
      */
@@ -2278,6 +2278,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function addHierarchyTitles(array &$data): void
     {
+        // Note: title_in_hierarchy is only needed if it differs from title.
         if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
             $data['title_in_hierarchy'] = trim($this->getIdentifier() . ' ' . $data['title']);
             foreach (['fi', 'sv', 'en', 'se'] as $language) {
