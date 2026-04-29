@@ -1369,6 +1369,37 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
+     * Get series data for series key and order
+     *
+     * @return array
+     */
+    public function getSeriesKeyData(): array
+    {
+        $seriesOrder = '';
+        $result = [];
+        $workIdSets = $this->getWorkIdentificationData();
+        if ($author = $workIdSets[0]['authors'][0]['value'] ?? null) {
+            foreach ($this->record->getFields('490') as $field490) {
+                $seriesKeyData = [];
+                if ($field490a = $this->record->getSubfield($field490, 'a')) {
+                    $seriesKeyData['series'] = $field490a;
+                    $seriesKeyData['author'] = $author;
+                    if ($languages = $this->getLanguages()) {
+                        $seriesKeyData['language'] = $languages[0];
+                    }
+                    if ($seriesOrder === '') {
+                        if ($seriesOrder = $this->record->getSubfield($field490, 'v')) {
+                            $seriesKeyData['order'] = $seriesOrder;
+                        }
+                    }
+                    $result[] = $seriesKeyData;
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Create field data from a component record
      *
      * @param array $data Component part data from getComponentPartMetadata
