@@ -2282,10 +2282,8 @@ class Lido extends \RecordManager\Base\Record\Lido
         if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
             $data['title_in_hierarchy'] = trim($this->getIdentifier() . ' ' . $data['title']);
             foreach (['fi', 'sv', 'en', 'se'] as $language) {
-                if ($data['title_' . $language . '_txt'] ?? '') {
-                    $data['title_in_hierarchy_' . $language . '_str'] = trim(
-                        $this->getIdentifier() . ' ' . $data['title_' . $language . '_txt']
-                    );
+                if ('' !== ($langTitle = $data['title_' . $language . '_txt'] ?? '')) {
+                    $data['title_in_hierarchy_' . $language . '_str'] = trim($this->getIdentifier() . ' ' . $langTitle);
                 }
             }
         }
