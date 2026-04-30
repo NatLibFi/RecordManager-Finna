@@ -166,6 +166,17 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
+     * Hierarchy fields included in allfields.
+     *
+     * @var array
+     */
+    protected $hierarchyFieldsInAllFields = [
+        'is_hierarchy_title', 'hierarchy_parent_title', 'hierarchy_top_title', 'title_in_hierarchy',
+        'title_in_hierarchy_en_str_', 'title_in_hierarchy_fi_str', 'title_in_hierarchy_se_str',
+        'title_in_hierarchy_sv_str',
+    ];
+
+    /**
      * Constructor
      *
      * @param array         $config           Main configuration
@@ -553,6 +564,46 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
         }
         return array_unique($results);
+    }
+
+    /**
+     * Return record title in English
+     *
+     * @return string
+     */
+    protected function getTitleEn(): string
+    {
+        return $this->getTitles('en')['preferred'];
+    }
+
+    /**
+     * Return record title in Finnish
+     *
+     * @return string
+     */
+    protected function getTitleFi(): string
+    {
+        return $this->getTitles('fi')['preferred'];
+    }
+
+    /**
+     * Return record title in Northern Sami
+     *
+     * @return string
+     */
+    protected function getTitleSe(): string
+    {
+        return $this->getTitles('se')['preferred'];
+    }
+
+    /**
+     * Return record title in Swedish
+     *
+     * @return string
+     */
+    protected function getTitleSv(): string
+    {
+        return $this->getTitles('sv')['preferred'];
     }
 
     /**
@@ -2197,6 +2248,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function addHierarchyFields(array &$data): void
     {
+        parent::addHierarchyFields($data);
         // Add additional related work titles
         if ($furtherTitles = $this->getRelatedWorks($this->relatedWorkRelationTypesExtended)) {
             // Check that number of indexed parent titles and ids match
@@ -2210,9 +2262,47 @@ class Lido extends \RecordManager\Base\Record\Lido
                 ...(array)($data['hierarchy_parent_title'] ?? []),
                 ...$furtherTitles,
             ];
+            $data['allfields'] = [
+                ...(array)($data['allfields'] ?? []),
+                ...$furtherTitles,
+            ];
         }
+    }
 
-        parent::addHierarchyFields($data);
+    /**
+     * Add hierarchy titles.
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function addHierarchyTitles(array &$data): void
+    {
+        // Note: title_in_hierarchy is only needed if it differs from title.
+        if ($this->getDriverParam('addIdToHierarchyTitle', true)) {
+            $data['title_in_hierarchy'] = trim($this->getIdentifier() . ' ' . $data['title']);
+            foreach (['fi', 'sv', 'en', 'se'] as $language) {
+                if ('' !== ($langTitle = $data['title_' . $language . '_txt'] ?? '')) {
+                    $data['title_in_hierarchy_' . $language . '_str'] = trim($this->getIdentifier() . ' ' . $langTitle);
+                }
+            }
+        }
+    }
+
+    /**
+     * Add additional titles.
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function addAdditionalTitles(array &$data): void
+    {
+        // Language specific title fields
+        $data['title_en_txt'] = $this->getTitleEn();
+        $data['title_fi_txt'] = $this->getTitleFi();
+        $data['title_se_txt'] = $this->getTitleSe();
+        $data['title_sv_txt'] = $this->getTitleSv();
     }
 
     /**

@@ -28,7 +28,8 @@
             <objectIdentificationWrap>
                 <titleWrap>
                     <titleSet>
-                        <appellationValue label="aihe/nimi">Imatrankoski</appellationValue>
+                        <appellationValue label="aihe/nimi" lang="fi">Imatrankoski</appellationValue>
+                        <appellationValue label="aihe/nimi" lang="swe">Imatra fors</appellationValue>
                     </titleSet>
                 </titleWrap>
                 <inscriptionsWrap>

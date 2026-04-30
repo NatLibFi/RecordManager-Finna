@@ -128,7 +128,22 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testMusketti2()
     {
-        $fields = $this->createRecord(Lido::class, 'musketti2.xml', [], 'Finna')
+        $fields = $this->createRecord(
+            Lido::class,
+            'musketti2.xml',
+            [],
+            'Finna',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        )
             ->toSolrArray();
         unset($fields['fullrecord']);
 
@@ -137,8 +152,14 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_full' => 'Imatrankoski',
             'title_short' => 'Imatrankoski',
             'title' => 'Imatrankoski',
+            'title_en_txt' => '',
+            'title_fi_txt' => 'Imatrankoski',
+            'title_se_txt' => '',
+            'title_sv_txt' => 'Imatra fors',
             'title_sort' => 'imatrankoski',
-            'title_alt' => [],
+            'title_alt' => [
+                'Imatra fors',
+            ],
             'format' => 'kuva',
             'institution' => 'Museoviraston kuva-arkisto/',
             'author' => [
@@ -201,6 +222,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'sv',
                 'en',
                 'Imatrankoski',
+                'Imatra fors',
                 '33,1.',
                 'Imatra. val. H.Hintze 1897 Antr.',
                 '33,1.',
@@ -563,6 +585,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_full' => 'lierihattu',
             'title_short' => 'lierihattu',
             'title' => 'lierihattu',
+            'title_fi_txt' => 'lierihattu',
             'title_sort' => 'lierihattu',
             'allfields' => [
                 'M123',
@@ -675,5 +698,49 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'http://www.yso.fi/onto/yso/p94137',
         ];
         $this->compareArray($expected, $result, 'RawGeographicTopicIds');
+    }
+
+    /**
+     * Test LIDO hierarchy handling
+     *
+     * @return void
+     */
+    public function testLidoHierarchies()
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_hierarchy.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'indexHierarchies=true',
+                        'addIdToHierarchyTitle=true',
+                        'defaultDisplayLanguage=fi',
+                    ],
+                ],
+            ],
+            'Finna'
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals('testit-200', $fields['hierarchy_top_id']);
+        $this->assertEquals('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['hierarchy_top_title']);
+        $this->assertEquals('testit-404', $fields['hierarchy_parent_id']);
+        $this->assertEquals(
+            [
+                'Puuttuvien testien kokoelma',
+                'Testiarkisto',
+                'Yksikkötestikokoelma',
+            ],
+            $fields['hierarchy_parent_title']
+        );
+        $this->assertEquals('testi-000000418', $fields['hierarchy_sequence']);
+        $this->assertEquals('testi-418 Testi joka puuttui', $fields['title_in_hierarchy']);
+        $this->assertEquals('testi-418 Testi joka puuttui', $fields['title_in_hierarchy_fi_str']);
+        $this->assertEquals('testi-418 The test that was missing', $fields['title_in_hierarchy_en_str']);
+        $this->assertContains('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['allfields']);
+        $this->assertContains('Puuttuvien testien kokoelma', $fields['allfields']);
+        $this->assertContains('testi-418 Testi joka puuttui', $fields['allfields']);
+        $this->assertEquals('Testiarkisto', $fields['collection']);
     }
 }
