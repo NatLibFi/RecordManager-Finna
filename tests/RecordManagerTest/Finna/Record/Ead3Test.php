@@ -568,7 +568,11 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
         return [
             'addIdToHierarchyTitle=true' => [
                 'true',
-                '1 1 Sundvall Gustaf Edvard S 1:a) 1',
+                [
+                    'no_lang' => ['1 1 Sundvall Gustaf Edvard S 1:a) 1'],
+                    'fi' => ['1 1 Sundvall Gustaf Edvard S 1:a) 1'],
+                    'sv' => ['1 1 Sundvall Gustaf Edvard S 1:a) 1 swe'],
+                ],
             ],
             'addIdToHierarchyTitle=false' => [
                 'false',
@@ -580,13 +584,13 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
     /**
      * Test SKS EAD3 record handling
      *
-     * @param string  $addIdToHierarchyTitle    Value for addIdToHierarchyTitle driver param
-     * @param ?string $expectedTitleInHierarchy Expected title_in_hierarchy field contents
+     * @param string $addIdToHierarchyTitle    Value for addIdToHierarchyTitle driver param
+     * @param ?array $expectedTitleInHierarchy Expected title_in_hierarchy field contents
      *
      * @return void
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('sksProvider')]
-    public function testSKS(string $addIdToHierarchyTitle, ?string $expectedTitleInHierarchy): void
+    public function testSKS(string $addIdToHierarchyTitle, ?array $expectedTitleInHierarchy): void
     {
         $fields = $this->createRecord(
             Ead3::class,
@@ -598,7 +602,17 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                     ],
                 ],
             ],
-            'Finna'
+            'Finna',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
         )->toSolrArray();
         unset($fields['fullrecord']);
         $ltr = "\u{200E}";
@@ -613,6 +627,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
                 '242790397',
                 'xx.xx.1881-xx.xx.1881',
                 'Sundvall Gustaf Edvard S 1:a) 1',
+                'Sundvall Gustaf Edvard S 1:a) 1 swe',
                 '1',
                 's/sundvall_gustaf_edvard/001/00001/00005',
                 'SKS KRA S Sundvall Gustaf Edvard 1: a) 1',
@@ -731,8 +746,16 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_sub' => '1',
             'title_short' => 'Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
             'title' => '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+            'title_en_txt' => '',
+            'title_fi_txt' => '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+            'title_se_txt' => '',
+            'title_sv_txt' => '1 Sundvall Gustaf Edvard S 1:a) 1 swe' . $ltr . ' (1881)',
             'title_sort' => '1 sundvall gustaf edvard s 1 a 1' . $ltr . ' (1881)',
             'title_full' => '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+            'title_alt' => [
+                '1 Sundvall Gustaf Edvard S 1:a) 1' . $ltr . ' (1881)',
+                '1 Sundvall Gustaf Edvard S 1:a) 1 swe' . $ltr . ' (1881)',
+            ],
             'language' => [
                 'fin',
             ],
@@ -843,7 +866,9 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'publishDateSort' => '',
         ];
         if (null !== $expectedTitleInHierarchy) {
-            $expected['title_in_hierarchy'] = $expectedTitleInHierarchy;
+            $expected['title_in_hierarchy'] = $expectedTitleInHierarchy['no_lang'];
+            $expected['title_in_hierarchy_fi_str_mv'] = $expectedTitleInHierarchy['fi'];
+            $expected['title_in_hierarchy_sv_str_mv'] = $expectedTitleInHierarchy['sv'];
         }
 
         $this->assertEquals(

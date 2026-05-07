@@ -2,11 +2,6 @@
 <c02 level="file">
   <did>
     <didnote encodinganalog="ahaa:AI46">Yksityisaineisto</didnote>
-    <repository>
-      <corpname identifier="0000">
-        <part lang="fin">Joku muu instituutio</part>
-      </corpname>
-    </repository>
     <repository encodinganalog="ahaa:AI42">
       <corpname identifier="102268433">
         <part lang="fin">SKS:n arkisto, Hallituskatu 1, HKI</part>
@@ -100,33 +95,23 @@
     </subject>
     <name localtype="http://www.rdaregistry.info/Elements/u/#P60401" relator="Luovuttaja" identifier="EAC_228204328">
       <part localtype="Ensisijainen nimi" lang="fin">Sundvall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
       <part localtype="Varianttinimi" lang="fin">Sundwall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
     </name>
     <name localtype="http://www.rdaregistry.info/Elements/u/#P60434" relator="Kirjoittaja" identifier="EAC_228204328">
       <part localtype="Ensisijainen nimi" lang="fin">Sundvall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
       <part localtype="Varianttinimi" lang="fin">Sundwall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
     </name>
     <name localtype="http://www.rdaregistry.info/Elements/w/#P10055" relator="Ker&#xE4;&#xE4;j&#xE4;" identifier="EAC_228204328">
       <part localtype="Ensisijainen nimi" lang="fin">Sundvall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">unknown - open</part>
       <part localtype="Varianttinimi" lang="fin">Sundwall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">unknown - open</part>
     </name>
     <name localtype="http://www.rdaregistry.info/Elements/u/#P60401" relator="Luovuttaja" identifier="EAC_228598319">
       <part localtype="Ensisijainen nimi" lang="fin">Ingman, Anders Wilhelm</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
       <part localtype="Varianttinimi" lang="fin">Ingman, A.W.</part>
-      <part localtype="suhteen ajallinen kattavuus">1881-12-31 - 1881-12-31</part>
     </name>
     <name localtype="http://www.rdaregistry.info/Elements/u/#P60066" relator="Kokoelmanmuodostaja" identifier="EAC_228204328">
       <part localtype="Ensisijainen nimi" lang="fin">Sundvall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">unknown - open</part>
       <part localtype="Varianttinimi" lang="fin">Sundwall, Gustaf Edvard</part>
-      <part localtype="suhteen ajallinen kattavuus">unknown - open</part>
     </name>
   </controlaccess>
   <scopecontent>

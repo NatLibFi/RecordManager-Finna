@@ -131,6 +131,13 @@ class MetadataUtils
     protected $lowercaseLanguageStrings = true;
 
     /**
+     * Language code mappings
+     *
+     * @var array
+     */
+    protected $languageCodeMappings = [];
+
+    /**
      * Normalization character folding table
      *
      * @var array
@@ -246,6 +253,8 @@ class MetadataUtils
                 }
             }
         }
+
+        $this->languageCodeMappings = $config['Metadata Language Code Mappings'] ?? [];
     }
 
     /**
@@ -1066,6 +1075,19 @@ class MetadataUtils
             $languages = strtolower($languages);
         }
         return $languages;
+    }
+
+    /**
+     * Normalize language code.
+     *
+     * @param string $language Language code
+     *
+     * @return string
+     */
+    public function normalizeLanguageCode(string $language): string
+    {
+        $lang = trim(strtolower($language));
+        return $this->languageCodeMappings[$lang] ?? $lang;
     }
 
     /**

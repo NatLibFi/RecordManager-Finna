@@ -68,4 +68,29 @@ class LrmiTest extends \RecordManagerTest\Base\Record\RecordTestBase
             $fields['media_type_str_mv']
         );
     }
+
+    /**
+     * Test LRMI titles
+     *
+     * @return void
+     */
+    public function testTitles()
+    {
+        $record = $this->createRecord(
+            Lrmi::class,
+            'lrmi1.xml',
+            [],
+            'Finna',
+            [$this->createMock(\RecordManager\Base\Http\HttpService::class)]
+        );
+        $fields = $record->toSolrArray();
+        $this->assertEquals('Opetuksen ja oppimisen suunnittelu, Learning Design', $fields['title']);
+        $this->assertEquals('Opetuksen ja oppimisen suunnittelu, Learning Design', $fields['title_full']);
+        $this->assertEquals('Opetuksen ja oppimisen suunnittelu, Learning Design', $fields['title_short']);
+        $this->assertEquals('opetuksen ja oppimisen suunnittelu learning design', $fields['title_sort']);
+        $this->assertEquals('Designing Learning Processes', $fields['title_en_txt']);
+        $this->assertEquals('Opetuksen ja oppimisen suunnittelu, Learning Design', $fields['title_fi_txt']);
+        $this->assertEquals('', $fields['title_se_txt']);
+        $this->assertEquals('Planering av undevisning och lärande', $fields['title_sv_txt']);
+    }
 }
