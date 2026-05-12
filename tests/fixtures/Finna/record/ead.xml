@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<c level="item">
+  <did>
+    <unittitle>blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp</unittitle>
+    <unitid identifier="m1036">mrrrp-blib-zoink</unitid>
+    <unitdate>zz-ploof-9911</unitdate>
+    <physdesc>
+      <extent>fiftypurr snorfle meep</extent>
+    </physdesc>
+    <physloc>gribble snarrk floomtar wubbadee</physloc>
+    <langmaterial>
+      <language>grk</language>
+      <language>fnrr</language>
+    </langmaterial>
+    <origination>
+      <persname>Kralloo Mipsten</persname>
+    </origination>
+    <repository>
+      <corpname>Snerpaloosi Instiploop</corpname>
+    </repository>
+    <daogrp>
+      <daodesc>
+        <p>flarpo 1</p>
+      </daodesc>
+      <daoloc linktype="locator" href="https://siiri2.utu.fi/content/skel-67-raita-1_vt.mp3"/>
+    </daogrp>
+  </did>
+  <scopecontent>
+    <p>glimfadoo 15 snarr Väinö Talas blorptik Floridana snooflepuff 5+5 min floof cutoff</p>
+  </scopecontent>
+  <controlaccess/>
+  <controlaccess>
+    <genreform>blip/intervuu</genreform>
+  </controlaccess>
+  <controlaccess>
+    <geogname>Yhdysblat</geogname>
+  </controlaccess>
+  <controlaccess>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">11.11111, 22.22222</geographiccoordinates>
+      <part>Asikblar</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">33.33333, 44.44444</geographiccoordinates>
+      <part>Päijät-Hömp</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">55.55555, 66.66666</geographiccoordinates>
+      <part>Helsinkloof</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">77.77777, 88.88888</geographiccoordinates>
+      <part>Uusimrr</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">99.99999, -11.11111</geographiccoordinates>
+      <part>Clevorland</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">-22.22222, 33.33333</geographiccoordinates>
+      <part>Detroink</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">-44.44444, 55.55555</geographiccoordinates>
+      <part>Montablaa</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">-66.66666, 77.77777</geographiccoordinates>
+      <part>Duluthnoo</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">-88.88888, 99.99999</geographiccoordinates>
+      <part>Fort Loodle</part>
+    </geogname>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">12.34567, -76.54321</geographiccoordinates>
+      <part>Lake Worf</part>
+    </geogname>
+  </controlaccess>
+  <controlaccess>
+    <subject>mootlik</subject>
+    <subject>sirtooz</subject>
+    <subject>sirtiloot</subject>
+    <subject>ulkosnarf</subject>
+    <subject>amerisnarf</subject>
+    <subject>floridansnarf</subject>
+    <subject>eläkeblorp</subject>
+    <subject>työbloop</subject>
+    <subject>työnteek</subject>
+    <subject>työväää</subject>
+    <subject>talonrakblip</subject>
+    <subject>järjestööf</subject>
+  </controlaccess>
+  <userestrict>
+    <p>CC BY 4.0</p>
+  </userestrict>
+  <add-data identifier="272_m1036">
+    <archive id="272" title="blorptik snoofle 1977-1978" sequence="0000020"/>
+    <parent id="272" title="snarfloota kokoelma"/>
+  </add-data>
+</c>

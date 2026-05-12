@@ -443,4 +443,21 @@ class Ead extends \RecordManager\Base\Record\Ead
         $result = parent::getTopicIDs();
         return $this->addNamespaceToAuthorityIds($result, 'topic');
     }
+
+    /**
+     * Add hierarchy fields. Must be called after title is present in the array.
+     *
+     * @param array $data Reference to the target array
+     *
+     * @return void
+     */
+    protected function addHierarchyFields(&$data): void
+    {
+        parent::addHierarchyFields($data);
+        $containerTitleFacetField = $this->config['Solr Fields']['container_title_str_mv'] ?? 'container_title_str_mv';
+        $hierarchyTopTitleField = $this->config['Solr Fields']['hierarchy_top_title'] ?? 'hierarchy_top_title';
+        if (isset($data[$hierarchyTopTitleField])) {
+            $data[$containerTitleFacetField] = (array)$data[$hierarchyTopTitleField];
+        }
+    }
 }

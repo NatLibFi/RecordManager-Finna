@@ -7,3 +7,9 @@
 ; prepend = whether to prepend 003 to the field. 0 = no (default), 1 = yes.
 ; Example: 
 ;driverParams[] = "recordLinkingIdFields=\"001,1:035a,0:999c,0\""
+
+;[examples]
+; Option to override default field used to populate container_title_str_mv field.
+; Other formats populates the container_title_str_mv from hierarchy_parent_title field
+; and EAD3 populates it from hierarchy_top_title field.
+;driverParams[] = "containerTitleField=hierarchy_top_title"

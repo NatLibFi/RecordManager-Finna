@@ -332,7 +332,7 @@ class SolrUpdater
         'dewey-sort',
         'illustrated',
         'first_indexed', 'last-indexed',
-        'container_title', 'container_volume', 'container_issue',
+        'container_title', 'container_title_str_mv', 'container_volume', 'container_issue',
         'container_start_page', 'container_reference',
     ];
 

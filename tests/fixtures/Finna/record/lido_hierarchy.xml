@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<lidoWrap schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.0/lido-v1.0.xsd">
+  <lido>
+    <lidoRecID type="Test">12345</lidoRecID>
+    <descriptiveMetadata lang="en">
+      <objectClassificationWrap>
+        <objectWorkTypeWrap>
+          <objectWorkType>
+            <term>Maalaus</term>
+          </objectWorkType>
+        </objectWorkTypeWrap>
+      </objectClassificationWrap>
+      <objectRelationWrap>
+        <relatedWorksWrap>
+          <relatedWorkSet>
+            <relatedWorkRelType>
+              <term>
+              </term>
+            </relatedWorkRelType>
+          </relatedWorkSet>
+        </relatedWorksWrap>
+      </objectRelationWrap>
+      <objectIdentificationWrap>
+        <titleWrap>
+          <titleSet>
+            <appellationValue>Maalaus</appellationValue>
+          </titleSet>
+        </titleWrap>
+        <objectDescriptionWrap>
+            <objectDescriptionSet type="description">
+                <descriptiveNoteValue>Maisema</descriptiveNoteValue>
+            </objectDescriptionSet>
+        </objectDescriptionWrap>
+      </objectIdentificationWrap>
+    </descriptiveMetadata>
+  </lido>
+</lidoWrap>

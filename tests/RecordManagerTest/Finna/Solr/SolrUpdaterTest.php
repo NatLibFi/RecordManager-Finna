@@ -31,6 +31,8 @@
 namespace RecordManagerTest\Finna\Solr;
 
 use ArrayIterator;
+use Generator;
+use PHPUnit\Framework\MockObject\MockObject;
 use RecordManager\Base\Database\DatabaseInterface;
 use RecordManager\Base\Database\MongoDatabase;
 use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
@@ -42,6 +44,7 @@ use RecordManager\Base\Settings\Ini;
 use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\WorkerPoolManager;
+use RecordManager\Finna\Record\Ead;
 use RecordManager\Finna\Record\Marc;
 use RecordManager\Finna\Solr\SolrUpdater;
 use RecordManager\Finna\Utils\FieldMapper;
@@ -95,6 +98,10 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
               'marc_format_sub.map,regexp',
             ],
         ],
+        'tost' => [
+            'institution' => 'tost',
+            'format' => 'ead',
+        ],
     ];
 
     /**
@@ -140,7 +147,6 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             'normalized_data' => null,
             'host_record_id' => 'test.1',
         ];
-
         $params = [
             'host_record_id' => [
                 '$in' => array_values($dbRecord['linking_id']),
@@ -169,18 +175,13 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'date' => '2025-01-01',
             ],
         ]);
-        $recordMap = [
-            [$params, [], $records[0]],
-        ];
+        $database = $this->getDatabase($records, $params);
         $dsOverride = [
             'test' => [
                 'mergeMultiLevelParts' => true,
                 'componentParts' => 'merge_all',
             ],
         ];
-        $database = $this->getMockBuilder(MongoDatabase::class)->disableOriginalConstructor()->getMock();
-        $database->expects($this->any())->method('findRecord')->willReturnMap($recordMap);
-        $database->expects($this->any())->method('findRecords')->willReturn($records);
         $solrUpdater = $this->getSolrUpdater(
             dsConfigOverrides: $dsOverride,
             database: $database
@@ -201,6 +202,10 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                         'data' => 'part_1',
                     ],
                     [
+                        'code' => 'e',
+                        'data' => 'Component part title 1',
+                    ],
+                    [
                         'code' => 'h',
                         'data' => 'fin',
                     ],
@@ -216,6 +221,10 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                         'data' => 'part_2',
                     ],
                     [
+                        'code' => 'e',
+                        'data' => 'Component part title 2',
+                    ],
+                    [
                         'code' => 'h',
                         'data' => 'fin',
                     ],
@@ -228,15 +237,296 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * Test single record processing data provider
+     *
+     * @return Generator
+     */
+    public static function getTestProcessSingleRecordData(): Generator
+    {
+        $date = strtotime('2020-10-20 13:01:00');
+        yield 'Test single marc record with container title field' => [
+            [
+                '_id' => '123',
+                'oai_id' => '',
+                'linking_id' => [
+                    '010101',
+                ],
+                'host_record_id' => 'test123',
+                'source_id' => 'test',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'marc',
+                'original_data' => 'record/marc5.xml',
+                'normalized_data' => null,
+            ],
+            [
+                'record_format' => 'marc',
+                'allfields' => [
+                    'Component part title 1',
+                    'Test string',
+                    'Test parent string',
+                ],
+                'format' => 'Book/Book',
+                'illustrated' => 'Not Illustrated',
+                'language' => [
+                    'fin',
+                ],
+                'publishDate' => [
+                    '2013',
+                ],
+                'publishDateRange' => [
+                    '[2013-01-01 TO 2013-12-31]',
+                ],
+                'publishDateSort' => '2013',
+                'title_alt' => [
+                    'Component part title 1',
+                ],
+                'title_full' => 'Component part title 1',
+                'title_short' => 'Component part title 1',
+                'title_sort' => 'component part title 1',
+                'title' => 'Component part title 1',
+                'main_date_str' => '2013',
+                'main_date' => '2013-01-01T00:00:00Z',
+                'search_daterange_mv' => [
+                    '[2013-01-01 TO 2013-12-31]',
+                ],
+                'publication_daterange' => '[2013-01-01 TO 2013-12-31]',
+                'major_genre_str_mv' => 'nonfiction',
+                'source_str_mv' => 'test',
+                'datasource_str_mv' => [
+                    'test',
+                ],
+                'format_ext_str_mv' => 'Book/Book',
+                'linking_id_str_mv' => [
+                    '010101',
+                ],
+                'id' => '123',
+                'institution' => 'test',
+                'first_indexed' => '1970-01-01T00:00:00Z',
+                'last_indexed' => '1970-01-01T00:00:00Z',
+                'catalog_date' => '1970-01-01T00:00:00Z',
+                'hierarchy_parent_id' => [
+                    'test123',
+                ],
+                'hierarchy_parent_title' => [
+                    'Host record title 1',
+                ],
+                'container_title' => 'Host record title 1',
+                'container_title_str_mv' => [
+                    'Host record title 1',
+                ],
+            ],
+        ];
+
+        yield 'Test single ead record with container title field' => [
+            [
+                '_id' => 'test456',
+                'oai_id' => '',
+                'linking_id' => [],
+                'source_id' => 'tost',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'ead',
+                'original_data' => 'record/ead.xml',
+                'normalized_data' => null,
+            ],
+            [
+                'record_format' => 'ead',
+                'allfields' => [
+                    'blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp',
+                    'mrrrp-blib-zoink',
+                    'zz-ploof-9911',
+                    'fiftypurr snorfle meep',
+                    'gribble snarrk floomtar wubbadee',
+                    'grk',
+                    'fnrr',
+                    'Kralloo Mipsten',
+                    'Snerpaloosi Instiploop',
+                    'flarpo 1',
+                    'glimfadoo 15 snarr Väinö Talas blorptik Floridana snooflepuff 5+5 min floof cutoff',
+                    'blip/intervuu',
+                    'Yhdysblat',
+                    '11.11111, 22.22222',
+                    'Asikblar',
+                    '33.33333, 44.44444',
+                    'Päijät-Hömp',
+                    '55.55555, 66.66666',
+                    'Helsinkloof',
+                    '77.77777, 88.88888',
+                    'Uusimrr',
+                    '99.99999, -11.11111',
+                    'Clevorland',
+                    '-22.22222, 33.33333',
+                    'Detroink',
+                    '-44.44444, 55.55555',
+                    'Montablaa',
+                    '-66.66666, 77.77777',
+                    'Duluthnoo',
+                    '-88.88888, 99.99999',
+                    'Fort Loodle',
+                    '12.34567, -76.54321',
+                    'Lake Worf',
+                    'mootlik',
+                    'sirtooz',
+                    'sirtiloot',
+                    'ulkosnarf',
+                    'amerisnarf',
+                    'floridansnarf',
+                    'eläkeblorp',
+                    'työbloop',
+                    'työnteek',
+                    'työväää',
+                    'talonrakblip',
+                    'järjestööf',
+                    'CC BY 4.0',
+                    'blorptik snoofle 1977-1978',
+                    'snarfloota kokoelma',
+                ],
+                'author2' => [
+                    'Kralloo Mipsten',
+                ],
+                'description' => 'glimfadoo 15 snarr Väinö Talas blorptik Floridana snooflepuff 5+5 min floof cutoff',
+                'format' => 'blip/intervuu',
+                'institution' => 'Snerpaloosi Instiploop',
+                'language' => ['grk', 'fnrr'],
+                'physical' => ['fiftypurr snorfle meep'],
+                'title_full' => 'mrrrp-blib-zoink blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp (9911)',
+                'title_short' => 'blorf mipmip zaarl frrrp tikka',
+                'title_sort' => 'blorf mipmip zaarl frrrp tikka meowzorp ',
+                'title_sub' => 'mrrrp-blib-zoink',
+                'title' => 'mrrrp-blib-zoink blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp (9911)',
+                'topic_facet' => [
+                    'mootlik','sirtooz','sirtiloot','ulkosnarf','amerisnarf','floridansnarf',
+                    'eläkeblorp','työbloop','työnteek','työväää','talonrakblip','järjestööf',
+                ],
+                'topic' => [
+                    'mootlik','sirtooz','sirtiloot','ulkosnarf','amerisnarf','floridansnarf',
+                    'eläkeblorp','työbloop','työnteek','työväää','talonrakblip','järjestööf',
+                ],
+                'location_geo' => 'POINT(-76.54321 12.34567)',
+                'center_coords' => '-76.54321 12.34567',
+                'geographic_facet' => [
+                    'Yhdysblat','Asikblar','Päijät-Hömp','Helsinkloof','Uusimrr','Clevorland',
+                    'Detroink','Montablaa','Duluthnoo','Fort Loodle','Lake Worf',
+                ],
+                'geographic' => [
+                    'Yhdysblat','Asikblar','Päijät-Hömp','Helsinkloof','Uusimrr','Clevorland',
+                    'Detroink','Montablaa','Duluthnoo','Fort Loodle','Lake Worf',
+                ],
+                'hierarchytype' => 'Default',
+                'hierarchy_top_id' => 'tost.272',
+                'hierarchy_top_title' => 'blorptik snoofle 1977-1978',
+                'hierarchy_sequence' => '0000020',
+                'hierarchy_parent_id' => 'tost.272',
+                'hierarchy_parent_title' => 'snarfloota kokoelma',
+                'title_in_hierarchy' => 'mrrrp-blib-zoink mrrrp-blib-zoink'
+                    . ' blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp',
+                'container_title_str_mv' => ['blorptik snoofle 1977-1978'],
+                'unit_daterange' => '[9911-01-01 TO 9911-12-31]',
+                'search_daterange_mv' => '[9911-01-01 TO 9911-12-31]',
+                'main_date_str' => '9911',
+                'main_date' => '9911-01-01T00:00:00Z',
+                'hierarchy_sequence_str' => '0000020',
+                'source_str_mv' => 'Snerpaloosi Instiploop',
+                'datasource_str_mv' => 'tost',
+                'online_boolean' => '1',
+                'online_str_mv' => 'Snerpaloosi Instiploop',
+                'free_online_boolean' => '1',
+                'free_online_str_mv' => 'Snerpaloosi Instiploop',
+                'identifier' => 'mrrrp-blib-zoink',
+                'material' => "\n      \n    ",
+                'usage_rights_str_mv' => ['CC BY 4.0'],
+                'usage_rights_ext_str_mv' => ['CC BY 4.0'],
+                'author_facet' => ['Kralloo Mipsten'],
+                'format_ext_str_mv' => ['blip/intervuu'],
+                'media_type_str_mv' => ['audio/mpeg'],
+                'id' => 'test456',
+                'first_indexed' => '1970-01-01T00:00:00Z',
+                'last_indexed' => '1970-01-01T00:00:00Z',
+                'catalog_date' => '1970-01-01T00:00:00Z',
+            ],
+        ];
+    }
+
+    /**
+     * Test single record processing
+     *
+     * @param array $dbRecord Array presenting a record from database to be processed.
+     * @param array $expected Array for expected test results
+     *
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getTestProcessSingleRecordData')]
+    public function testProcessSingleRecord(array $dbRecord, array $expected): void
+    {
+        $dbRecord['original_data'] = $this->getFixture($dbRecord['original_data'], 'Finna');
+        $database = $this->getDatabase();
+        $solrUpdater = $this->getSolrUpdater(database: $database);
+        $result = $solrUpdater->processSingleRecord($dbRecord);
+        $testRecord = $result['records'][0];
+        // Leave out testing full record but confirm that it exists
+        $this->assertTrue(!empty($testRecord['fullrecord']));
+        unset($testRecord['fullrecord']);
+        $this->assertEquals($expected, $testRecord);
+    }
+
+    /**
+     * Get database for storing test records found from database.
+     *
+     * @param ?ArrayIterator<int<0,1>, array> $dbRecords Records found in the database
+     * @param ?array                          $params    Params to use for searching records from database
+     *
+     * @return MockObject
+     */
+    protected function getDatabase(
+        ?ArrayIterator $dbRecords = null,
+        ?array $params = null
+    ): MockObject&DatabaseInterface {
+        $dbRecords ??= new ArrayIterator([
+            [
+                'original_data' => $this->getFixture('record/marc4.xml', 'Finna'),
+                'normalized_data' => '',
+                '_id' => 'test123',
+                'source_id' => 'test',
+                'oai_id' => 'testoai1',
+                'format' => 'marc',
+                'date' => '2025-01-01',
+            ],
+        ]);
+
+        $params ??= [
+            'host_record_id' => [
+                '$in' => ['test12345'],
+            ],
+            'deleted' => false,
+            'suppressed' => ['$in' => [null, false]],
+            'source_id' => 'test',
+        ];
+        $recordMap = [
+            [$params, [], $dbRecords[0]],
+        ];
+        $database = $this->getMockBuilder(MongoDatabase::class)->disableOriginalConstructor()->getMock();
+        $database->expects($this->any())->method('findRecord')->willReturnMap($recordMap);
+        $database->expects($this->any())->method('findRecords')->willReturn($dbRecords);
+        return $database;
+    }
+
+    /**
      * Create SolrUpdater
      *
-     * @param array              $dsConfigOverrides Data source config overrides
-     * @param ?DatabaseInterface $database          Database mock object
+     * @param array                             $dsConfigOverrides Data source config overrides
+     * @param array                             $dbRecord          Database record
+     * @param MockObject|DatabaseInterface|null $database          Database mock object
      *
      * @return SolrUpdater
      */
     protected function getSolrUpdater(
         array $dsConfigOverrides = [],
+        array $dbRecord = [],
         ?DatabaseInterface $database = null
     ): SolrUpdater {
         $dsConfig = array_merge_recursive(
@@ -256,7 +546,24 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         $metaDataUtils = $this->getMockBuilder(MetadataUtils::class)->onlyMethods([])
             ->disableOriginalConstructor()->getMock();
 
-        $record = $this->getMockBuilder(Marc::class)->onlyMethods(['createRecord'])->setConstructorArgs([
+        $marcRecord = $this->getMockBuilder(Marc::class)->onlyMethods(['createRecord'])->setConstructorArgs([
+            [],
+            [],
+            $this->createMock(Logger::class),
+            $metaDataUtils,
+            fn ($metadata) => new MarcMarc($metadata),
+            $this->createMock(FormatCalculator::class),
+            $recordPluginManager,
+        ])->getMock();
+        $marcRecord->expects($this->any())->method('createRecord')->willReturnCallback(
+            function ($format, $data, $oaiID, $source, $extraData = []) use ($marcRecord) {
+                var_dump(isset($marcRecord));
+                $cloned = clone $marcRecord;
+                $cloned->setData($source, $oaiID, $data, $extraData);
+                return $cloned;
+            }
+        );
+        $eadRecord = $this->getMockBuilder(Ead::class)->onlyMethods([])->setConstructorArgs([
             [],
             [],
             $this->createMock(Logger::class),
@@ -266,17 +573,21 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             $recordPluginManager,
         ])->getMock();
 
-        $record->expects($this->any())->method('createRecord')->willReturnCallback(
-            function ($format, $data, $oaiID, $source, $extraData = []) use ($record) {
-                $cloneRecord = clone $record;
-                $cloneRecord->setData($source, $oaiID, $data, $extraData);
-                return $cloneRecord;
-            }
-        );
+        $recordMap = [
+            [
+                'marc',
+                null,
+                clone $marcRecord,
+            ],
+            [
+                'ead',
+                null,
+                clone $eadRecord,
+            ],
+        ];
 
-        $recordPluginManager->expects($this->any())->method('get')->willReturnCallback(function () use ($record) {
-            return clone $record;
-        });
+        $recordPluginManager->expects($this->any())->method('get')->willReturnMap($recordMap);
+
         $fieldMapper = new FieldMapper(
             $this->getFixtureDir('Finna') . 'config/basic',
             [],

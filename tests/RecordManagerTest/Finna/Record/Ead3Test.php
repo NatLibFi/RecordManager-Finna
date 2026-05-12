@@ -744,6 +744,7 @@ class Ead3Test extends \RecordManagerTest\Base\Record\RecordTestBase
             'hierarchy_sequence' => '0000003',
             'hierarchy_parent_id' => '237990354_238008149',
             'hierarchy_parent_title' => 'Tekstit/Gustaf Edvard Sundvallin kokoelma',
+            'container_title_str_mv' => ['Gustaf Edvard Sundvallin kokoelma'],
             'unit_daterange' => '[1881-01-01 TO 1881-12-31]',
             'search_daterange_mv' => [
                 '[1881-01-01 TO 1881-12-31]',

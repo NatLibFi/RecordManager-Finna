@@ -215,19 +215,23 @@
                     <relatedWorkSet>
                         <relatedWork>
                             <object>
+                                <objectID>12345</objectID>
                                 <objectType>
                                     <term>collection</term>
                                 </objectType>
                             </object>
-                            <displayObject> Kansatieteen kuvakokoelma </displayObject>
+                            <displayObject>Top level title</displayObject>
                         </relatedWork>
+                        <relatedWorkSetNode>
+                          <term>wut is tis</term>
+                        </relatedWorkSetNode>
                         <relatedWorkRelType>
-                            <term> Kokoelma </term>
+                            <term> is part of </term>
                         </relatedWorkRelType>
                     </relatedWorkSet>
                     <relatedWorkSet>
                         <relatedWork>
-                            <displayObject />
+                            <displayObject>Parent level title</displayObject>
                         </relatedWork>
                         <relatedWorkRelType>
                             <term> Alakokoelma </term>
