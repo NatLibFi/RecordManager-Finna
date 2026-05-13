@@ -45,7 +45,10 @@ use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\WorkerPoolManager;
 use RecordManager\Finna\Record\Ead;
+use RecordManager\Finna\Record\Ead3;
+use RecordManager\Finna\Record\Lido;
 use RecordManager\Finna\Record\Marc;
+use RecordManager\Finna\Record\Qdc;
 use RecordManager\Finna\Solr\SolrUpdater;
 use RecordManager\Finna\Utils\FieldMapper;
 use RecordManagerTest\Base\Feature\FixtureTrait;
@@ -101,6 +104,18 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         'tost' => [
             'institution' => 'tost',
             'format' => 'ead',
+        ],
+        'tyst' => [
+            'institution' => 'tyst',
+            'format' => 'lido',
+        ],
+        'tast' => [
+            'institution' => 'tast',
+            'format' => 'qdc',
+        ],
+        'cat_archive' => [
+            'institution' => 'cat_archive',
+            'format' => 'ead3',
         ],
     ];
 
@@ -258,7 +273,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'marc',
-                'original_data' => 'record/marc5.xml',
+                'original_data' => 'record/hierarchy/marc.xml',
                 'normalized_data' => null,
             ],
             [
@@ -331,7 +346,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'ead',
-                'original_data' => 'record/ead.xml',
+                'original_data' => 'record/hierarchy/ead.xml',
                 'normalized_data' => null,
             ],
             [
@@ -450,6 +465,298 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'catalog_date' => '1970-01-01T00:00:00Z',
             ],
         ];
+
+        yield 'Test single lido record with hierarchy_parent_title' => [
+            [
+                '_id' => 'test223',
+                'oai_id' => '',
+                'linking_id' => [],
+                'source_id' => 'tyst',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'lido',
+                'original_data' => 'record/hierarchy/lido.xml',
+                'normalized_data' => null,
+            ],
+            [
+                'record_format' => 'lido',
+                'allfields' => [
+                    '12345',
+                    'Maalaus',
+                    'Maisema',
+                    'Joku kokoelma',
+                ],
+                'collection' => 'Joku kokoelma',
+                'format' => 'Maalaus',
+                'title_full' => 'Maisema',
+                'title_short' => 'Maisema',
+                'title_sort' => 'maisema',
+                'title' => 'Maisema',
+                'hierarchy_parent_title' => [
+                    'Joku kokoelma',
+                ],
+                'source_str_mv' => 'tyst',
+                'datasource_str_mv' => 'tyst',
+                'format_ext_str_mv' => [
+                    'Maalaus',
+                ],
+                'id' => 'test223',
+                'first_indexed' => '1970-01-01T00:00:00Z',
+                'last_indexed' => '1970-01-01T00:00:00Z',
+                'catalog_date' => '1970-01-01T00:00:00Z',
+                'container_title_str_mv' => [
+                    'Joku kokoelma',
+                ],
+            ],
+        ];
+
+        yield 'Test single qdc record with hierarchy_parent_title' => [
+            [
+                '_id' => 'test223',
+                'oai_id' => '',
+                'linking_id' => [],
+                'source_id' => 'tast',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'qdc',
+                'original_data' => 'record/hierarchy/qdc.xml',
+                'normalized_data' => null,
+            ],
+            [
+                'record_format' => 'qdc',
+                'allfields' => [
+                    'Test qdc record',
+                    'Ukko, testi',
+                    'teest',
+                    'test',
+                    '2021-06-16T06:31:44Z',
+                    '2021',
+                    'Article',
+                    'okm_type',
+                    'okm_type_2',
+                    'other_type',
+                    'Citation',
+                    '111111',
+                    'en',
+                    'Part of this',
+                    'Hierarchy parent title',
+                    'CC BY-NC-ND 4.0',
+                    'Publisher name, here',
+                    'http://dx.doi.org/https://doi.org/10.34416/svc.00029',
+                    '10138_331330',
+                ],
+                'author' => [
+                    'Ukko, testi',
+                ],
+                'author_sort' => 'Ukko, testi',
+                'ctrlnum' => [
+                    '10138_331330',
+                ],
+                'format' => 'Article',
+                'issn' => [
+                    '111111',
+                ],
+                'language' => [
+                    'en',
+                ],
+                'publishDate' => [
+                    '2021',
+                ],
+                'publishDateRange' => [
+                    '[2021-01-01 TO 2021-12-31]',
+                ],
+                'publishDateSort' => '2021',
+                'publisher' => [
+                    'Publisher name, here',
+                ],
+                'series' => [
+                    'Part of this',
+                ],
+                'title_full' => 'Test qdc record',
+                'title_short' => 'Test qdc record',
+                'title_sort' => 'test qdc record',
+                'title' => 'Test qdc record',
+                'topic_facet' => [
+                    'teest',
+                    'test',
+                ],
+                'topic' => [
+                    'teest',
+                    'test',
+                ],
+                'url' => [
+                    'http://dx.doi.org/https://doi.org/10.34416/svc.00029',
+                ],
+                'main_date_str' => '2021',
+                'main_date' => '2021-01-01T00:00:00Z',
+                'publication_daterange' => '[2021-01-01 TO 2021-12-31]',
+                'search_daterange_mv' => [
+                    '[2021-01-01 TO 2021-12-31]',
+                ],
+                'usage_rights_str_mv' => [
+                    'CC BY-NC-ND 4.0',
+                ],
+                'usage_rights_ext_str_mv' => [
+                    'CC BY-NC-ND 4.0',
+                ],
+                'source_str_mv' => 'tast',
+                'datasource_str_mv' => 'tast',
+                'author_facet' => [
+                    'Ukko, testi',
+                ],
+                'format_ext_str_mv' => 'Article',
+                'id' => 'test223',
+                'work_keys_str_mv' => [
+                    'AT ukkotesti testqdc',
+                ],
+                'institution' => 'tast',
+                'first_indexed' => '1970-01-01T00:00:00Z',
+                'last_indexed' => '1970-01-01T00:00:00Z',
+                'catalog_date' => '1970-01-01T00:00:00Z',
+                'hierarchy_parent_title' => [
+                    'Hierarchy parent title',
+                ],
+                'container_title_str_mv' => [
+                    'Hierarchy parent title',
+                ],
+            ],
+        ];
+
+        yield 'Test single ead3 record with hierarchy top title' => [
+            [
+                '_id' => 'ttt111',
+                'oai_id' => '',
+                'linking_id' => [],
+                'source_id' => 'cat_archive',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'ead3',
+                'original_data' => 'record/hierarchy/ead3.xml',
+                'normalized_data' => null,
+            ],
+            [
+                'record_format' => 'ead3',
+                'allfields' => [
+                    'Mrr-fluff nyaff',
+                    'Mjaau skrelli prr-vump',
+                    'Nya-frobble prrr-chant',
+                    'Prrlax miau-ponkeli strav-mrr',
+                    'mrr-glimzor',
+                    'purr-238',
+                    'miau-floo 1880:85:311-85:311',
+                    'ffrrp-245348772',
+                    '1880–mrr-grunk',
+                    'Miauska skreppa-prr',
+                    'Reinmrr, Agaprr',
+                    'Kattin kieli',
+                    'Ilmentymä: Prr-kuva (Digimiau)',
+                    'Tietosisältö',
+                    'Mrr-maalaus maisemasta, jossa on kallioita, metsää ja järvi-miau.'
+                        . ' Aihe mahdollisesti Jaakkimasta, mutta kissa ei kerro.',
+                    'Käyttöehdot',
+                    'CC BY-NC-ND 4.0 (miau-miau)',
+                    'Asiasanat ja luokat',
+                    'Kuva-mrr',
+                    'Bild-mjaau',
+                    'Image-nya',
+                    'Maalaus-prr',
+                    'Målning-mjaau',
+                    'Painting-nyaff',
+                    'Etelä-Karjala-mrr',
+                    'Random collection title',
+                    '173852008554500',
+                ],
+                'author' => [
+                    'Reinmrr, Agaprr',
+                ],
+                'author_sort' => 'Reinmrr, Agaprr',
+                'description' => 'Mrr-maalaus maisemasta, jossa on kallioita,'
+                    . ' metsää ja järvi-miau. Aihe mahdollisesti Jaakkimasta, mutta kissa ei kerro.',
+                'format' => 'Kuva-mrr/Maalaus-prr',
+                'geographic_facet' => [
+                    'Etelä-Karjala-mrr',
+                ],
+                'geographic' => [
+                    'Etelä-Karjala-mrr',
+                ],
+                'institution' => 'SKS KRA',
+                'language' => [
+                    'fin',
+                ],
+                'series' => 'Kansatieteellisiä piirroksia Etelä-Karjalasta',
+                'thumbnail' => 'https://example.com/frobnar/thumb',
+                'title_full' => 'mrr-glimzor Miauska skreppa-prr‎ (1880)',
+                'title_short' => 'Miauska skreppa-prr‎ (1880)',
+                'title_sort' => 'mrr glimzor miauska skreppa prr‎ (1880)',
+                'title_sub' => 'mrr-glimzor',
+                'title' => 'mrr-glimzor Miauska skreppa-prr‎ (1880)',
+                'hierarchytype' => 'Default',
+                'hierarchy_top_id' => 'cat_archive.173852005642800',
+                'hierarchy_top_title' => 'Random collection title',
+                'hierarchy_sequence' => '0000464',
+                'hierarchy_parent_id' => 'cat_archive.173852005642800_173852006211600',
+                'hierarchy_parent_title' => 'Kansatieteellisiä piirroksia Etelä-Karjalasta',
+                'title_in_hierarchy' => 'mrr-glimzor mrr-glimzor Miauska skreppa-prr',
+                'container_title_str_mv' => [
+                    'Random collection title',
+                ],
+                'unit_daterange' => '[1880-01-01 TO 1880-12-31]',
+                'search_daterange_mv' => [
+                    '[1880-01-01 TO 1880-12-31]',
+                ],
+                'era_facet' => '1880',
+                'main_date_str' => '1880',
+                'main_date' => '1880-01-01T00:00:00Z',
+                'hierarchy_sequence_str' => '0000464',
+                'source_str_mv' => 'SKS KRA',
+                'datasource_str_mv' => 'cat_archive',
+                'online_boolean' => '1',
+                'online_str_mv' => 'SKS KRA',
+                'free_online_boolean' => '1',
+                'free_online_str_mv' => 'SKS KRA',
+                'identifier' => '173852008554500',
+                'media_type_str_mv' => [
+                    'image/jpeg',
+                ],
+                'usage_rights_str_mv' => [
+                    'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
+                ],
+                'usage_rights_ext_str_mv' => [
+                    'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
+                ],
+                'author_facet' => [
+                    'Reinmrr, Agaprr',
+                ],
+                'author2_id_str_mv' => [
+                    'EAC_228481117',
+                ],
+                'author2_id_role_str_mv' => [
+                    'EAC_228481117###Arkistonmuodostaja',
+                    'EAC_228481117###Kuvataiteilija',
+                ],
+                'format_ext_str_mv' => 'Kuva-mrr/Maalaus-prr',
+                'geographic_id_str_mv' => [
+                    'http://www.yso.fi/onto/yso/p94106',
+                ],
+                'file_identifier_str_mv' => [
+                    'mrr_full.tif',
+                    'mrr_thumb.tif',
+                ],
+                'id' => 'ttt111',
+                'work_keys_str_mv' => [
+                    'AT reinmrragaprr mrr',
+                ],
+                'first_indexed' => '1970-01-01T00:00:00Z',
+                'last_indexed' => '1970-01-01T00:00:00Z',
+                'catalog_date' => '1970-01-01T00:00:00Z',
+            ],
+        ];
     }
 
     /**
@@ -527,7 +834,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
     protected function getSolrUpdater(
         array $dsConfigOverrides = [],
         array $dbRecord = [],
-        ?DatabaseInterface $database = null
+        MockObject|DatabaseInterface|null $database = null
     ): SolrUpdater {
         $dsConfig = array_merge_recursive(
             $this->dataSourceConfig,
@@ -557,7 +864,6 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         ])->getMock();
         $marcRecord->expects($this->any())->method('createRecord')->willReturnCallback(
             function ($format, $data, $oaiID, $source, $extraData = []) use ($marcRecord) {
-                var_dump(isset($marcRecord));
                 $cloned = clone $marcRecord;
                 $cloned->setData($source, $oaiID, $data, $extraData);
                 return $cloned;
@@ -572,6 +878,33 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             $this->createMock(FormatCalculator::class),
             $recordPluginManager,
         ])->getMock();
+        $lidoRecord = $this->getMockBuilder(Lido::class)->onlyMethods([])->setConstructorArgs([
+            [],
+            [],
+            $this->createMock(Logger::class),
+            $metaDataUtils,
+            fn ($metadata) => new MarcMarc($metadata),
+            $this->createMock(FormatCalculator::class),
+            $recordPluginManager,
+        ])->getMock();
+
+        $qdcRecord = $this->getMockBuilder(Qdc::class)->onlyMethods([])->setConstructorArgs([
+            [],
+            [],
+            $this->createMock(Logger::class),
+            $metaDataUtils,
+            $this->createMock(HttpService::class),
+            $database,
+        ])->getMock();
+
+        $ead3Record = $this->getMockBuilder(Ead3::class)->onlyMethods([])->setConstructorArgs([
+            [],
+            [],
+            $this->createMock(Logger::class),
+            $metaDataUtils,
+            $this->createMock(HttpService::class),
+            $database,
+        ])->getMock();
 
         $recordMap = [
             [
@@ -583,6 +916,21 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'ead',
                 null,
                 clone $eadRecord,
+            ],
+            [
+                'lido',
+                null,
+                clone $lidoRecord,
+            ],
+            [
+                'qdc',
+                null,
+                clone $qdcRecord,
+            ],
+            [
+                'ead3',
+                null,
+                clone $ead3Record,
             ],
         ];
 

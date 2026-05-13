@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<c level="otherlevel">
+  <did>
+    <didnote>Mrr-fluff nyaff</didnote>
+    <repository label="hallinnoija">
+      <corpname identifier="SKS KRA">
+        <part lang="swe">Mjaau skrelli prr-vump</part>
+        <part lang="eng">Nya-frobble prrr-chant</part>
+        <part lang="fin">Prrlax miau-ponkeli strav-mrr</part>
+      </corpname>
+    </repository>
+    <unitid identifier="173852008554500" label="hidden">mrr-glimzor</unitid>
+    <unitid label="Järjestysnumero">purr-238</unitid>
+    <unitid label="Analoginen">miau-floo 1880:85:311-85:311</unitid>
+    <unitid label="Vanha tekninen tunniste (AHAA)">ffrrp-245348772</unitid>
+    <unitdate label="Ajallinen kattavuus" normal="1880-XX-XX/1880-XX-XX">1880–mrr-grunk</unitdate>
+    <unittitle label="Päänimeke" lang="fin" normal="Maisemakuva">Miauska skreppa-prr</unittitle>
+    <origination>
+      <name identifier="EAC_228481117" localtype="http://www.rdaregistry.info/Elements/u/#P60672" relator="Arkistonmuodostaja">
+        <part lang="fin" localtype="Ensisijainen nimi">Reinmrr, Agaprr</part>
+      </name>
+    </origination>
+    <langmaterial>
+      <language langcode="fin">Kattin kieli</language>
+    </langmaterial>
+    <daoset coverage="part" label="Digitaaliset objektit">
+      <dao actuate="onrequest" coverage="part" daotype="derived" href="https://example.com/frobnar/full" linkrole="image/jpeg" linktitle="mrr_full.tif" localtype="fullsize" show="new"/>
+      <dao actuate="onload" coverage="part" daotype="derived" href="https://example.com/frobnar/thumb" linkrole="image/jpeg" linktitle="mrr_thumb.tif" localtype="thumbnail" show="embed"/>
+      <descriptivenote>
+        <p>Ilmentymä: Prr-kuva (Digimiau)</p>
+      </descriptivenote>
+    </daoset>
+  </did>
+  <scopecontent>
+    <head>Tietosisältö</head>
+    <p lang="fin">Mrr-maalaus maisemasta, jossa on kallioita, metsää ja järvi-miau. Aihe mahdollisesti Jaakkimasta, mutta kissa ei kerro.</p>
+  </scopecontent>
+  <userestrict encodinganalog="https://creativecommons.org/">
+    <head>Käyttöehdot</head>
+    <p>
+      <ref href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi">CC BY-NC-ND 4.0 (miau-miau)</ref>
+    </p>
+  </userestrict>
+  <relations>
+    <relation arcrole="Kuvataiteilija" href="EAC_228481117" relationtype="cpfrelation">
+      <relationentry lang="fin" localtype="Ensisijainen nimi">Reinmrr, Agaprr</relationentry>
+    </relation>
+  </relations>
+  <controlaccess>
+    <head>Asiasanat ja luokat</head>
+    <genreform encodinganalog="ahaa:AI08">
+      <part lang="fin">Kuva-mrr</part>
+      <part lang="swe">Bild-mjaau</part>
+      <part lang="eng">Image-nya</part>
+    </genreform>
+    <genreform encodinganalog="ahaa:AI57">
+      <part lang="fin">Maalaus-prr</part>
+      <part lang="swe">Målning-mjaau</part>
+      <part lang="eng">Painting-nyaff</part>
+    </genreform>
+    <geogname identifier="http://www.yso.fi/onto/yso/p94106" lang="fin" relator="Alueellinen kattavuus" source="YSO">
+      <part>Etelä-Karjala-mrr</part>
+    </geogname>
+  </controlaccess>
+  <add-data identifier="173852005642800_173852008554500">
+    <archive id="173852005642800" title="Random collection title" title_fi="Random collection title" sequence="0000464" type="collection"/>
+    <parent id="173852005642800_173852006211600" title="Kansatieteellisiä piirroksia Etelä-Karjalasta" title_fi="Kansatieteellisiä piirroksia Etelä-Karjalasta" level="file"/>
+    <parent id="173852005642800_173852005918200" title="KUVAT" title_fi="KUVAT" level="series"/>
+  </add-data>
+</c>

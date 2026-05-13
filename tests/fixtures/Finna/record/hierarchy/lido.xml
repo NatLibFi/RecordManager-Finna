@@ -13,8 +13,12 @@
       <objectRelationWrap>
         <relatedWorksWrap>
           <relatedWorkSet>
+            <relatedWork>
+              <displayObject lang="fi">Joku kokoelma</displayObject>
+            </relatedWork>
             <relatedWorkRelType>
               <term>
+                Kokoelma
               </term>
             </relatedWorkRelType>
           </relatedWorkSet>
