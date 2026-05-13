@@ -801,7 +801,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
     ): MockObject&DatabaseInterface {
         $dbRecords ??= new ArrayIterator([
             [
-                'original_data' => $this->getFixture('record/marc4.xml', 'Finna'),
+                'original_data' => $this->getFixture('SolrUpdaterTest/marc_host_record.xml', 'Finna'),
                 'normalized_data' => '',
                 '_id' => 'test123',
                 'source_id' => 'test',
