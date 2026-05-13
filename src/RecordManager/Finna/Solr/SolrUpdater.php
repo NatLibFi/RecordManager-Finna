@@ -140,6 +140,8 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
+        // Add container title facet field only if it has not been set previously
+        // and hierarchy parent title field is present.
         if (!isset($data[$this->containerTitleFacetField]) && isset($data[$this->hierarchyParentTitleField])) {
             $data[$this->containerTitleFacetField] = $data[$this->hierarchyParentTitleField];
         }

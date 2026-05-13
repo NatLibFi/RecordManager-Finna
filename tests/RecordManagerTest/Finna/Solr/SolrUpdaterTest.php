@@ -781,7 +781,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         $solrUpdater = $this->getSolrUpdater(database: $database);
         $result = $solrUpdater->processSingleRecord($dbRecord);
         $testRecord = $result['records'][0];
-        // Leave out testing full record but confirm that it exists
+        // Leave out testing full record but confirm that it exists.
         $this->assertTrue(!empty($testRecord['fullrecord']));
         unset($testRecord['fullrecord']);
         $this->assertEquals($expected, $testRecord);
