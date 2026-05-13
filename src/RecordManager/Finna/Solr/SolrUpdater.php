@@ -141,7 +141,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
-        // Handle adding container_title_str_mv field for different record types here.
+        // Use hierarchy_top_title for ead and ead3 formats instead of hierarchy_parent_title.
         if (in_array($record['format'], ['ead', 'ead3'])) {
             if (isset($data['hierarchy_top_title'])) {
                 $data[$this->containerTitleFacetField] = (array)$data['hierarchy_top_title'];
@@ -151,16 +151,6 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         }
         $this->addSeriesKeys($data, $metadataRecord);
     }
-
-    /**
-     * Add container_title_facet_field
-     *
-     * @param array          $data           Field array
-     * @param mixed          $record         Database record
-     * @param AbstractRecord $metadataRecord Metadata record
-     * @param string         $source         Source ID
-     * @param array          $settings       Settings
-     */
 
     /**
      * Merge component parts to record
