@@ -143,7 +143,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 return $cloneRecord;
             }
         );
-        $fixture = $this->getFixture('record/marc4.xml', 'Finna');
+        $fixture = $this->getFixture('SolrUpdaterTest/marc_host_record.xml', 'Finna');
         $record->setData('test', 'oaitest', $fixture, []);
         $date = strtotime('2020-10-20 13:01:00');
         $dbRecord = [
@@ -172,7 +172,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
         ];
         $records = new ArrayIterator([
             [
-                'original_data' => $this->getFixture('record/marc5.xml', 'Finna'),
+                'original_data' => $this->getFixture('SolrUpdaterTest/marc_component_part.xml', 'Finna'),
                 'normalized_data' => '',
                 '_id' => 'part_1',
                 'source_id' => 'test',
@@ -181,7 +181,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'date' => '2025-01-01',
             ],
             [
-                'original_data' => $this->getFixture('record/marc6.xml', 'Finna'),
+                'original_data' => $this->getFixture('SolrUpdaterTest/marc_component_part_2.xml', 'Finna'),
                 '_id' => 'part_2',
                 'normalized_data' => '',
                 'source_id' => 'test',
@@ -273,7 +273,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'marc',
-                'original_data' => 'record/hierarchy/marc.xml',
+                'original_data' => 'SolrUpdaterTest/marc_component_part.xml',
                 'normalized_data' => null,
             ],
             [
@@ -346,7 +346,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'ead',
-                'original_data' => 'record/hierarchy/ead.xml',
+                'original_data' => 'SolrUpdaterTest/ead.xml',
                 'normalized_data' => null,
             ],
             [
@@ -479,7 +479,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'lido',
-                'original_data' => 'record/hierarchy/lido.xml',
+                'original_data' => 'SolrUpdaterTest/lido.xml',
                 'normalized_data' => null,
             ],
             [
@@ -526,7 +526,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'qdc',
-                'original_data' => 'record/hierarchy/qdc.xml',
+                'original_data' => 'SolrUpdaterTest/qdc.xml',
                 'normalized_data' => null,
             ],
             [
@@ -641,7 +641,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'updated' => $date,
                 'date' => $date,
                 'format' => 'ead3',
-                'original_data' => 'record/hierarchy/ead3.xml',
+                'original_data' => 'SolrUpdaterTest/ead3.xml',
                 'normalized_data' => null,
             ],
             [
