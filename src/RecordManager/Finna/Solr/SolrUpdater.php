@@ -40,6 +40,7 @@ use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\WorkerPoolManager;
 
+use function in_array;
 use function intval;
 use function is_callable;
 use function strlen;
@@ -140,13 +141,26 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
-        // Add container title facet field only if it has not been set previously
-        // and hierarchy parent title field is present.
-        if (!isset($data[$this->containerTitleFacetField]) && isset($data[$this->hierarchyParentTitleField])) {
-            $data[$this->containerTitleFacetField] = $data[$this->hierarchyParentTitleField];
+        // Handle adding container_title_str_mv field for different record types here.
+        if (in_array($record['format'], ['ead', 'ead3'])) {
+            if (isset($data['hierarchy_top_title'])) {
+                $data[$this->containerTitleFacetField] = (array)$data['hierarchy_top_title'];
+            }
+        } elseif (isset($data[$this->hierarchyParentTitleField])) {
+            $data[$this->containerTitleFacetField] = (array)$data[$this->hierarchyParentTitleField];
         }
         $this->addSeriesKeys($data, $metadataRecord);
     }
+
+    /**
+     * Add container_title_facet_field
+     *
+     * @param array          $data           Field array
+     * @param mixed          $record         Database record
+     * @param AbstractRecord $metadataRecord Metadata record
+     * @param string         $source         Source ID
+     * @param array          $settings       Settings
+     */
 
     /**
      * Merge component parts to record
