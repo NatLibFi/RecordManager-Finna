@@ -154,4 +154,76 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
         parent::addAdditionalData($record, $original);
         $record->{'add-data'}->archive->addAttribute('type', $this->archiveType);
     }
+
+    /**
+     * Add title attributes to the element
+     *
+     * @param \SimpleXMLElement $element Element
+     * @param array             $titles  Title values
+     *
+     * @return void
+     */
+    protected function addTitleAttributes(\SimpleXMLElement $element, array $titles): void
+    {
+        $element->addAttribute('title', $titles['title']);
+        foreach (['en', 'fi', 'se', 'sv'] as $lang) {
+            if ($titles['title_' . $lang] ?? '') {
+                $element->addAttribute('title_' . $lang, $titles['title_' . $lang]);
+            }
+        }
+    }
+
+    /**
+     * Get Parent titles as an array
+     *
+     * @param \SimpleXMLElement $parentDid Parent did element
+     * @param string            $parentID  Parent ID to use as fallback
+     *
+     * @return array
+     */
+    protected function getParentTitles(\SimpleXMLElement $parentDid, string $parentID): array
+    {
+        $parentTitle = '';
+        $langTitles = [];
+        foreach ($parentDid->unittitle ?? [] as $unittitle) {
+            $title = (string)$unittitle ?: ((string)($unittitle->attributes()->label ?? $parentID));
+            if ($this->prependParentTitleWithUnitId && ($pid = $this->getParentUnitId($parentDid))) {
+                $title = $pid . ' ' . $title;
+            }
+            $parentTitle = $parentTitle ?: $title;
+            if ($language = $this->metadataUtils->normalizeLanguageCode($unittitle->attributes()->lang ?? '')) {
+                $langTitles[$language] ??= $title;
+            }
+        }
+        $titles = ['title' => $parentTitle];
+        foreach (['en', 'fi', 'se', 'sv'] as $lang) {
+            if ($langTitles[$lang] ?? '') {
+                $titles['title_' . $lang] = $langTitles[$lang];
+            }
+        }
+        return $titles;
+    }
+
+    /**
+     * Get Archive titles as an array
+     *
+     * @return array
+     */
+    protected function getArchiveTitles(): array
+    {
+        $langTitles = [];
+        foreach ($this->doc->archdesc->did->unittitle ?? [] as $title) {
+            if ($language = $this->metadataUtils->normalizeLanguageCode($title->attributes()->lang ?? '')) {
+                $langTitles[$language] ??= (string)$title;
+            }
+        }
+
+        $titles = ['title' => $this->archiveTitle];
+        foreach (['en', 'fi', 'se', 'sv'] as $lang) {
+            if ($langTitles[$lang] ?? '') {
+                $titles['title_' . $lang] = $langTitles[$lang];
+            }
+        }
+        return $titles;
+    }
 }

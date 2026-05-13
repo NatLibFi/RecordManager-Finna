@@ -40,7 +40,9 @@ use RecordManager\Base\Utils\Logger;
 use RecordManager\Base\Utils\MetadataUtils;
 use RecordManager\Base\Utils\WorkerPoolManager;
 
+use function intval;
 use function is_callable;
+use function strlen;
 
 /**
  * SolrUpdater Class
@@ -141,6 +143,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
         if (!isset($data[$this->containerTitleFacetField]) && isset($data[$this->hierarchyParentTitleField])) {
             $data[$this->containerTitleFacetField] = $data[$this->hierarchyParentTitleField];
         }
+        $this->addSeriesKeys($data, $metadataRecord);
     }
 
     /**
@@ -186,5 +189,60 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             $record['date'] = $changeDate;
         }
         return $mergedComponents;
+    }
+
+    /**
+     * Add series keys and series order
+     *
+     * @param array          $data           Field array
+     * @param AbstractRecord $metadataRecord Metadata record
+     *
+     * @return void
+     */
+    protected function addSeriesKeys(array &$data, AbstractRecord $metadataRecord): void
+    {
+        if (is_callable([$metadataRecord, 'getSeriesKeyData'])) {
+            $seriesKeys = [];
+            $seriesOrder = null;
+            $seriesData = $metadataRecord->getSeriesKeyData();
+            foreach ($seriesData as $sd) {
+                $series = $this->metadataUtils->normalizeKey($sd['series']);
+                $author = $this->metadataUtils->normalizeKey($sd['author']);
+                $seriesKey = "SA $series $author";
+                if ($language = $sd['language'] ?? null) {
+                    $seriesKey .= ' ' . $language;
+                }
+                $seriesKeys[] = $seriesKey;
+                if (empty($seriesOrder) && !empty($sd['order'])) {
+                    $seriesOrder = $seriesKey . ' ' . $this->getSeriesOrder($sd['order']);
+                }
+            }
+            if ($seriesKeys) {
+                $data['series_key_str_mv'] = $seriesKeys;
+            }
+            if ($seriesOrder) {
+                $data['series_order_str'] = $seriesOrder;
+            }
+        }
+    }
+
+    /**
+     * Normalize series order.
+     *
+     * @param string $field Series order field to normalize
+     *
+     * @return ?string
+     */
+    protected function getSeriesOrder(string $field): ?string
+    {
+        if (!$field) {
+            return '';
+        }
+        $result = '';
+        preg_match_all('/(\d+)/', $field, $matches);
+        foreach ($matches[1] as $match) {
+            $result .= strlen((string)(intval($match))) . $match;
+        }
+        return $result;
     }
 }
