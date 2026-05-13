@@ -335,7 +335,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             ],
         ];
 
-        yield 'Test single ead record with container title field' => [
+        yield 'Test single ead record with hierarchy_top_title' => [
             [
                 '_id' => 'test456',
                 'oai_id' => '',
@@ -438,8 +438,10 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'hierarchy_sequence' => '0000020',
                 'hierarchy_parent_id' => 'tost.272',
                 'hierarchy_parent_title' => 'snarfloota kokoelma',
-                'title_in_hierarchy' => 'mrrrp-blib-zoink mrrrp-blib-zoink'
+                'title_in_hierarchy' => [
+                    'mrrrp-blib-zoink mrrrp-blib-zoink'
                     . ' blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp',
+                ],
                 'container_title_str_mv' => ['blorptik snoofle 1977-1978'],
                 'unit_daterange' => '[9911-01-01 TO 9911-12-31]',
                 'search_daterange_mv' => '[9911-01-01 TO 9911-12-31]',
@@ -509,6 +511,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'container_title_str_mv' => [
                     'Joku kokoelma',
                 ],
+                'title_en_txt' => 'Maalaus',
             ],
         ];
 
@@ -623,6 +626,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'container_title_str_mv' => [
                     'Hierarchy parent title',
                 ],
+                'title_fi_txt' => 'Test qdc record',
             ],
         ];
 
@@ -702,7 +706,9 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'hierarchy_sequence' => '0000464',
                 'hierarchy_parent_id' => 'cat_archive.173852005642800_173852006211600',
                 'hierarchy_parent_title' => 'Kansatieteellisiä piirroksia Etelä-Karjalasta',
-                'title_in_hierarchy' => 'mrr-glimzor mrr-glimzor Miauska skreppa-prr',
+                'title_in_hierarchy' => [
+                    'mrr-glimzor mrr-glimzor Miauska skreppa-prr',
+                ],
                 'container_title_str_mv' => [
                     'Random collection title',
                 ],

@@ -63,7 +63,6 @@ trait CreateRecordTrait
     public function createRecord($format, $data, $oaiID, $source, $extraData = [])
     {
         $record = $this->recordPluginManager->get($format);
-        var_dump($format);
         $record->setData($source, $oaiID, $data, is_string($extraData) ? json_decode($extraData, true) : $extraData);
         return $record;
     }
