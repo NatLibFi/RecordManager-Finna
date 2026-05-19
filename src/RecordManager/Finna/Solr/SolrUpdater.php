@@ -29,16 +29,7 @@
 
 namespace RecordManager\Finna\Solr;
 
-use RecordManager\Base\Database\DatabaseInterface as Database;
-use RecordManager\Base\Enrichment\PluginManager as EnrichmentPluginManager;
-use RecordManager\Base\Http\HttpService as HttpService;
 use RecordManager\Base\Record\AbstractRecord;
-use RecordManager\Base\Record\PluginManager as RecordPluginManager;
-use RecordManager\Base\Settings\Ini;
-use RecordManager\Base\Utils\FieldMapper;
-use RecordManager\Base\Utils\Logger;
-use RecordManager\Base\Utils\MetadataUtils;
-use RecordManager\Base\Utils\WorkerPoolManager;
 
 use function in_array;
 use function intval;
@@ -58,64 +49,6 @@ use function strlen;
  */
 class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
 {
-    /**
-     * Container title facet field
-     *
-     * @var string
-     */
-    protected string $containerTitleFacetField = 'container_title_str_mv';
-
-    /**
-     * Constructor
-     *
-     * @param array                   $config            Main configuration
-     * @param array                   $dataSourceConfig  Data source settings
-     * @param ?Database               $db                Database connection
-     * @param Logger                  $log               Logger
-     * @param RecordPluginManager     $recordPM          Record plugin manager
-     * @param EnrichmentPluginManager $enrichmentPM      Enrichment plugin manager
-     * @param HttpService             $httpService       HTTP service
-     * @param Ini                     $configReader      Configuration reader
-     * @param FieldMapper             $fieldMapper       Field mapper
-     * @param MetadataUtils           $metadataUtils     Metadata utilities
-     * @param WorkerPoolManager       $workerPoolManager Worker pool manager
-     *
-     * @throws \Exception
-     *
-     * @psalm-suppress DuplicateArrayKey
-     */
-    public function __construct(
-        array $config,
-        array $dataSourceConfig,
-        ?Database $db,
-        Logger $log,
-        RecordPluginManager $recordPM,
-        EnrichmentPluginManager $enrichmentPM,
-        HttpService $httpService,
-        Ini $configReader,
-        FieldMapper $fieldMapper,
-        MetadataUtils $metadataUtils,
-        WorkerPoolManager $workerPoolManager
-    ) {
-        parent::__construct(
-            $config,
-            $dataSourceConfig,
-            $db,
-            $log,
-            $recordPM,
-            $enrichmentPM,
-            $httpService,
-            $configReader,
-            $fieldMapper,
-            $metadataUtils,
-            $workerPoolManager
-        );
-        $fields = $config['Solr Fields'] ?? [];
-        if (isset($fields['container_title_str_mv'])) {
-            $this->containerTitleFacetField = $fields['container_title_str_mv'];
-        }
-    }
-
     /**
      * Add extra fields from settings etc. and map the values
      *
@@ -141,13 +74,18 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 $data['catalog_date'] = $date;
             }
         }
-        // Use hierarchy_top_title for ead and ead3 formats instead of hierarchy_parent_title.
-        if (in_array($record['format'], ['ead', 'ead3'])) {
-            if (isset($data['hierarchy_top_title'])) {
-                $data[$this->containerTitleFacetField] = (array)$data['hierarchy_top_title'];
+        if (
+            $containerTitleFacetField = $this->config['Solr Fields']['container_title_facet']
+                ?? 'container_title_str_mv'
+        ) {
+            // Use hierarchy_top_title for ead and ead3 formats instead of hierarchy_parent_title.
+            if (in_array($record['format'], ['ead', 'ead3'])) {
+                if (isset($data['hierarchy_top_title'])) {
+                    $data[$containerTitleFacetField] = (array)$data['hierarchy_top_title'];
+                }
+            } elseif (isset($data[$this->hierarchyParentTitleField])) {
+                $data[$containerTitleFacetField] = (array)$data[$this->hierarchyParentTitleField];
             }
-        } elseif (isset($data[$this->hierarchyParentTitleField])) {
-            $data[$this->containerTitleFacetField] = (array)$data[$this->hierarchyParentTitleField];
         }
         $this->addSeriesKeys($data, $metadataRecord);
     }

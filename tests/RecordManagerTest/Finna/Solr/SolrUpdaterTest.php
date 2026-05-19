@@ -352,101 +352,72 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             [
                 'record_format' => 'ead',
                 'allfields' => [
-                    'blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp',
-                    'mrrrp-blib-zoink',
-                    'zz-ploof-9911',
-                    'fiftypurr snorfle meep',
-                    'gribble snarrk floomtar wubbadee',
-                    'grk',
-                    'fnrr',
+                    'Ead record test title',
+                    'Test identifier',
+                    '12-12-1999',
+                    'Test physical description',
+                    'Test physical location',
+                    'fin',
+                    'eng',
                     'Kralloo Mipsten',
                     'Snerpaloosi Instiploop',
-                    'flarpo 1',
-                    'glimfadoo 15 snarr Väinö Talas blorptik Floridana snooflepuff 5+5 min floof cutoff',
-                    'blip/intervuu',
-                    'Yhdysblat',
+                    'In web',
+                    'Test scope content',
+                    'test/interview',
+                    'Saksa',
                     '11.11111, 22.22222',
-                    'Asikblar',
-                    '33.33333, 44.44444',
-                    'Päijät-Hömp',
-                    '55.55555, 66.66666',
-                    'Helsinkloof',
-                    '77.77777, 88.88888',
-                    'Uusimrr',
-                    '99.99999, -11.11111',
-                    'Clevorland',
-                    '-22.22222, 33.33333',
-                    'Detroink',
-                    '-44.44444, 55.55555',
-                    'Montablaa',
-                    '-66.66666, 77.77777',
-                    'Duluthnoo',
-                    '-88.88888, 99.99999',
-                    'Fort Loodle',
-                    '12.34567, -76.54321',
-                    'Lake Worf',
-                    'mootlik',
-                    'sirtooz',
-                    'sirtiloot',
-                    'ulkosnarf',
-                    'amerisnarf',
-                    'floridansnarf',
-                    'eläkeblorp',
-                    'työbloop',
-                    'työnteek',
-                    'työväää',
-                    'talonrakblip',
-                    'järjestööf',
+                    'Somewhere',
+                    'Something',
+                    'Person interview',
                     'CC BY 4.0',
-                    'blorptik snoofle 1977-1978',
-                    'snarfloota kokoelma',
+                    'Hierarchy top title',
+                    'Hierarchy parent title',
                 ],
                 'author2' => [
                     'Kralloo Mipsten',
                 ],
-                'description' => 'glimfadoo 15 snarr Väinö Talas blorptik Floridana snooflepuff 5+5 min floof cutoff',
-                'format' => 'blip/intervuu',
+                'description' => 'Test scope content',
+                'format' => 'test/interview',
                 'institution' => 'Snerpaloosi Instiploop',
-                'language' => ['grk', 'fnrr'],
-                'physical' => ['fiftypurr snorfle meep'],
-                'title_full' => 'mrrrp-blib-zoink blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp (9911)',
-                'title_short' => 'blorf mipmip zaarl frrrp tikka',
-                'title_sort' => 'blorf mipmip zaarl frrrp tikka meowzorp ',
-                'title_sub' => 'mrrrp-blib-zoink',
-                'title' => 'mrrrp-blib-zoink blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp (9911)',
+                'language' => ['fin', 'eng'],
+                'physical' => ['Test physical description'],
+                'title_full' => 'Test identifier Ead record test title (1999)',
+                'title_short' => 'Ead record test title (1999)',
+                'title_sort' => 'ead record test title (1999)',
+                'title_sub' => 'Test identifier',
+                'title' => 'Test identifier Ead record test title (1999)',
                 'topic_facet' => [
-                    'mootlik','sirtooz','sirtiloot','ulkosnarf','amerisnarf','floridansnarf',
-                    'eläkeblorp','työbloop','työnteek','työväää','talonrakblip','järjestööf',
+                    'Something',
+                    'Person interview',
                 ],
                 'topic' => [
-                    'mootlik','sirtooz','sirtiloot','ulkosnarf','amerisnarf','floridansnarf',
-                    'eläkeblorp','työbloop','työnteek','työväää','talonrakblip','järjestööf',
+                    'Something',
+                    'Person interview',
                 ],
-                'location_geo' => 'POINT(-76.54321 12.34567)',
-                'center_coords' => '-76.54321 12.34567',
+                'location_geo' => 'POINT(22.22222 11.11111)',
+                'center_coords' => '22.22222 11.11111',
                 'geographic_facet' => [
-                    'Yhdysblat','Asikblar','Päijät-Hömp','Helsinkloof','Uusimrr','Clevorland',
-                    'Detroink','Montablaa','Duluthnoo','Fort Loodle','Lake Worf',
+                    'Saksa',
+                    'Somewhere',
                 ],
                 'geographic' => [
-                    'Yhdysblat','Asikblar','Päijät-Hömp','Helsinkloof','Uusimrr','Clevorland',
-                    'Detroink','Montablaa','Duluthnoo','Fort Loodle','Lake Worf',
+                    'Saksa',
+                    'Somewhere',
                 ],
                 'hierarchytype' => 'Default',
-                'hierarchy_top_id' => 'tost.272',
-                'hierarchy_top_title' => 'blorptik snoofle 1977-1978',
+                'hierarchy_top_id' => 'tost.271',
+                'hierarchy_top_title' => 'Hierarchy top title',
                 'hierarchy_sequence' => '0000020',
                 'hierarchy_parent_id' => 'tost.272',
-                'hierarchy_parent_title' => 'snarfloota kokoelma',
+                'hierarchy_parent_title' => 'Hierarchy parent title',
                 'title_in_hierarchy' => [
-                    'mrrrp-blib-zoink mrrrp-blib-zoink'
-                    . ' blorf mipmip zaarl frrrp tikka meowzorp flibbin 1977 glarp',
+                    'Test identifier Test identifier Ead record test title',
                 ],
-                'container_title_str_mv' => ['blorptik snoofle 1977-1978'],
-                'unit_daterange' => '[9911-01-01 TO 9911-12-31]',
-                'search_daterange_mv' => '[9911-01-01 TO 9911-12-31]',
-                'main_date_str' => '9911',
-                'main_date' => '9911-01-01T00:00:00Z',
+                'container_title_str_mv' => ['Hierarchy top title'],
+                'unit_daterange' => '1999-12-12',
+                'search_daterange_mv' => '1999-12-12',
+                'main_date_str' => '1999',
+                'main_date' => '1999-12-12T00:00:00Z',
                 'hierarchy_sequence_str' => '0000020',
                 'source_str_mv' => 'Snerpaloosi Instiploop',
                 'datasource_str_mv' => 'tost',
@@ -454,17 +425,18 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'online_str_mv' => 'Snerpaloosi Instiploop',
                 'free_online_boolean' => '1',
                 'free_online_str_mv' => 'Snerpaloosi Instiploop',
-                'identifier' => 'mrrrp-blib-zoink',
+                'identifier' => 'Test identifier',
                 'material' => "\n      \n    ",
                 'usage_rights_str_mv' => ['CC BY 4.0'],
                 'usage_rights_ext_str_mv' => ['CC BY 4.0'],
                 'author_facet' => ['Kralloo Mipsten'],
-                'format_ext_str_mv' => ['blip/intervuu'],
+                'format_ext_str_mv' => ['test/interview'],
                 'media_type_str_mv' => ['audio/mpeg'],
                 'id' => 'test456',
                 'first_indexed' => '1970-01-01T00:00:00Z',
                 'last_indexed' => '1970-01-01T00:00:00Z',
                 'catalog_date' => '1970-01-01T00:00:00Z',
+                'series' => 'Hierarchy parent title',
             ],
         ];
 
@@ -630,6 +602,121 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             ],
         ];
 
+        $expectedEad3Results = [
+            'record_format' => 'ead3',
+            'allfields' => [
+                'Test did note',
+                'Test swe name',
+                'Test eng name',
+                'Test fin name',
+                'Test id',
+                'purr-238',
+                'Test analogic id',
+                'Test old id',
+                '1880-XX-XX/1880-XX-XX',
+                'Test main title',
+                'Reinmrr, Agaprr',
+                'Suomi',
+                'Image of test',
+                'Tietosisältö',
+                'Testi kuvaus',
+                'Käyttöehdot',
+                'CC BY-NC-ND 4.0 (miau-miau)',
+                'Asiasanat ja luokat',
+                'Testi 1',
+                'Test 1',
+                'Testi 2',
+                'Test 2',
+                'Etelä-Karjala-mrr',
+                'Test hierarchy top title',
+                '173852008554500',
+            ],
+            'author' => [
+                'Reinmrr, Agaprr',
+            ],
+            'author_sort' => 'Reinmrr, Agaprr',
+            'description' => 'Testi kuvaus',
+            'format' => 'Testi 1/Testi 2',
+            'geographic_facet' => [
+                'Etelä-Karjala-mrr',
+            ],
+            'geographic' => [
+                'Etelä-Karjala-mrr',
+            ],
+            'institution' => 'SKS KRA',
+            'language' => [
+                'fin',
+            ],
+            'series' => 'Test hierarchy parent title',
+            'thumbnail' => 'https://example.com/frobnar/thumb',
+            'title_full' => 'Test id Test main title‎ (1880)',
+            'title_short' => 'Test main title‎ (1880)',
+            'title_sort' => 'test id test main title‎ (1880)',
+            'title_sub' => 'Test id',
+            'title' => 'Test id Test main title‎ (1880)',
+            'hierarchytype' => 'Default',
+            'hierarchy_top_id' => 'cat_archive.173852005642800',
+            'hierarchy_top_title' => 'Test hierarchy top title',
+            'hierarchy_sequence' => '0000464',
+            'hierarchy_parent_id' => 'cat_archive.173852005642800_173852006211600',
+            'hierarchy_parent_title' => 'Test hierarchy parent title',
+            'title_in_hierarchy' => [
+                'Test id Test id Test main title',
+            ],
+            'container_title_str_mv' => [
+                'Test hierarchy top title',
+            ],
+            'unit_daterange' => '[1880-01-01 TO 1880-12-31]',
+            'search_daterange_mv' => [
+                '[1880-01-01 TO 1880-12-31]',
+            ],
+            'era_facet' => '1880',
+            'main_date_str' => '1880',
+            'main_date' => '1880-01-01T00:00:00Z',
+            'hierarchy_sequence_str' => '0000464',
+            'source_str_mv' => 'SKS KRA',
+            'datasource_str_mv' => 'cat_archive',
+            'online_boolean' => '1',
+            'online_str_mv' => 'SKS KRA',
+            'free_online_boolean' => '1',
+            'free_online_str_mv' => 'SKS KRA',
+            'identifier' => '173852008554500',
+            'media_type_str_mv' => [
+                'image/jpeg',
+            ],
+            'usage_rights_str_mv' => [
+                'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
+            ],
+            'usage_rights_ext_str_mv' => [
+                'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
+            ],
+            'author_facet' => [
+                'Reinmrr, Agaprr',
+            ],
+            'author2_id_str_mv' => [
+                'EAC_228481117',
+            ],
+            'author2_id_role_str_mv' => [
+                'EAC_228481117###Arkistonmuodostaja',
+                'EAC_228481117###Kuvataiteilija',
+            ],
+            'format_ext_str_mv' => 'Testi 1/Testi 2',
+            'geographic_id_str_mv' => [
+                'http://www.yso.fi/onto/yso/p94106',
+            ],
+            'file_identifier_str_mv' => [
+                'mrr_full.tif',
+                'mrr_thumb.tif',
+            ],
+            'id' => 'ttt111',
+            'work_keys_str_mv' => [
+                'AT reinmrragaprr tes',
+            ],
+            'first_indexed' => '1970-01-01T00:00:00Z',
+            'last_indexed' => '1970-01-01T00:00:00Z',
+            'catalog_date' => '1970-01-01T00:00:00Z',
+        ];
+
         yield 'Test single ead3 record with hierarchy top title' => [
             [
                 '_id' => 'ttt111',
@@ -644,123 +731,28 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'original_data' => 'SolrUpdaterTest/ead3.xml',
                 'normalized_data' => null,
             ],
+            $expectedEad3Results,
+        ];
+        unset($expectedEad3Results['container_title_str_mv']);
+        yield 'Test single ead3 record with setting container_title_facet setting to an empty value' => [
             [
-                'record_format' => 'ead3',
-                'allfields' => [
-                    'Mrr-fluff nyaff',
-                    'Mjaau skrelli prr-vump',
-                    'Nya-frobble prrr-chant',
-                    'Prrlax miau-ponkeli strav-mrr',
-                    'mrr-glimzor',
-                    'purr-238',
-                    'miau-floo 1880:85:311-85:311',
-                    'ffrrp-245348772',
-                    '1880–mrr-grunk',
-                    'Miauska skreppa-prr',
-                    'Reinmrr, Agaprr',
-                    'Kattin kieli',
-                    'Ilmentymä: Prr-kuva (Digimiau)',
-                    'Tietosisältö',
-                    'Mrr-maalaus maisemasta, jossa on kallioita, metsää ja järvi-miau.'
-                        . ' Aihe mahdollisesti Jaakkimasta, mutta kissa ei kerro.',
-                    'Käyttöehdot',
-                    'CC BY-NC-ND 4.0 (miau-miau)',
-                    'Asiasanat ja luokat',
-                    'Kuva-mrr',
-                    'Bild-mjaau',
-                    'Image-nya',
-                    'Maalaus-prr',
-                    'Målning-mjaau',
-                    'Painting-nyaff',
-                    'Etelä-Karjala-mrr',
-                    'Random collection title',
-                    '173852008554500',
+                '_id' => 'ttt111',
+                'oai_id' => '',
+                'linking_id' => [],
+                'source_id' => 'cat_archive',
+                'deleted' => false,
+                'created' => $date,
+                'updated' => $date,
+                'date' => $date,
+                'format' => 'ead3',
+                'original_data' => 'SolrUpdaterTest/ead3.xml',
+                'normalized_data' => null,
+            ],
+            $expectedEad3Results,
+            [
+                'Solr Fields' => [
+                    'container_title_facet' => '',
                 ],
-                'author' => [
-                    'Reinmrr, Agaprr',
-                ],
-                'author_sort' => 'Reinmrr, Agaprr',
-                'description' => 'Mrr-maalaus maisemasta, jossa on kallioita,'
-                    . ' metsää ja järvi-miau. Aihe mahdollisesti Jaakkimasta, mutta kissa ei kerro.',
-                'format' => 'Kuva-mrr/Maalaus-prr',
-                'geographic_facet' => [
-                    'Etelä-Karjala-mrr',
-                ],
-                'geographic' => [
-                    'Etelä-Karjala-mrr',
-                ],
-                'institution' => 'SKS KRA',
-                'language' => [
-                    'fin',
-                ],
-                'series' => 'Kansatieteellisiä piirroksia Etelä-Karjalasta',
-                'thumbnail' => 'https://example.com/frobnar/thumb',
-                'title_full' => 'mrr-glimzor Miauska skreppa-prr‎ (1880)',
-                'title_short' => 'Miauska skreppa-prr‎ (1880)',
-                'title_sort' => 'mrr glimzor miauska skreppa prr‎ (1880)',
-                'title_sub' => 'mrr-glimzor',
-                'title' => 'mrr-glimzor Miauska skreppa-prr‎ (1880)',
-                'hierarchytype' => 'Default',
-                'hierarchy_top_id' => 'cat_archive.173852005642800',
-                'hierarchy_top_title' => 'Random collection title',
-                'hierarchy_sequence' => '0000464',
-                'hierarchy_parent_id' => 'cat_archive.173852005642800_173852006211600',
-                'hierarchy_parent_title' => 'Kansatieteellisiä piirroksia Etelä-Karjalasta',
-                'title_in_hierarchy' => [
-                    'mrr-glimzor mrr-glimzor Miauska skreppa-prr',
-                ],
-                'container_title_str_mv' => [
-                    'Random collection title',
-                ],
-                'unit_daterange' => '[1880-01-01 TO 1880-12-31]',
-                'search_daterange_mv' => [
-                    '[1880-01-01 TO 1880-12-31]',
-                ],
-                'era_facet' => '1880',
-                'main_date_str' => '1880',
-                'main_date' => '1880-01-01T00:00:00Z',
-                'hierarchy_sequence_str' => '0000464',
-                'source_str_mv' => 'SKS KRA',
-                'datasource_str_mv' => 'cat_archive',
-                'online_boolean' => '1',
-                'online_str_mv' => 'SKS KRA',
-                'free_online_boolean' => '1',
-                'free_online_str_mv' => 'SKS KRA',
-                'identifier' => '173852008554500',
-                'media_type_str_mv' => [
-                    'image/jpeg',
-                ],
-                'usage_rights_str_mv' => [
-                    'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
-                ],
-                'usage_rights_ext_str_mv' => [
-                    'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fi',
-                ],
-                'author_facet' => [
-                    'Reinmrr, Agaprr',
-                ],
-                'author2_id_str_mv' => [
-                    'EAC_228481117',
-                ],
-                'author2_id_role_str_mv' => [
-                    'EAC_228481117###Arkistonmuodostaja',
-                    'EAC_228481117###Kuvataiteilija',
-                ],
-                'format_ext_str_mv' => 'Kuva-mrr/Maalaus-prr',
-                'geographic_id_str_mv' => [
-                    'http://www.yso.fi/onto/yso/p94106',
-                ],
-                'file_identifier_str_mv' => [
-                    'mrr_full.tif',
-                    'mrr_thumb.tif',
-                ],
-                'id' => 'ttt111',
-                'work_keys_str_mv' => [
-                    'AT reinmrragaprr mrr',
-                ],
-                'first_indexed' => '1970-01-01T00:00:00Z',
-                'last_indexed' => '1970-01-01T00:00:00Z',
-                'catalog_date' => '1970-01-01T00:00:00Z',
             ],
         ];
     }
@@ -770,15 +762,17 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
      *
      * @param array $dbRecord Array presenting a record from database to be processed.
      * @param array $expected Array for expected test results
+     * @param array $config   Main config
      *
      * @return void
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('getTestProcessSingleRecordData')]
-    public function testProcessSingleRecord(array $dbRecord, array $expected): void
+    public function testProcessSingleRecord(array $dbRecord, array $expected, array $config = []): void
     {
         $dbRecord['original_data'] = $this->getFixture($dbRecord['original_data'], 'Finna');
+        $config = array_merge_recursive($this->config, $config);
         $database = $this->getDatabase();
-        $solrUpdater = $this->getSolrUpdater(database: $database);
+        $solrUpdater = $this->getSolrUpdater(database: $database, config: $config);
         $result = $solrUpdater->processSingleRecord($dbRecord);
         $testRecord = $result['records'][0];
         // Leave out testing full record but confirm that it exists.
@@ -834,13 +828,15 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
      * @param array                             $dsConfigOverrides Data source config overrides
      * @param array                             $dbRecord          Database record
      * @param MockObject|DatabaseInterface|null $database          Database mock object
+     * @param array                             $config            Main config
      *
      * @return SolrUpdater
      */
     protected function getSolrUpdater(
         array $dsConfigOverrides = [],
         array $dbRecord = [],
-        MockObject|DatabaseInterface|null $database = null
+        MockObject|DatabaseInterface|null $database = null,
+        array $config = []
     ): SolrUpdater {
         $dsConfig = array_merge_recursive(
             $this->dataSourceConfig,
@@ -948,7 +944,7 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
             $this->dataSourceConfig
         );
         $solrUpdater = new SolrUpdater(
-            $this->config,
+            $config,
             $dsConfig,
             $database,
             $logger,
