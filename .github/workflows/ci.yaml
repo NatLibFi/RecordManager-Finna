@@ -22,7 +22,7 @@ jobs:
           - php-version: 8.4
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl, mongodb
-          - php-version: 8.4-no-mongo
+          - php-version: 8.4
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl
 
