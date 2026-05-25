@@ -193,6 +193,8 @@ class Forward extends \RecordManager\Base\Record\Forward
         $data['subtitle_lng_str_mv']
             = $this->metadataUtils->normalizeLanguageStrings($subtitles);
 
+        $data['color_str_mv'] = $this->getColors();
+
         return $data;
     }
 
@@ -282,6 +284,16 @@ class Forward extends \RecordManager\Base\Record\Forward
             $result = [...$result, ...explode(',', $language)];
         }
         return $result;
+    }
+
+    /**
+     * Return colors.
+     *
+     * @return array
+     */
+    protected function getColors(): array
+    {
+        return $this->getProductionEventAttribute('elokuva-alkupvari');
     }
 
     /**

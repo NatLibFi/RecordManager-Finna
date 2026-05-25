@@ -166,6 +166,23 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
+     * Classification types which should be excluded from classifications.
+     *
+     * @var array
+     */
+    protected $excludedClassifications = ['language', 'colour content', 'color content'];
+
+    /**
+     * Materials/techniques types which should be included in colors
+     *
+     * @var array
+     */
+    protected $colorTypes = [
+        'colour name', 'color name', 'väri',
+        'http://terminology.lido-schema.org/lido00479',
+    ];
+
+    /**
      * Hierarchy fields included in allfields.
      *
      * @var array
@@ -256,6 +273,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Keep classification_str_mv for backward-compatibility for now
         $data['classification_txt_mv'] = $data['classification_str_mv']
             = $this->getClassifications();
+        $data['color_str_mv'] = $this->getColors();
         $data['exhibition_str_mv'] = $this->getEventNames('näyttely');
 
         $data['category_str_mv'] = $this->getCategories();
@@ -1930,21 +1948,56 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Return the classifications.
      *
+     * @param array $include Classification types to include.
+     *
      * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
      * #objectClassificationWrap
      * @return array
      */
-    protected function getClassifications()
+    protected function getClassifications(array $include = []): array
     {
         $results = [];
         foreach (
             $this->doc->lido->descriptiveMetadata->objectClassificationWrap
             ->classificationWrap->classification ?? [] as $classification
         ) {
-            $type = trim((string)$classification->attributes()->type);
-            if ('language' !== $type && !empty($classification->term)) {
+            $type = mb_strtolower(trim((string)($classification->attributes()->type ?? '')), 'UTF-8');
+            $accepted = $include ? in_array($type, $include) : !in_array($type, $this->excludedClassifications);
+            if ($accepted) {
                 foreach ($classification->term as $term) {
-                    $results[] = (string)$term;
+                    if ($trimmed = trim((string)$term)) {
+                        $results[] = $trimmed;
+                    }
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * Return colors.
+     *
+     * @return array
+     */
+    protected function getColors(): array
+    {
+        // For backward compatibility: Include color content classifications
+        $results =  $this->getClassifications(['colour content', 'color content']);
+        foreach (
+            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->objectMaterialsTechWrap
+            ->objectMaterialsTechSet ?? [] as $set
+        ) {
+            foreach ($set->materialsTech as $materialsTech) {
+                foreach ($materialsTech->termMaterialsTech as $termMaterialsTech) {
+                    $type = mb_strtolower(trim((string)($termMaterialsTech->attributes()->type ?? '')), 'UTF-8');
+                    if (!in_array($type, $this->colorTypes)) {
+                        continue;
+                    }
+                    foreach ($termMaterialsTech->term as $term) {
+                        if ($trimmed = trim((string)$term)) {
+                            $results[] = $trimmed;
+                        }
+                    }
                 }
             }
         }
@@ -2341,20 +2394,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getLanguages(): array
     {
-        $classifications = $this->doc->lido->descriptiveMetadata
-                ->objectClassificationWrap->classificationWrap->classification ?? [];
-        $result = [];
-        foreach ($classifications as $classification) {
-            $type = trim((string)$classification->attributes()->type);
-            if ('language' === $type) {
-                foreach ($classification->term as $lang) {
-                    if ($trimmed = trim((string)$lang)) {
-                        $result[] = $trimmed;
-                    }
-                }
-            }
-        }
-        return array_unique($result);
+        return array_unique($this->getClassifications(['language']));
     }
 
     /**

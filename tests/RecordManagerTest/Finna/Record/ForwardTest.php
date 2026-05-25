@@ -1444,6 +1444,9 @@ class ForwardTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 2 => 'Asuintalot, omakotitalot, villat ja kartanot',
                 3 => 'Maatilat, pientilat, mökit, torpat, maatalousrakennukset ja aitat',
             ],
+            'color_str_mv' => [
+                'väri',
+            ],
         ];
 
         $this->compareArray($expected, $fields, 'toSolrArray');
