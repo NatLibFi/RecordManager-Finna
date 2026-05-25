@@ -23,6 +23,9 @@
                     <classification type="language">
                         <term>en</term>
                     </classification>
+                    <classification type="colour content">
+                        <term>mustavalkoinen</term>
+                    </classification>
                 </classificationWrap>
             </objectClassificationWrap>
             <objectIdentificationWrap>
@@ -113,6 +116,19 @@
                         <objectMeasurements />
                     </objectMeasurementsSet>
                 </objectMeasurementsWrap>
+                <objectMaterialsTechWrap>
+                    <objectMaterialsTechSet>
+                        <materialsTech>
+                            <termMaterialsTech type="väri">
+                                <term lang="fi">keltainen</term>
+                                <term lang="en">yellow</term>
+                            </termMaterialsTech>
+                            <termMaterialsTech type="Colour name">
+                                <term>punainen</term>
+                            </termMaterialsTech>
+                        </materialsTech>
+                    </objectMaterialsTechSet>
+                </objectMaterialsTechWrap>
             </objectIdentificationWrap>
             <eventWrap>
                 <eventSet>
