@@ -83,7 +83,7 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
                 if (isset($data['hierarchy_top_title'])) {
                     $data[$containerTitleFacetField] = (array)$data['hierarchy_top_title'];
                 }
-            } elseif (isset($data[$this->hierarchyParentTitleField])) {
+            } elseif ($this->hierarchyParentTitleField && isset($data[$this->hierarchyParentTitleField])) {
                 $data[$containerTitleFacetField] = (array)$data[$this->hierarchyParentTitleField];
             }
         }
