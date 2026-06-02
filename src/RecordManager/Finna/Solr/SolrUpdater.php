@@ -31,6 +31,7 @@ namespace RecordManager\Finna\Solr;
 
 use RecordManager\Base\Record\AbstractRecord;
 
+use function in_array;
 use function intval;
 use function is_callable;
 use function strlen;
@@ -71,6 +72,19 @@ class SolrUpdater extends \RecordManager\Base\Solr\SolrUpdater
             $field = $settings['catalogDateField'] ?? 'first_indexed';
             if ($date = $data[$field] ?? null) {
                 $data['catalog_date'] = $date;
+            }
+        }
+        if (
+            $containerTitleFacetField = $this->config['Solr Fields']['container_title_facet']
+                ?? 'container_title_str_mv'
+        ) {
+            // Use hierarchy_top_title for ead and ead3 formats instead of hierarchy_parent_title.
+            if (in_array($record['format'], ['ead', 'ead3'])) {
+                if (isset($data['hierarchy_top_title'])) {
+                    $data[$containerTitleFacetField] = (array)$data['hierarchy_top_title'];
+                }
+            } elseif ($this->hierarchyParentTitleField && isset($data[$this->hierarchyParentTitleField])) {
+                $data[$containerTitleFacetField] = (array)$data[$this->hierarchyParentTitleField];
             }
         }
         $this->addSeriesKeys($data, $metadataRecord);
