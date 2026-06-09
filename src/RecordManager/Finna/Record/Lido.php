@@ -1460,6 +1460,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                     $lon = $latlon[1];
                 }
             }
+            // @phpstan-ignore-next-line
             if (null === $lat || null === $lon) {
                 $this->logger->logDebug(
                     'Lido',
