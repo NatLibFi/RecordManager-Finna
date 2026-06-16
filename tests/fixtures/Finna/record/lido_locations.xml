@@ -88,12 +88,16 @@
                   <namePlaceSet>
                     <appellationValue label="kunta/kaupunki (ulkomainen)">Los Angeles</appellationValue>
                   </namePlaceSet>
-                  <placeClassification>kunta/kaupunki (ulkomainen)</placeClassification>
+                  <placeClassification>
+                    <term>kunta/kaupunki (ulkomainen)</term>
+                  </placeClassification>
                   <partOfPlace>
                     <namePlaceSet>
                       <appellationValue label="maa/valtio">Yhdysvallat</appellationValue>
                     </namePlaceSet>
-                    <placeClassification>maa/valtio</placeClassification>
+                    <placeClassification>
+                      <term>maa/valtio</term>
+                    </placeClassification>
                   </partOfPlace>
                 </place>
               </eventPlace>
@@ -115,7 +119,7 @@
                 <gml>
                   <Point srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
                     <coordinates>
-											
+
 										</coordinates>
                   </Point>
                 </gml>
@@ -212,22 +216,30 @@
                 <namePlaceSet>
                   <appellationValue label="katuosoite">Ristim&#xE4;enkatu 5</appellationValue>
                 </namePlaceSet>
-                <placeClassification>katuosoite</placeClassification>
+                <placeClassification>
+                  <term>katuosoite</term>
+                </placeClassification>
                 <partOfPlace>
                   <namePlaceSet>
                     <appellationValue label="kunta/kaupunki (Suomi)">Mikkeli</appellationValue>
                   </namePlaceSet>
-                  <placeClassification>kunta/kaupunki (Suomi)</placeClassification>
+                  <placeClassification>
+                    <term>kunta/kaupunki (Suomi)</term>
+                  </placeClassification>
                   <partOfPlace>
                     <namePlaceSet>
                       <appellationValue label="maakunta (Suomi)">Etel&#xE4;-Savo</appellationValue>
                     </namePlaceSet>
-                    <placeClassification>maakunta (Suomi)</placeClassification>
+                    <placeClassification>
+                      <term>maakunta (Suomi)</term>
+                    </placeClassification>
                     <partOfPlace>
                       <namePlaceSet>
                         <appellationValue label="maa/valtio">Suomi</appellationValue>
                       </namePlaceSet>
-                      <placeClassification>maa/valtio</placeClassification>
+                      <placeClassification>
+                        <term>maa/valtio</term>
+                      </placeClassification>
                     </partOfPlace>
                   </partOfPlace>
                 </partOfPlace>

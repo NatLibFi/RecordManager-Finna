@@ -38,6 +38,7 @@ use function boolval;
 use function count;
 use function in_array;
 use function intval;
+use function is_array;
 use function sprintf;
 use function strlen;
 
@@ -59,6 +60,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     use DateSupportTrait;
     use Feature\MediaTypeTrait;
     use Feature\IndexValueTrait;
+
+    /**
+     * GML namespace (up to version 3.1.1).
+     *
+     * @var string
+     */
+    protected $gmlNs = 'http://www.opengis.net/gml';
 
     /**
      * Main event name reflecting the terminology in the particular LIDO records.
@@ -236,8 +244,7 @@ class Lido extends \RecordManager\Base\Record\Lido
         $data['allfields'][] = $this->getRecordSourceOrganization();
 
         // Author facets without roles:
-        $data['author_facet']
-            = $this->getActors($this->getMainEvents(), null, false);
+        $data['author_facet'] = $this->getActors($this->getMainEvents(), null, false);
 
         // This is just the display measurements! There's also the more granular
         // form, which could be useful for some interesting things eg. sorting by
@@ -339,10 +346,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $data['hires_image_str_mv'] = $this->source;
             }
         }
-        $data['location_geo'] = [
-            ...$this->getEventPlaceCoordinates(),
-            ...$this->getRepositoryLocationCoordinates(),
-        ];
+        $data['location_geo'] = $this->getGeoLocations();
         if (!empty($data['location_geo'])) {
             $data['center_coords']
                 = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
@@ -399,14 +403,16 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getLocations()
     {
+        // Skip geocoding if we already have GML data:
+        if ($this->getGeoLocations()) {
+            return [];
+        }
+
         $subjectLocations = [];
         foreach ($this->getSubjectNodes() as $subject) {
-            foreach ($subject->subjectPlace as $placeNode) {
-                if (!empty($placeNode->place->gml)) {
-                    return [];
-                }
+            foreach ($this->xmlDoc->all($subject, 'subjectPlace') as $placeNode) {
                 $hierarchicalLocations = false;
-                foreach ($placeNode->place as $place) {
+                foreach ($this->xmlDoc->all($placeNode, 'place') as $place) {
                     if ($result = $this->getHierarchicalLocations($place)) {
                         $hierarchicalLocations = true;
                         foreach ($result as $location) {
@@ -414,10 +420,13 @@ class Lido extends \RecordManager\Base\Record\Lido
                         }
                     }
                 }
-                if (!$hierarchicalLocations && !empty($placeNode->displayPlace)) {
+                if (
+                    !$hierarchicalLocations
+                    && '' !== ($displayPlace = $this->xmlDoc->firstValue($placeNode, 'displayPlace') ?? '')
+                ) {
                     $subjectLocations = [
                         ...$subjectLocations,
-                        ...$this->splitLocation((string)$placeNode->displayPlace),
+                        ...$this->splitLocation($displayPlace),
                     ];
                 }
             }
@@ -433,40 +442,37 @@ class Lido extends \RecordManager\Base\Record\Lido
         $locations = [];
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
-                foreach ($eventNode->eventPlace as $placeNode) {
-                    if (!empty($placeNode->place->gml)) {
-                        return [];
-                    }
-                    if (empty($placeNode->place) && !empty($placeNode->displayPlace)) {
-                        $locations = [
-                            ...$subjectLocations,
-                            ...$this->splitLocation((string)$placeNode->displayPlace),
-                        ];
-                        continue;
-                    }
-                    foreach ($placeNode->place as $place) {
+                foreach ($this->xmlDoc->all($eventNode, 'eventPlace') as $placeNode) {
+                    $placesFound = false;
+                    foreach ($this->xmlDoc->all($placeNode, 'place') as $place) {
                         if ($result = $this->getHierarchicalLocations($place)) {
                             foreach ($result as $location) {
                                 $locations[] = implode(', ', $location);
+                                $placesFound = true;
                             }
                         }
+                    }
+                    if (
+                        !$placesFound
+                        && '' !== ($displayPlace = $this->xmlDoc->firstValue($placeNode, 'displayPlace') ?? '')
+                    ) {
+                        $locations = [
+                            ...$subjectLocations,
+                            ...$this->splitLocation($displayPlace),
+                        ];
+                        continue;
                     }
                 }
             }
         }
 
         $displayLocations = [];
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-            ->repositoryWrap->repositorySet ?? [] as $set
-        ) {
-            if (empty($set->repositoryLocation)) {
+        $path = 'lido/descriptiveMetadata/objectIdentificationWrap/repositoryWrap/repositorySet';
+        foreach ($this->xmlDoc->all(path: $path) as $set) {
+            if (!($repositoryLocation = $this->xmlDoc->first($set, 'repositoryLocation'))) {
                 continue;
             }
-            if (!empty($set->repositoryLocation->gml)) {
-                return [];
-            }
-            if ($result = $this->getHierarchicalLocations($set->repositoryLocation)) {
+            if ($result = $this->getHierarchicalLocations($repositoryLocation)) {
                 foreach ($result as $location) {
                     $displayLocations[] = implode(', ', $location);
                 }
@@ -531,13 +537,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getEventNodes($this->getMainEvents()) as $eventNode) {
-            foreach ($eventNode->eventActor as $actorNode) {
-                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
-                    if ($id = trim((string)$actorId)) {
-                        $results[] = $id;
-                    }
-                }
-            }
+            $results = [
+                ...$results,
+                ...$this->xmlDoc->allValues($eventNode, 'eventActor/actorInRole/actor/actorID'),
+            ];
         }
         return array_values(array_unique($results));
     }
@@ -551,13 +554,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getEventNodes($this->getSecondaryAuthorEvents()) as $eventNode) {
-            foreach ($eventNode->eventActor as $actorNode) {
-                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
-                    if ($id = trim((string)$actorId)) {
-                        $results[] = $id;
-                    }
-                }
-            }
+            $results = [
+                ...$results,
+                ...$this->xmlDoc->allValues($eventNode, 'eventActor/actorInRole/actor/actorID'),
+            ];
         }
         return array_values(array_unique($results));
     }
@@ -571,8 +571,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getRelatedWorkSetNodes($this->relatedISBNRelationTypes) as $set) {
-            foreach ($set->relatedWork->object->objectID ?? [] as $identifier) {
-                if ($isbn = $this->checkISBN((string)$identifier)) {
+            foreach ($this->xmlDoc->allValues($set, 'relatedWork/object/objectID') as $identifier) {
+                if ($isbn = $this->checkISBN($identifier)) {
                     // Include ISBNs in original format and in ISBN-13 format
                     $results[] = $isbn;
                     if ($normalized = $this->metadataUtils->normalizeISBN($isbn)) {
@@ -637,15 +637,15 @@ class Lido extends \RecordManager\Base\Record\Lido
                 [...$this->getMainEvents(), ...$this->getSecondaryAuthorEvents()]
             ) as $eventNode
         ) {
-            foreach ($eventNode->eventActor as $actorNode) {
-                $ids = $roles = [];
-                foreach ($actorNode->actorInRole->actor->actorID ?? [] as $actorId) {
-                    if ($id = trim((string)$actorId)) {
-                        $ids[] = $id;
-                    }
-                }
-                foreach ($actorNode->actorInRole->roleActor ?? [] as $roleActor) {
-                    if ($role = $this->metadataUtils->normalizeRelator((string)($roleActor->term ?? ''))) {
+            foreach ($this->xmlDoc->all($eventNode, 'eventActor') as $actorNode) {
+                $ids = $this->xmlDoc->allValues($actorNode, 'actorInRole/actor/actorID');
+                $roles = array_map(
+                    [$this->metadataUtils, 'normalizeRelator'],
+                    $this->xmlDoc->allValues($actorNode, 'actorInRole/roleActor/term')
+                );
+                $roles = [];
+                foreach ($this->xmlDoc->allValues($actorNode, 'actorInRole/roleActor/term') as $roleTerm) {
+                    if ($role = $this->metadataUtils->normalizeRelator($roleTerm)) {
                         $roles[] = $role;
                     }
                 }
@@ -670,13 +670,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $result = [];
         foreach ($this->getSubjectNodes() as $subject) {
-            foreach ($subject->subjectActor as $subjectActor) {
-                foreach ($subjectActor->actor->actorID ?? [] as $actorID) {
-                    if ($id = trim((string)$actorID)) {
-                        $result[] = $id;
-                    }
-                }
-            }
+            $result = [
+                ...$result,
+                ...$this->xmlDoc->allValues($subject, 'subjectActor/actor/actorID'),
+            ];
         }
         return array_values(array_unique($result));
     }
@@ -692,15 +689,15 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $result = [];
         foreach ($ids as $placeID) {
-            if (!($id = trim((string)$placeID))) {
+            if (!($id = $this->xmlDoc->value($placeID))) {
                 continue;
             }
             if (preg_match('/^https?:/', $id)) {
                 $result[] = $id;
                 continue;
             }
-            if ($type = trim((string)($placeID['type'] ?? ''))) {
-                if ($source = trim((string)($placeID->attributes()->source ?? ''))) {
+            if ($type = $this->xmlDoc->attr($placeID, 'type')) {
+                if ($source = $this->xmlDoc->attr($placeID, 'source')) {
                     $type = $this->placeIDSourceMappings[mb_strtolower($source, 'UTF-8')] ?? $source;
                 }
                 $result[] = "($type)$id";
@@ -721,34 +718,45 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $result = [];
         foreach ($this->getEventNodes($allEvents ? null : $this->getPlaceEvents()) as $eventNode) {
-            foreach ($eventNode->eventPlace as $eventPlace) {
-                if (!$excludePlacesWithCoordinates || empty($eventPlace->place->gml)) {
-                    foreach ($eventPlace->place->placeID ?? [] as $placeID) {
-                        $result[] = $placeID;
-                    }
+            foreach ($this->xmlDoc->all($eventNode, 'eventPlace') as $eventPlace) {
+                if (
+                    !$excludePlacesWithCoordinates
+                    || !$this->convertGmlToWkt($this->xmlDoc->first($eventPlace, 'place/gml'))
+                ) {
+                    $result = [
+                        ...$result,
+                        ...$this->xmlDoc->all($eventPlace, 'place/placeID'),
+                    ];
                 }
             }
         }
         foreach ($this->getSubjectNodes() as $subject) {
-            foreach ($subject->subjectPlace as $subjectPlace) {
-                if (!$excludePlacesWithCoordinates || empty($subjectPlace->place->gml)) {
-                    foreach ($subjectPlace->place->placeID ?? [] as $placeID) {
-                        $result[] = $placeID;
-                    }
+            foreach ($this->xmlDoc->all($subject, 'subjectPlace') as $subjectPlace) {
+                if (
+                    !$excludePlacesWithCoordinates
+                    || !$this->convertGmlToWkt($this->xmlDoc->first($subjectPlace, 'place/gml'))
+                ) {
+                    $result = [
+                        ...$result,
+                        ...$this->xmlDoc->all($subjectPlace, 'place/placeID'),
+                    ];
                 }
             }
         }
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->repositoryWrap->repositorySet
-            ?? [] as $set
-        ) {
-            if (!$excludePlacesWithCoordinates || empty($set->repositoryLocation->gml)) {
-                foreach ($set->repositoryLocation->placeID ?? [] as $placeID) {
-                    $attr = $placeID->attributes();
+        $path = 'lido/descriptiveMetadata/objectIdentificationWrap/repositoryWrap/repositorySet';
+        foreach ($this->xmlDoc->all(path: $path) as $set) {
+            if (
+                !$excludePlacesWithCoordinates
+                || !$this->convertGmlToWkt($this->xmlDoc->first($set, 'repositoryLocation/gml'))
+            ) {
+                foreach ($this->xmlDoc->all($set, 'repositoryLocation/placeID') as $placeID) {
+                    $type = $this->xmlDoc->attr($placeID, 'type') ?? '';
+                    $source = $this->xmlDoc->attr($placeID, 'source') ?? '';
                     if (
-                        $allEvents || in_array($attr->type, $this->includedLocationLabels)
-                        || in_array($attr->source, $this->includedLocationLabels)
-                        || ($attr->type == 'URI' && $attr->source == 'YSO')
+                        $allEvents
+                        || in_array($type, $this->includedLocationLabels)
+                        || in_array($source, $this->includedLocationLabels)
+                        || ($type == 'URI' && $source == 'YSO')
                     ) {
                         $result[] = $placeID;
                     }
@@ -761,45 +769,43 @@ class Lido extends \RecordManager\Base\Record\Lido
     /**
      * Get hierarchical locations as a multidimensional array.
      *
-     * @param \SimpleXMLElement $elem Element to check for locations.
+     * @param array $elem Element to check for locations.
      *
      * @return array<int, array>
      */
-    protected function getHierarchicalLocations(\SimpleXMLElement $elem): array
+    protected function getHierarchicalLocations(array $elem): array
     {
         $results = [];
         $currentElements = [$elem];
         do {
             $current = array_shift($currentElements);
 
-            if (!empty($current->namePlaceSet->appellationValue)) {
+            if ($appellationValues = $this->xmlDoc->all($current, 'namePlaceSet/appellationValue')) {
                 // There can be multiple appellationValues in element, meaning multiple streets etc
                 $values = [];
                 $label = '';
-                foreach ($current->namePlaceSet as $name) {
-                    foreach ($name->appellationValue as $elemValue) {
-                        // We can assume that the label is same in each of different
-                        // appellationvalues under same parent
-                        // If this is not the case, then things are not going ok
-                        $currentLabel = trim((string)$elemValue->attributes()->label);
-                        if (in_array(strtolower($currentLabel), $this->excludedLocationLabels)) {
-                            // Locations with labels like "Torin kulman takaosa" should be skipped
-                            continue;
-                        }
-
-                        if ($label && $label !== $currentLabel) {
-                            // There seems to be different types of appellationValues so skip the new ones
-                            continue;
-                        }
-                        if (!$label) {
-                            $label = $currentLabel;
-                        }
-                        $values[] = trim((string)$elemValue);
+                foreach ($appellationValues as $appellationValue) {
+                    // We can assume that the label is same in each of different
+                    // appellationvalues under same parent
+                    // If this is not the case, then things are not going ok
+                    $currentLabel = $this->xmlDoc->attr($appellationValue, 'label') ?? '';
+                    if (in_array(strtolower($currentLabel), $this->excludedLocationLabels)) {
+                        // Locations with labels like "Torin kulman takaosa" should be skipped
+                        continue;
                     }
+
+                    if ($label && $label !== $currentLabel) {
+                        // There seems to be different types of appellationValues so skip the new ones
+                        continue;
+                    }
+                    if (!$label) {
+                        $label = $currentLabel;
+                    }
+                    $values[] = $this->xmlDoc->value($appellationValue);
                 }
                 // If label is empty, use any placeClassification instead
-                if (!$label && !empty($current->placeClassification)) {
-                    $label = trim((string)$current->placeClassification);
+                if (!$label) {
+                    $label = $this->xmlDoc->firstValue($current, 'placeClassification/term');
                 }
 
                 // If label is still empty and we have multiple values, then only take the first one into account.
@@ -820,10 +826,8 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
             }
             // Check for any other partOfPlaces
-            if (!empty($current->partOfPlace)) {
-                foreach ($current->partOfPlace as $place) {
-                    $currentElements[] = $place;
-                }
+            foreach ($this->xmlDoc->all($current, 'partOfPlace') as $place) {
+                $currentElements[] = $place;
             }
         } while (count($currentElements) > 0);
         return $results;
@@ -837,14 +841,9 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getRepositoryLocationCoordinates(): array
     {
         $results = [];
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-            ->repositoryWrap->repositorySet ?? [] as $set
-        ) {
-            if (empty($set->repositoryLocation->gml)) {
-                continue;
-            }
-            if ($wkt = $this->convertGmlToWkt($set->repositoryLocation->gml)) {
+        $path = 'lido/descriptiveMetadata/objectIdentificationWrap/repositoryWrap/repositorySet/repositoryLocation/gml';
+        foreach ($this->xmlDoc->all(path: $path) as $gml) {
+            if ($wkt = $this->convertGmlToWkt($gml)) {
                 $results[] = $wkt;
             }
         }
@@ -866,13 +865,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         $ids = [];
         $fileIds = [];
         foreach ($this->getResourceSetNodes() as $node) {
-            if ($resourceID = trim((string)$node->resourceID)) {
+            if ($resourceID = $this->xmlDoc->firstValue($node, 'resourceID')) {
                 $ids[] = $resourceID;
                 $fileIds[] = $resourceID;
             }
-            $description = $node->resourceDescription;
-            if ($description && 'displayLink' === trim((string)$description->attributes()->type)) {
-                $fileIds[] = trim((string)$description);
+            $description = $this->xmlDoc->first($node, 'resourceDescription');
+            if ($description && 'displayLink' === $this->xmlDoc->attr($description, 'type')) {
+                $fileIds[] = $this->xmlDoc->value($description);
             }
         }
         return $this->resultCache[$cacheKey] = compact('ids', 'fileIds');
@@ -995,9 +994,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getUsageRights()
     {
         $result = [];
-        foreach ($this->doc->lido->administrativeMetadata->resourceWrap->resourceSet ?? [] as $set) {
-            if (isset($set->rightsResource->rightsType->conceptID)) {
-                $result[] = (string)$set->rightsResource->rightsType->conceptID;
+        $path = 'lido/administrativeMetadata/resourceWrap/resourceSet';
+        foreach ($this->xmlDoc->all(path: $path) as $set) {
+            if (null !== ($value = $this->xmlDoc->firstValue($set, 'rightsResource/rightsType/conceptID'))) {
+                $result[] = $value;
             } else {
                 $result[] = 'restricted';
             }
@@ -1061,12 +1061,13 @@ class Lido extends \RecordManager\Base\Record\Lido
 
         $material = '';
         foreach ($this->getEventNodes($eventType) as $node) {
-            if (!empty($node->eventMaterialsTech->displayMaterialsTech)) {
-                $material = (string)$node->eventMaterialsTech->displayMaterialsTech;
+            if (
+                '' !== ($material = $this->xmlDoc->firstValue($node, 'eventMaterialsTech/displayMaterialsTech') ?? '')
+            ) {
                 break;
             }
         }
-        if (empty($material)) {
+        if (!$material) {
             return [];
         }
 
@@ -1090,9 +1091,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         $descriptions = [];
         $title = $this->getTitle();
         foreach ($this->getObjectDescriptionSetNodes(['provenienssi']) as $set) {
-            foreach ($set->descriptiveNoteValue as $descriptiveNoteValue) {
-                $descriptions[] = (string)$descriptiveNoteValue;
-            }
+            $descriptions = [
+                ...$descriptions,
+                ...$this->xmlDoc->allValues($set, 'descriptiveNoteValue'),
+            ];
         }
         if ($descriptions && $title === implode('; ', $descriptions)) {
             // We have the description already in the title, don't repeat
@@ -1102,12 +1104,13 @@ class Lido extends \RecordManager\Base\Record\Lido
         // Also read in "description of subject" which contains data suitable for
         // this field
         $title = str_replace([',', ';'], ' ', $title);
-        foreach ($this->getSubjectSetNodes() as $set) {
-            $subject = $set->displaySubject;
-            $label = $subject['label'];
-            $nonTitle = trim(str_replace([',', ';'], ' ', (string)$subject)) != $title;
+        $path = 'lido/descriptiveMetadata/objectRelationWrap/subjectWrap/subjectSet/displaySubject';
+        foreach ($this->xmlDoc->all(path: $path) as $displaySubject) {
+            $label = $this->xmlDoc->attr($displaySubject, 'label');
+            $value = $this->xmlDoc->value($displaySubject);
+            $nonTitle = trim(str_replace([',', ';'], ' ', $value)) != $title;
             if ($nonTitle && (null === $label || 'aihe' === mb_strtolower($label, 'UTF-8'))) {
-                $descriptions[] = (string)$set->displaySubject;
+                $descriptions[] = $value;
             }
         }
 
@@ -1129,26 +1132,19 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getSubjectNodes($exclude) as $subject) {
-            foreach ($subject->subjectConcept as $concept) {
-                foreach ($concept->term as $term) {
-                    // Sometimes there are multiple subjects in one element separated with commas
-                    foreach (explode(',', (string)$term) as $explodedSubject) {
-                        if ($str = trim($explodedSubject)) {
-                            $results[] = $str;
-                        }
+            foreach ($this->xmlDoc->allValues($subject, 'subjectConcept/term') as $term) {
+                // Sometimes there are multiple subjects in one element separated with commas
+                foreach (explode(',', $term) as $explodedSubject) {
+                    if ($str = trim($explodedSubject)) {
+                        $results[] = $str;
                     }
                 }
             }
             // Add subject actors
-            foreach ($subject->subjectActor as $actor) {
-                foreach ($actor->actor->nameActorSet ?? [] as $name) {
-                    foreach ($name->appellationValue as $value) {
-                        if ($str = trim((string)$value)) {
-                            $results[] = $str;
-                        }
-                    }
-                }
-            }
+            $results = [
+                ...$results,
+                ...$this->xmlDoc->allValues($subject, 'subjectActor/actor/nameActorSet/appellationValue'),
+            ];
         }
         return $results;
     }
@@ -1181,17 +1177,17 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->getEventNodes($event) as $eventNode) {
             if (
                 !$startDate
-                && !empty($eventNode->eventDate->date->earliestDate)
-                && !empty($eventNode->eventDate->date->latestDate)
+                && ($earliestDate = $this->xmlDoc->firstValue($eventNode, 'eventDate/date/earliestDate'))
+                && ($latestDate = $this->xmlDoc->firstValue($eventNode, 'eventDate/date/latestDate'))
             ) {
-                $startDate = (string)$eventNode->eventDate->date->earliestDate;
-                $endDate = (string)$eventNode->eventDate->date->latestDate;
+                $startDate = $earliestDate;
+                $endDate = $latestDate;
             }
-            if (!$displayDate && !empty($eventNode->eventDate->displayDate)) {
-                $displayDate = (string)$eventNode->eventDate->displayDate;
+            if (!$displayDate) {
+                $displayDate = $this->xmlDoc->firstValue($eventNode, 'eventDate/displayDate') ?? '';
             }
-            if (!$periodName && !empty($eventNode->periodName->term)) {
-                $periodName = (string)$eventNode->periodName->term;
+            if (!$periodName) {
+                $periodName = $this->xmlDoc->firstValue($eventNode, 'periodName/term');
             }
         }
 
@@ -1214,17 +1210,14 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->getSubjectNodes() as $node) {
             $startDate = '';
             $endDate = '';
-            $displayDate = '';
             if (
-                !empty($node->subjectDate->date->earliestDate)
-                && !empty($node->subjectDate->date->latestDate)
+                ($earliestDate = $this->xmlDoc->firstValue($node, 'subjectDate/date/earliestDate'))
+                && ($latestDate = $this->xmlDoc->firstValue($node, 'subjectDate/date/latestDate'))
             ) {
-                $startDate = (string)$node->subjectDate->date->earliestDate;
-                $endDate = (string)$node->subjectDate->date->latestDate;
+                $startDate = $earliestDate;
+                $endDate = $latestDate;
             }
-            if (!empty($node->subjectDate->displayDate)) {
-                $displayDate = (string)$node->subjectDate->displayDate;
-            }
+            $displayDate = $this->xmlDoc->firstValue($node, 'subjectDate/displayDate') ?? '';
             $range = $this->processDateRangeValues(
                 $startDate,
                 $endDate,
@@ -1348,6 +1341,23 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Return all positions.
+     *
+     * @return array<int, string> WKT
+     */
+    protected function getGeoLocations(): array
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        return $this->resultCache[__METHOD__] = [
+            ...$this->getEventPlaceCoordinates(),
+            ...$this->getRepositoryLocationCoordinates(),
+        ];
+    }
+
+    /**
      * Return the event place coordinates associated with specified event
      *
      * @param string|array $event Event type(s) allowed (null = all types)
@@ -1357,14 +1367,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getEventPlaceCoordinates($event = null)
     {
         $results = [];
-        foreach ($this->getEventNodes($event) as $event) {
-            foreach ($event->eventPlace as $eventPlace) {
-                foreach ($eventPlace->place as $place) {
-                    if (!empty($place->gml)) {
-                        if ($wkt = $this->convertGmlToWkt($place->gml)) {
-                            $results[] = $wkt;
-                        }
-                    }
+        foreach ($this->getEventNodes($event) as $eventNode) {
+            foreach ($this->xmlDoc->all($eventNode, 'eventPlace/place/gml') as $gml) {
+                if ($wkt = $this->convertGmlToWkt($gml)) {
+                    $results[] = $wkt;
                 }
             }
         }
@@ -1376,14 +1382,27 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * This assumes WSG 84
      *
-     * @param \SimpleXMLElement $gml GML Node
+     * @param ?array $gml GML Node (null allowed for easier usage on XmlDoc return values)
      *
      * @return string WKT
      */
-    protected function convertGmlToWkt($gml)
+    protected function convertGmlToWkt(?array $gml): string
     {
-        if (!empty($gml->Polygon)) {
-            if (empty($gml->Polygon->outerBoundaryIs->LinearRing->coordinates)) {
+        if (null === $gml) {
+            return '';
+        }
+        if (
+            ($polygon = $this->xmlDoc->first($gml, "{{$this->gmlNs}}Polygon"))
+            || ($polygon = $this->xmlDoc->first($gml, 'Polygon'))
+        ) {
+            $outerBoundaryCoordinates
+                = $this->xmlDoc->firstValue(
+                    $polygon,
+                    "{{$this->gmlNs}}outerBoundaryIs/{{$this->gmlNs}}LinearRing/{{$this->gmlNs}}coordinates"
+                )
+                ?? $this->xmlDoc->firstValue($polygon, 'outerBoundaryIs/LinearRing/coordinates')
+                ?? '';
+            if ('' === $outerBoundaryCoordinates) {
                 $this->logger->logDebug(
                     'Lido',
                     'GML Polygon missing outer boundary, record '
@@ -1392,23 +1411,31 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->storeWarning('gml polygon missing outer boundary');
                 return '';
             }
-            $outerBoundary
-                = $this->swapCoordinates(
-                    (string)$gml->Polygon->outerBoundaryIs->LinearRing->coordinates
-                );
-            $innerBoundary
-                = !empty($gml->Polygon->innerBoundaryIs->LinearRing->coordinates)
-                ? $this->swapCoordinates(
-                    (string)$gml->Polygon->innerBoundaryIs->LinearRing->coordinates
-                ) : '';
+            $outerBoundary = $this->swapCoordinates($outerBoundaryCoordinates);
+
+            $innerBoundaryCoordinates
+                = $this->xmlDoc->firstValue(
+                    $polygon,
+                    "{{$this->gmlNs}}innerBoundaryIs/{{$this->gmlNs}}LinearRing/{{$this->gmlNs}}coordinates"
+                )
+                ?? $this->xmlDoc->firstValue($polygon, 'innerBoundaryIs/LinearRing/coordinates')
+                ?? '';
+            $innerBoundary = $innerBoundaryCoordinates ? $this->swapCoordinates($innerBoundaryCoordinates) : '';
 
             return $innerBoundary
                 ? "POLYGON (($outerBoundary),($innerBoundary))"
                 : "POLYGON (($outerBoundary))";
         }
 
-        if (!empty($gml->LineString)) {
-            if (empty($gml->LineString->coordinates)) {
+        if (
+            ($lineString = $this->xmlDoc->first($gml, "{{$this->gmlNs}}LineString"))
+            || ($lineString = $this->xmlDoc->first($gml, 'LineString'))
+        ) {
+            $coordinates
+                = $this->xmlDoc->firstValue($lineString, "{{$this->gmlNs}}coordinates")
+                ?? $this->xmlDoc->firstValue($lineString, 'coordinates')
+                ?? '';
+            if ('' === $coordinates) {
                 $this->logger->logDebug(
                     'Lido',
                     'GML LineString missing coordinates, record '
@@ -1417,43 +1444,29 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $this->storeWarning('gml linestring missing coordinates');
                 return '';
             }
-            $coordinates = $this->swapCoordinates(
-                (string)$gml->LineString->coordinates
-            );
+            $coordinates = $this->swapCoordinates($coordinates);
             return "LINESTRING ($coordinates)";
         }
 
-        if (!empty($gml->Point)) {
+        if (
+            ($point = $this->xmlDoc->first($gml, "{{$this->gmlNs}}Point"))
+            || ($point = $this->xmlDoc->first($gml, 'Point'))
+        ) {
             $lat = null;
             $lon = null;
-            if (!empty($gml->Point->pos)) {
-                $coordinates = trim((string)$gml->Point->pos);
-                if (!$coordinates) {
-                    $this->logger->logDebug(
-                        'Lido',
-                        'Empty pos in GML point, record '
-                            . "{$this->source}." . $this->getID(),
-                        true
-                    );
-                    $this->storeWarning('empty gml pos in point');
-                }
-                $latlon = explode(' ', $coordinates, 2);
+            if (
+                ($pos = $this->xmlDoc->firstValue($point, "{{$this->gmlNs}}pos"))
+                || ($pos = $this->xmlDoc->firstValue($point, 'pos'))
+            ) {
+                $latlon = explode(' ', $pos, 2);
                 if (isset($latlon[1])) {
                     $lat = $latlon[0];
                     $lon = $latlon[1];
                 }
-            } elseif (isset($gml->Point->coordinates)) {
-                $coordinates = trim((string)$gml->Point->coordinates);
-                if (!$coordinates) {
-                    $this->logger->logDebug(
-                        'Lido',
-                        'Empty coordinates in GML point, record '
-                            . "{$this->source}." . $this->getID(),
-                        true
-                    );
-                    $this->storeWarning('empty gml coordinates in point');
-                    return '';
-                }
+            } elseif (
+                ($coordinates = $this->xmlDoc->firstValue($point, "{{$this->gmlNs}}coordinates"))
+                || ($coordinates = $this->xmlDoc->firstValue($point, 'coordinates'))
+            ) {
                 $latlon = explode(',', $coordinates, 2);
                 if (isset($latlon[1])) {
                     $lat = $latlon[0];
@@ -1958,18 +1971,15 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getClassifications(array $include = []): array
     {
         $results = [];
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectClassificationWrap
-            ->classificationWrap->classification ?? [] as $classification
-        ) {
-            $type = mb_strtolower(trim((string)($classification->attributes()->type ?? '')), 'UTF-8');
+        $path = 'lido/descriptiveMetadata/objectClassificationWrap/classificationWrap/classification';
+        foreach ($this->xmlDoc->all(path: $path) as $classification) {
+            $type = mb_strtolower($this->xmlDoc->attr($classification, 'type') ?? '', 'UTF-8');
             $accepted = $include ? in_array($type, $include) : !in_array($type, $this->excludedClassifications);
             if ($accepted) {
-                foreach ($classification->term as $term) {
-                    if ($trimmed = trim((string)$term)) {
-                        $results[] = $trimmed;
-                    }
-                }
+                $results = [
+                    ...$results,
+                    ...$this->xmlDoc->allValues($classification, 'term'),
+                ];
             }
         }
         return $results;
@@ -1984,23 +1994,17 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         // For backward compatibility: Include color content classifications
         $results =  $this->getClassifications(['colour content', 'color content']);
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap->objectMaterialsTechWrap
-            ->objectMaterialsTechSet ?? [] as $set
-        ) {
-            foreach ($set->materialsTech as $materialsTech) {
-                foreach ($materialsTech->termMaterialsTech as $termMaterialsTech) {
-                    $type = mb_strtolower(trim((string)($termMaterialsTech->attributes()->type ?? '')), 'UTF-8');
-                    if (!in_array($type, $this->colorTypes)) {
-                        continue;
-                    }
-                    foreach ($termMaterialsTech->term as $term) {
-                        if ($trimmed = trim((string)$term)) {
-                            $results[] = $trimmed;
-                        }
-                    }
-                }
+        $path = 'lido/descriptiveMetadata/objectIdentificationWrap/objectMaterialsTechWrap/objectMaterialsTechSet'
+            . '/materialsTech/termMaterialsTech';
+        foreach ($this->xmlDoc->all(path: $path) as $termMaterialsTech) {
+            $type = mb_strtolower($this->xmlDoc->attr($termMaterialsTech, 'type') ?? '', 'UTF-8');
+            if (!in_array($type, $this->colorTypes)) {
+                continue;
             }
+            $results = [
+                ...$results,
+                ...$this->xmlDoc->allValues($termMaterialsTech, 'term'),
+            ];
         }
         return $results;
     }
@@ -2016,8 +2020,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getEventNodes($eventType) as $event) {
-            if (!empty($event->eventName->appellationValue)) {
-                $results[] = (string)$event->eventName->appellationValue;
+            if ($value = $this->xmlDoc->firstValue($event, 'eventName/appellationValue')) {
+                $results[] = $value;
             }
         }
         return $results;
@@ -2032,10 +2036,10 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getRightsHolderLegalBodyName()
     {
-        foreach ($this->doc->lido->administrativeMetadata->rightsWorkWrap->rightsWorkSet ?? [] as $set) {
-            if (!empty($set->rightsHolder->legalBodyName->appellationValue)) {
-                return (string)$set->rightsHolder->legalBodyName->appellationValue;
-            }
+        // Return first non-empty value:
+        $path = 'lido/administrativeMetadata/rightsWorkWrap/rightsWorkSet/rightsHolder/legalBodyName/appellationValue';
+        foreach ($this->xmlDoc->allValues(path: $path) as $appellationValue) {
+            return $appellationValue;
         }
         return '';
     }
@@ -2047,15 +2051,15 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getRecordSourceOrganization()
     {
-        return (string)($this->doc->lido->administrativeMetadata->recordWrap
-            ->recordSource->legalBodyName->appellationValue ?? '');
+        return $this->xmlDoc->firstValue(
+            path: 'lido/administrativeMetadata/recordWrap/recordSource/legalBodyName/appellationValue'
+        ) ?? '';
     }
 
     /**
      * Return the object types
      *
-     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html
-     * #objectWorkTypeWrap
+     * @link   http://www.lido-schema.org/schema/v1.0/lido-v1.0-schema-listing.html#objectWorkTypeWrap
      * @return array<int, string>
      */
     protected function getObjectWorkTypes()
@@ -2073,16 +2077,12 @@ class Lido extends \RecordManager\Base\Record\Lido
         ];
         if (empty(array_intersect($imageTypes, $result))) {
             foreach ($this->getResourceSetNodes() as $set) {
-                foreach ($set->resourceRepresentation as $node) {
-                    if (!empty($node->linkResource)) {
-                        $link = trim((string)$node->linkResource);
-                        if (!empty($link)) {
-                            $attributes = $node->attributes();
-                            $type = (string)$attributes->type;
-                            if (in_array($type, $imageResourceTypes)) {
-                                $result[] = 'Kuva';
-                                break;
-                            }
+                foreach ($this->xmlDoc->all($set, 'resourceRepresentation') as $node) {
+                    if ($this->xmlDoc->firstValue($node, 'linkResource')) {
+                        $type = $this->xmlDoc->attr($node, 'type');
+                        if (in_array($type, $imageResourceTypes)) {
+                            $result[] = 'Kuva';
+                            break;
                         }
                     }
                 }
@@ -2103,8 +2103,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $result = [];
         foreach ($this->getRelatedWorkSetNodes($relatedWorkRelType) as $set) {
-            if (!empty($set->relatedWork->displayObject)) {
-                $result[] = trim((string)$set->relatedWork->displayObject);
+            if ('' !== ($value = $this->xmlDoc->firstValue($set, 'relatedWork/displayObject') ?? '')) {
+                $result[] = $value;
             }
         }
 
@@ -2122,27 +2122,20 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getMeasurements()
     {
         $results = [];
-        foreach (
-            $this->doc->lido->descriptiveMetadata->objectIdentificationWrap
-            ->objectMeasurementsWrap->objectMeasurementsSet ?? [] as $set
-        ) {
-            $setResults = [];
-            foreach ($set->displayObjectMeasurements as $measurements) {
-                if ($value = trim((string)$measurements)) {
-                    $setResults[] = $value;
-                }
-            }
+        $path = 'lido/descriptiveMetadata/objectIdentificationWrap/objectMeasurementsWrap/objectMeasurementsSet';
+        foreach ($this->xmlDoc->all(path: $path) as $set) {
+            $setResults = $this->xmlDoc->allValues($set, 'displayObjectMeasurements');
             // Use measurementsSet if there's no displayMeasurements:
             if (!$setResults) {
-                foreach ($set->objectMeasurements->measurementsSet ?? [] as $measurements) {
+                foreach ($this->xmlDoc->all($set, 'objectMeasurements/measurementsSet') as $measurements) {
                     $parts = [];
-                    if ($type = trim((string)($measurements->measurementType ?? ''))) {
+                    if ('' !== ($type = $this->xmlDoc->firstValue($measurements, 'measurementType') ?? '')) {
                         $parts[] = $type;
                     }
-                    if ($val = trim((string)($measurements->measurementValue ?? ''))) {
+                    if ('' !== ($val = $this->xmlDoc->firstValue($measurements, 'measurementValue') ?? '')) {
                         $parts[] = $val;
                     }
-                    if ($unit = trim((string)($measurements->measurementUnit ?? ''))) {
+                    if ('' !== ($unit = $this->xmlDoc->firstValue($measurements, 'measurementUnit') ?? '')) {
                         $parts[] = $unit;
                     }
                     if ($parts) {
@@ -2152,13 +2145,7 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
             if ($setResults) {
                 // Add extents:
-                $extents = [];
-                foreach ($set->objectMeasurements->extentMeasurements ?? [] as $extent) {
-                    if ($value = trim((string)$extent)) {
-                        $extents[] = $value;
-                    }
-                }
-                if ($extents) {
+                if ($extents = $this->xmlDoc->allValues($set, 'objectMeasurements/extentMeasurements')) {
                     $extents = implode(', ', $extents);
                     foreach ($setResults as &$current) {
                         if (!str_contains($current, $extents)) {
@@ -2185,11 +2172,10 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getEventNodes() as $event) {
-            foreach ($event->culture as $culture) {
-                if ($value = trim((string)($culture->term ?? ''))) {
-                    $results[] = $value;
-                }
-            }
+            $results = [
+                ...$results,
+                ...$this->xmlDoc->allValues($event, 'culture/term'),
+            ];
         }
         return $results;
     }
@@ -2204,7 +2190,9 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getRights()
     {
         foreach ($this->getResourceSetNodes() as $set) {
-            if ($rights = (string)($set->rightsResource->rightsHolder->legalBodyName->appellationValue ?? '')) {
+            if (
+                $rights = $this->xmlDoc->firstValue($set, 'rightsResource/rightsHolder/legalBodyName/appellationValue')
+            ) {
                 return $rights;
             }
         }
@@ -2219,15 +2207,11 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function hasHiResImages()
     {
         foreach ($this->getResourceSetNodes() as $set) {
-            foreach ($set->resourceRepresentation as $node) {
-                if (!empty($node->linkResource)) {
-                    $link = trim((string)$node->linkResource);
-                    if (!empty($link)) {
-                        $attributes = $node->attributes();
-                        $type = (string)$attributes->type;
-                        if ('image_original' === $type || 'image_master' === $type) {
-                            return true;
-                        }
+            foreach ($this->xmlDoc->all($set, 'resourceRepresentation') as $node) {
+                if ($this->xmlDoc->firstValue($node, 'linkResource')) {
+                    $type = $this->xmlDoc->attr($node, 'type');
+                    if ('image_original' === $type || 'image_master' === $type) {
+                        return true;
                     }
                 }
             }
@@ -2243,13 +2227,7 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     protected function getCategories(): array
     {
-        $results = [];
-        foreach ($this->doc->lido->category ?? [] as $category) {
-            foreach ($category->term ?? [] as $term) {
-                $results[] = trim((string)$term);
-            }
-        }
-        return $results;
+        return $this->xmlDoc->allValues(path: 'lido/category/term');
     }
 
     /**
@@ -2407,20 +2385,20 @@ class Lido extends \RecordManager\Base\Record\Lido
     {
         $results = [];
         foreach ($this->getResourceSetNodes() as $set) {
-            foreach ($set->resourceRepresentation as $node) {
-                $url = trim((string)($node->linkResource ?? ''));
-                if (!$url) {
+            foreach ($this->xmlDoc->all($set, 'resourceRepresentation') as $node) {
+                $linkResource = $this->xmlDoc->first($node, 'linkResource');
+                if (!$linkResource || !($url = $this->xmlDoc->value($linkResource))) {
                     continue;
                 }
                 $mediaType = $this->getLinkMediaType(
-                    trim($node->linkResource),
-                    trim($node->linkResource->attributes()->formatResource ?? ''),
-                    trim($node->attributes()->type ?? '')
+                    $url,
+                    $this->xmlDoc->attr($linkResource, 'formatResource') ?? '',
+                    $this->xmlDoc->attr($node, 'type') ?? ''
                 );
                 $result = $this->createOnlineURLEntry(
                     url: $url,
                     mediaType: $mediaType,
-                    text: $set->resourceDescription ?? '',
+                    text: $this->xmlDoc->firstValue($set, 'resourceDescription') ?? '',
                     source: $this->source
                 );
                 if ($result) {
@@ -2442,8 +2420,8 @@ class Lido extends \RecordManager\Base\Record\Lido
     protected function getOtherIdentifiers(): array
     {
         $filterUrls = function ($el) {
-            $trimmed = trim((string)$el);
-            return !preg_match('/^https?:/', $el) ? $trimmed : '';
+            $value = is_array($el) ? $this->xmlDoc->value($el) : $el;
+            return !preg_match('/^https?:/', $value) ? $value : '';
         };
         $identifiers = $this->getIdentifiersByType([], ['issn', 'isbn']);
         $resourceIdentifiers = $this->getResourceIdentifiers();
