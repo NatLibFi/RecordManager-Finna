@@ -493,9 +493,11 @@ class Lido extends AbstractRecord
         $result = [];
         foreach ($this->getSubjectNodes($exclude) as $subjectNode) {
             foreach ($this->xmlDoc->all($subjectNode, 'subjectConcept/conceptID') as $conceptID) {
-                if ($id = $this->xmlDoc->value($conceptID)) {
-                    $type = mb_strtolower($this->xmlDoc->attr($conceptID, 'type'), 'UTF-8');
-                    if (in_array($type, $this->subjectConceptIDTypes)) {
+                if (
+                    ($id = $this->xmlDoc->value($conceptID))
+                    && ($type = $this->xmlDoc->attr($conceptID, 'type'))
+                ) {
+                    if (in_array(mb_strtolower($type, 'UTF-8'), $this->subjectConceptIDTypes)) {
                         $result[] = $id;
                     }
                 }
