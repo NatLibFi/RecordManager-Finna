@@ -495,33 +495,141 @@ class LidoTest extends RecordTestBase
     }
 
     /**
+     * Test namespace handling.
+     *
+     * @return void
+     */
+    public function testNamespaces(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_ns.xml',
+            [],
+            'Base',
+            [],
+        );
+        $reflection = new \ReflectionObject($record);
+        $getTitles = $reflection->getMethod('getTitles');
+
+        $this->assertEquals(
+            [
+                'preferred' => 'The story of the image: Cat On Grass',
+                'alternate' => [],
+            ],
+            $getTitles->invokeArgs($record, ['en'])
+        );
+        $this->assertEquals(
+            [
+                'preferred' => 'Kissa nurmikolla -kuvan tarina',
+                'alternate' => [],
+            ],
+            $getTitles->invokeArgs($record, ['fi'])
+        );
+    }
+
+    /**
      * Data provider for testLidoRootElementHandling
      *
      * @return \Iterator
      */
     public static function lidoRootElementProvider(): \Iterator
     {
+        $xsiPart = 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:';
+        $nsLidoPart = 'xmlns:lido="http://www.lido-schema.org" ' . $xsiPart;
         $schema10 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.0/lido-v1.0.xsd"';
         $schema11 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd"';
         yield 'lido 1.0 with lidoWrap' => [
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lidoWrap $schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                        <descriptiveMetadata lang="en"/>
+                    </lido>
+                </lidoWrap>
+                XML,
+            <<<XML
+                <lidoWrap $xsiPart$schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                        <!-- Note: should be xml:lang, but without namespaces we don't know that.. -->
+                        <descriptiveMetadata lang="en"/>
+                    </lido>
+                </lidoWrap>
+                XML,
         ];
         yield 'lido 1.1 with lidoWrap' => [
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lidoWrap $schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lidoWrap>
+                XML,
+            <<<XML
+                <lidoWrap $xsiPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lidoWrap>
+                XML,
+        ];
+        yield 'lido 1.1 with lidoWrap including namespaces' => [
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido:lido>
+                        <lido:lidoRecID lido:type="ITEM">123</lido:lidoRecID>
+                    </lido:lido>
+                </lido:lidoWrap>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido:lido>
+                        <lido:lidoRecID lido:type="ITEM">123</lido:lidoRecID>
+                    </lido:lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'lido 1.0 without lidoWrap' => [
-            "<lido $schema10><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido $schema10>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'lido 1.1 without lidoWrap' => [
-            "<lido $schema11><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido $schema11>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'unspecified lido version without lidoWrap' => [
-            '<lido><lidoRecID type="ITEM">123</lidoRecID></lido>',
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
     }
 
@@ -536,8 +644,8 @@ class LidoTest extends RecordTestBase
     #[\PHPUnit\Framework\Attributes\DataProvider('lidoRootElementProvider')]
     public function testLidoRootElementHandling(string $input, string $expected): void
     {
-        $prolog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $prolog = "<?xml version=\"1.0\"?>\n";
         $record = $this->createRecordFromString($prolog . $input, Lido::class);
-        $this->assertEquals($prolog . $expected, trim($record->toXML()));
+        $this->assertXmlStringEqualsXmlString($prolog . $expected, $record->toXML());
     }
 }
