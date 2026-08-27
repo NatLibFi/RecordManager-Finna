@@ -2552,6 +2552,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '610', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '611', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '630', ['a', 'x']],
+                [MarcHandler::GET_NORMAL, '647', ['a']],
                 [MarcHandler::GET_NORMAL, '648', ['x']],
                 [MarcHandler::GET_NORMAL, '650', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '651', ['x']],
@@ -2586,6 +2587,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [MarcHandler::GET_NORMAL, '385', ['a']],
                     [MarcHandler::GET_NORMAL, '356', ['a']],
                     [MarcHandler::GET_NORMAL, '567', ['b']],
+                    [MarcHandler::GET_NORMAL, '647', ['a']],
                     [MarcHandler::GET_BOTH, '690', [
                         'a', 'b', 'c', 'd', 'e', 'v', 'x', 'y', 'z',
                     ]],
