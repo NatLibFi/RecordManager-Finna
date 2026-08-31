@@ -847,7 +847,6 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
      * @param string $filename Record to test
      * @param array  $expected Expected locations
      *
-     *
      * @return void
      */
     #[DataProvider('locationsForEnrichmentProvider')]

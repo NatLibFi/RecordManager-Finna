@@ -805,7 +805,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 }
                 // If label is empty, use any placeClassification instead
                 if (!$label) {
-                    $label = $this->xmlDoc->firstValue($current, 'placeClassification');
+                    $label = $this->xmlDoc->firstValue($current, 'placeClassification/term');
                 }
 
                 // If label is still empty and we have multiple values, then only take the first one into account.
