@@ -62,6 +62,13 @@ class Lido extends \RecordManager\Base\Record\Lido
     use Feature\IndexValueTrait;
 
     /**
+     * GML namespace (up to version 3.1.1).
+     *
+     * @var string
+     */
+    protected $gmlNs = 'http://www.opengis.net/gml';
+
+    /**
      * Main event name reflecting the terminology in the particular LIDO records.
      *
      * Key is event type, value is priority (smaller more important).
@@ -339,10 +346,7 @@ class Lido extends \RecordManager\Base\Record\Lido
                 $data['hires_image_str_mv'] = $this->source;
             }
         }
-        $data['location_geo'] = [
-            ...$this->getEventPlaceCoordinates(),
-            ...$this->getRepositoryLocationCoordinates(),
-        ];
+        $data['location_geo'] = $this->getGeoLocations();
         if (!empty($data['location_geo'])) {
             $data['center_coords']
                 = $this->metadataUtils->getCenterCoordinates($data['location_geo']);
@@ -399,12 +403,14 @@ class Lido extends \RecordManager\Base\Record\Lido
      */
     public function getLocations()
     {
+        // Skip geocoding if we already have GML data:
+        if ($this->getGeoLocations()) {
+            return [];
+        }
+
         $subjectLocations = [];
         foreach ($this->getSubjectNodes() as $subject) {
             foreach ($this->xmlDoc->all($subject, 'subjectPlace') as $placeNode) {
-                if ($this->xmlDoc->firstValue($placeNode, 'place/gml')) {
-                    return [];
-                }
                 $hierarchicalLocations = false;
                 foreach ($this->xmlDoc->all($placeNode, 'place') as $place) {
                     if ($result = $this->getHierarchicalLocations($place)) {
@@ -437,9 +443,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ([$this->getMainEvents(), $this->getPlaceEvents()] as $event) {
             foreach ($this->getEventNodes($event) as $eventNode) {
                 foreach ($this->xmlDoc->all($eventNode, 'eventPlace') as $placeNode) {
-                    if ($this->xmlDoc->firstValue($placeNode, 'place/gml')) {
-                        return [];
-                    }
                     $placesFound = false;
                     foreach ($this->xmlDoc->all($placeNode, 'place') as $place) {
                         if ($result = $this->getHierarchicalLocations($place)) {
@@ -468,9 +471,6 @@ class Lido extends \RecordManager\Base\Record\Lido
         foreach ($this->xmlDoc->all(path: $path) as $set) {
             if (!($repositoryLocation = $this->xmlDoc->first($set, 'repositoryLocation'))) {
                 continue;
-            }
-            if ($this->xmlDoc->first($set, 'repositoryLocation/gml')) {
-                return [];
             }
             if ($result = $this->getHierarchicalLocations($repositoryLocation)) {
                 foreach ($result as $location) {
@@ -719,7 +719,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         $result = [];
         foreach ($this->getEventNodes($allEvents ? null : $this->getPlaceEvents()) as $eventNode) {
             foreach ($this->xmlDoc->all($eventNode, 'eventPlace') as $eventPlace) {
-                if (!$excludePlacesWithCoordinates || !$this->xmlDoc->firstValue($eventPlace, 'place/gml')) {
+                if (
+                    !$excludePlacesWithCoordinates
+                    || !$this->convertGmlToWkt($this->xmlDoc->first($eventPlace, 'place/gml'))
+                ) {
                     $result = [
                         ...$result,
                         ...$this->xmlDoc->all($eventPlace, 'place/placeID'),
@@ -729,7 +732,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
         foreach ($this->getSubjectNodes() as $subject) {
             foreach ($this->xmlDoc->all($subject, 'subjectPlace') as $subjectPlace) {
-                if (!$excludePlacesWithCoordinates || !$this->xmlDoc->firstValue($subjectPlace, 'place/gml')) {
+                if (
+                    !$excludePlacesWithCoordinates
+                    || !$this->convertGmlToWkt($this->xmlDoc->first($subjectPlace, 'place/gml'))
+                ) {
                     $result = [
                         ...$result,
                         ...$this->xmlDoc->all($subjectPlace, 'place/placeID'),
@@ -739,7 +745,10 @@ class Lido extends \RecordManager\Base\Record\Lido
         }
         $path = 'lido/descriptiveMetadata/objectIdentificationWrap/repositoryWrap/repositorySet';
         foreach ($this->xmlDoc->all(path: $path) as $set) {
-            if (!$excludePlacesWithCoordinates || !$this->xmlDoc->first($set, 'repositoryLocation/gml')) {
+            if (
+                !$excludePlacesWithCoordinates
+                || !$this->convertGmlToWkt($this->xmlDoc->first($set, 'repositoryLocation/gml'))
+            ) {
                 foreach ($this->xmlDoc->all($set, 'repositoryLocation/placeID') as $placeID) {
                     $type = $this->xmlDoc->attr($placeID, 'type') ?? '';
                     $source = $this->xmlDoc->attr($placeID, 'source') ?? '';
@@ -1332,6 +1341,23 @@ class Lido extends \RecordManager\Base\Record\Lido
     }
 
     /**
+     * Return all positions.
+     *
+     * @return array<int, string> WKT
+     */
+    protected function getGeoLocations(): array
+    {
+        if (isset($this->resultCache[__METHOD__])) {
+            return $this->resultCache[__METHOD__];
+        }
+
+        return $this->resultCache[__METHOD__] = [
+            ...$this->getEventPlaceCoordinates(),
+            ...$this->getRepositoryLocationCoordinates(),
+        ];
+    }
+
+    /**
      * Return the event place coordinates associated with specified event
      *
      * @param string|array $event Event type(s) allowed (null = all types)
@@ -1356,14 +1382,25 @@ class Lido extends \RecordManager\Base\Record\Lido
      *
      * This assumes WSG 84
      *
-     * @param array $gml GML Node
+     * @param ?array $gml GML Node (null allowed for easier usage on XmlDoc return values)
      *
      * @return string WKT
      */
-    protected function convertGmlToWkt(array $gml): string
+    protected function convertGmlToWkt(?array $gml): string
     {
-        if ($polygon = $this->xmlDoc->first($gml, 'Polygon')) {
-            $outerBoundaryCoordinates = $this->xmlDoc->firstValue($polygon, 'outerBoundaryIs/LinearRing/coordinates')
+        if (null === $gml) {
+            return '';
+        }
+        if (
+            ($polygon = $this->xmlDoc->first($gml, "{{$this->gmlNs}}Polygon"))
+            || ($polygon = $this->xmlDoc->first($gml, 'Polygon'))
+        ) {
+            $outerBoundaryCoordinates
+                = $this->xmlDoc->firstValue(
+                    $polygon,
+                    "{{$this->gmlNs}}outerBoundaryIs/{{$this->gmlNs}}LinearRing/{{$this->gmlNs}}coordinates"
+                )
+                ?? $this->xmlDoc->firstValue($polygon, 'outerBoundaryIs/LinearRing/coordinates')
                 ?? '';
             if ('' === $outerBoundaryCoordinates) {
                 $this->logger->logDebug(
@@ -1376,7 +1413,12 @@ class Lido extends \RecordManager\Base\Record\Lido
             }
             $outerBoundary = $this->swapCoordinates($outerBoundaryCoordinates);
 
-            $innerBoundaryCoordinates = $this->xmlDoc->firstValue($polygon, 'innerBoundaryIs/LinearRing/coordinates')
+            $innerBoundaryCoordinates
+                = $this->xmlDoc->firstValue(
+                    $polygon,
+                    "{{$this->gmlNs}}innerBoundaryIs/{{$this->gmlNs}}LinearRing/{{$this->gmlNs}}coordinates"
+                )
+                ?? $this->xmlDoc->firstValue($polygon, 'innerBoundaryIs/LinearRing/coordinates')
                 ?? '';
             $innerBoundary = $innerBoundaryCoordinates ? $this->swapCoordinates($innerBoundaryCoordinates) : '';
 
@@ -1385,8 +1427,15 @@ class Lido extends \RecordManager\Base\Record\Lido
                 : "POLYGON (($outerBoundary))";
         }
 
-        if ($lineString = $this->xmlDoc->first($gml, 'LineString')) {
-            if ('' === ($coordinates = $this->xmlDoc->firstValue($lineString, 'coordinates') ?? '')) {
+        if (
+            ($lineString = $this->xmlDoc->first($gml, "{{$this->gmlNs}}LineString"))
+            || ($lineString = $this->xmlDoc->first($gml, 'LineString'))
+        ) {
+            $coordinates
+                = $this->xmlDoc->firstValue($lineString, "{{$this->gmlNs}}coordinates")
+                ?? $this->xmlDoc->firstValue($lineString, 'coordinates')
+                ?? '';
+            if ('' === $coordinates) {
                 $this->logger->logDebug(
                     'Lido',
                     'GML LineString missing coordinates, record '
@@ -1399,16 +1448,25 @@ class Lido extends \RecordManager\Base\Record\Lido
             return "LINESTRING ($coordinates)";
         }
 
-        if ($point = $this->xmlDoc->first($gml, 'Point')) {
+        if (
+            ($point = $this->xmlDoc->first($gml, "{{$this->gmlNs}}Point"))
+            || ($point = $this->xmlDoc->first($gml, 'Point'))
+        ) {
             $lat = null;
             $lon = null;
-            if ($pos = $this->xmlDoc->firstValue($point, 'pos')) {
+            if (
+                ($pos = $this->xmlDoc->firstValue($point, "{{$this->gmlNs}}pos"))
+                || ($pos = $this->xmlDoc->firstValue($point, 'pos'))
+            ) {
                 $latlon = explode(' ', $pos, 2);
                 if (isset($latlon[1])) {
                     $lat = $latlon[0];
                     $lon = $latlon[1];
                 }
-            } elseif ($coordinates = $this->xmlDoc->firstValue($point, 'coordinates')) {
+            } elseif (
+                ($coordinates = $this->xmlDoc->firstValue($point, "{{$this->gmlNs}}coordinates"))
+                || ($coordinates = $this->xmlDoc->firstValue($point, 'coordinates'))
+            ) {
                 $latlon = explode(',', $coordinates, 2);
                 if (isset($latlon[1])) {
                     $lat = $latlon[0];
