@@ -1,0 +1,431 @@
+<?xml version="1.0"?>
+<dc schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+  <identifier>oai:aineistopaketit.finna.fi:6888</identifier>
+  <title lang="fi">Moottorisahat mets&#xE4;ty&#xF6;n v&#xE4;lineen&#xE4; Suomessa</title>
+  <date>2025-10-08T12:09:17Z</date>
+  <description lang="fi">Ennen moottorisahaa puiden kaataminen ja katkominen tehtiin k&#xE4;sisahoilla ja kirveill&#xE4;, mik&#xE4; oli hidasta ja fyysisesti raskasta.</description>
+  <description format="image/jpeg">https://aineistopaketit.finna.fi/image.jpg</description>
+  <creator>Lusto &#x2013; Suomen Mets&#xE4;museo</creator>
+  <language>fi</language>
+  <type>aipa-research</type>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p10489" lang="fi">moottorisahat</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p10489" lang="sv">motors&#xE5;gar</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p10489" lang="se">mohtorsah&#xE1;t</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p10489" lang="en">chain saws</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p2982" lang="fi">mets&#xE4;ty&#xF6;</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p2982" lang="sv">skogsarbete</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p2982" lang="se">vuovdebargu</subject>
+  <subject source="yso" identifier="http://www.yso.fi/onto/yso/p2982" lang="en">forest work</subject>
+  <provenance>Suomen Mets&#xE4;museo Lustossa on laaja moottorisahojen kokoelma ja lis&#xE4;ksi muuta moottoorisahoihin liittyv&#xE4;&#xE4; aineistoa</provenance>
+  <curatedRecords>
+    <identifier>oai:aineistopaketit.finna.fi:6887</identifier>
+    <name>Ensimm&#xE4;isi&#xE4; moottoroituja sahoja</name>
+    <description>Mets&#xE4;t&#xF6;ihin yritettiin jo varhain kehitt&#xE4;&#xE4; moottoroituja sahoja.</description>
+    <additionalType>content</additionalType>
+    <position>0</position>
+    <display>grid</display>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Arbor-puunkaatokone</name>
+      <url>https://finna.fi/Record/lusto.knp-8869?sid=5152553213</url>
+      <position>0</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-8869</identifier>
+      <comment>Ensimm&#xE4;inen suomalainen moottorisahaksi luokiteltava laite oli Arbor-puunkaatokone, jonka kehitti kapteeni Robert Lagus.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Sally-moottorisaha; nro 03824</name>
+      <url>https://finna.fi/Record/lusto.knp-10863?sid=5155617590</url>
+      <position>1</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-10863</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Comet -moottorisaha.</name>
+      <url>https://finna.fi/Record/lusto.knp-117201?sid=5155570178</url>
+      <position>2</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-117201</identifier>
+      <comment>Norjalainen dieselmoottorilla varustettu Comet oli aikanaan (1949) kilpailijoihinsa verrattuna poikkeuksellisen kevyt painaessaan vain 8,5 kg.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kahden miehen s&#xE4;hk&#xF6;saha; SSK-III; SSK-III-75</name>
+      <url>https://finna.fi/Record/lusto.knp-9221?sid=5157336731</url>
+      <position>3</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-9221</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kahden miehen moottorisaha; Stihl KS 43; Stihl KS 43</name>
+      <url>https://finna.fi/Record/lusto.knp-9220?sid=5152580678</url>
+      <position>4</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-9220</identifier>
+      <comment>Saksalaisen perheyritys Stihlin perustaja Andreas Stihl oli yksi moottorisahan kehityksen uranuurtajista 1920-luvulla.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Stihl BL; Stihl BL-20</name>
+      <url>https://finna.fi/Record/lusto.knp-9114?sid=5155630745</url>
+      <position>5</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-9114</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">"Tsekkil&#xE4;ist&#xE4; moottorisahaa esitell&#xE4;&#xE4;n Str&#xF6;mforsin metsiss&#xE4; v. 1929" (alkup. kuvateksti).</name>
+      <url>https://finna.fi/Record/lusto.knp-137610?sid=5157331019</url>
+      <position>6</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-137610</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">"Puun katkaisu ja p&#xF6;lkytt&#xE4;minen moottorisahalla." (alkuper&#xE4;inen teksti kuvan takana). Kuva on otettu sahan esittelytilanteessa.</name>
+      <url>https://finna.fi/Record/lusto.knp-137726?sid=5157330008</url>
+      <position>7</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-137726</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kaksi savottaty&#xF6;l&#xE4;ist&#xE4; k&#xE4;ytt&#xE4;v&#xE4;t kahden miehen moottorisahaa.</name>
+      <url>https://finna.fi/Record/lusto.knp-283932?sid=5157328256</url>
+      <position>8</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-283932</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Mies katkaisee puun runkoa Sally -moottorisahalla.</name>
+      <url>https://finna.fi/Record/lusto.knp-126583?sid=5157332270</url>
+      <position>9</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-126583</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Miehet kaatavat puuta ranskalaisella Quick -moottorisahalla. Sahaukseen on tarvittu kaksi miest&#xE4;.</name>
+      <url>https://finna.fi/Record/lusto.knp-117103?sid=5157333200</url>
+      <position>10</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-117103</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Mies kaataa m&#xE4;nty&#xE4; moottorisahalla.</name>
+      <url>https://finna.fi/Record/lusto.knp-126746?sid=5157344285</url>
+      <position>11</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-126746</identifier>
+      <comment/>
+    </curatedRecord>
+  </curatedRecords>
+  <curatedRecords>
+    <identifier>oai:aineistopaketit.finna.fi:6903</identifier>
+    <name>Suomessa suosittuja moottorisahoja ja niiden valmistajia muualta maailmalta</name>
+    <description>Seuraavassa esitell&#xE4;&#xE4;n joitakin esimerkkej&#xE4; moottorisahoista, jotka olivat aikanaan suosittuja Suomessa</description>
+    <additionalType>content</additionalType>
+    <position>1</position>
+    <display>grid</display>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Dolmar CF; Dolmar CF</name>
+      <url>https://finna.fi/Record/lusto.knp-6100?sid=5153951378</url>
+      <position>0</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6100</identifier>
+      <comment>Stihlin rinnalla my&#xF6;s saksalainen Dolmar (my&#xF6;hemmin Sachs-Dolmar) on aloittanut kehitysty&#xF6;ns&#xE4; 1920-luvulla</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Partner C6</name>
+      <url>https://finna.fi/Record/lusto.knp-14303?sid=5155667444</url>
+      <position>1</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-14303</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Raket XD</name>
+      <url>https://finna.fi/Record/lusto.knp-6058?sid=5155641455</url>
+      <position>2</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6058</identifier>
+      <comment>Niin ik&#xE4;&#xE4;n ruotsalainen Jonsereds Fabrikers Ab &#x2013;teollisuusyritys aloitti kankaiden ja erilaisten tekstiilijalosteiden parissa</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; McCulloch 1-51</name>
+      <url>https://finna.fi/Record/lusto.knp-13782?sid=5155632929</url>
+      <position>3</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-13782</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; McCulloch Mac 15; McCulloch Mac 15</name>
+      <url>https://finna.fi/Record/lusto.knp-6148?sid=5157362411</url>
+      <position>4</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6148</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Homelite EZ; Homelite EZ</name>
+      <url>https://finna.fi/Record/lusto.knp-6095?sid=5155635893</url>
+      <position>5</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6095</identifier>
+      <comment>1960-luvun puoliv&#xE4;liin menness&#xE4; yhdysvaltalainen Homelite oli noussut yhdeksi maailman suurimmista moottorisahavalmistajista.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Homelite Zip; Homelite Zip</name>
+      <url>https://finna.fi/Record/lusto.knp-6031?sid=5155635893</url>
+      <position>6</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6031</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Husqvarna 77?; Husqvarna 77?</name>
+      <url>https://finna.fi/Record/lusto.knp-6122?sid=5155646405</url>
+      <position>7</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6122</identifier>
+      <comment>Moni sittemmin moottorisahoistaan tunnettu yritys on alkujaan valmistanut jotain aivan muuta, ja esimerkiksi ruotsalaisen Husqvarnan tarina alkaa vuodesta 1689.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Husqvarna F 70; Husqvarna F 70</name>
+      <url>https://finna.fi/Record/lusto.knp-8965?sid=5155646405</url>
+      <position>8</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-8965</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Partner S55; Partner S55</name>
+      <url>https://finna.fi/Record/lusto.knp-15952?sid=5157306899</url>
+      <position>9</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-15952</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; S&#xE4;hk&#xF6;saha</name>
+      <url>https://finna.fi/Record/lusto.knp-6084?sid=5155658078</url>
+      <position>10</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6084</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Jonsered 525</name>
+      <url>https://finna.fi/Record/lusto.knp-6060?sid=5155645085</url>
+      <position>11</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-6060</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Stihl 026 C; Stihl 026 C</name>
+      <url>https://finna.fi/Record/lusto.knp-9310?sid=5155670729</url>
+      <position>12</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-9310</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Metsuri nojailee v&#xE4;nk&#xE4;rill&#xE4; kuusitukkiin.</name>
+      <url>https://finna.fi/Record/lusto.knp-284664?sid=5157325874</url>
+      <position>13</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-284664</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Enso-Gutzeit Oy:n metsuri ty&#xF6;v&#xE4;lineineen. Vasemmalla kaatorauta, oikealla moottorisaha.</name>
+      <url>https://finna.fi/Record/lusto.knp-160601?sid=5155908188</url>
+      <position>14</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-160601</identifier>
+      <comment/>
+    </curatedRecord>
+  </curatedRecords>
+  <curatedRecords>
+    <identifier>oai:aineistopaketit.finna.fi:6935</identifier>
+    <name>Suomalaisia moottorisahoja</name>
+    <description>Helsinkil&#xE4;isen Ab Arwidson &amp; Co Oy:n valmistama Tapio-puunkaatokone</description>
+    <additionalType>content</additionalType>
+    <position>2</position>
+    <display>grid</display>
+    <curatedRecord>
+      <name lang="fi">S&#xE4;hk&#xF6;saha; SSK-II "Kita"</name>
+      <url>https://www.finna.fi/Record/lusto.knp-8865?sid=5155602470</url>
+      <position>0</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-8865</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Hyry PS 91; Hyry PS 91</name>
+      <url>https://finna.fi/Record/lusto.knp-8698?sid=5155722494</url>
+      <position>1</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-8698</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Hyry PS 91 C</name>
+      <url>https://finna.fi/Record/lusto.knp-14316?sid=5155722494</url>
+      <position>2</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-14316</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Hyry 24; Hyry 24</name>
+      <url>https://finna.fi/Record/lusto.knp-8758?sid=5155722494</url>
+      <position>3</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-8758</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha; Moottorisaha Termit</name>
+      <url>https://finna.fi/Record/lusto.knp-15954?sid=5155602122</url>
+      <position>4</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-15954</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Mies kaatamassa puuta Hyry 10 -moottorisahalla.</name>
+      <url>https://finna.fi/Record/lusto.knp-116933?sid=5157360968</url>
+      <position>5</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-116933</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kaksi metsuria tauolla nuotiolla. Miehet juovat kahvia, miesten v&#xE4;liss&#xE4; on moottorisaha. "Kahvitauko" (kuvaajan oma teksti).</name>
+      <url>https://finna.fi/Record/lusto.knp-170588?sid=5157864809</url>
+      <position>6</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-170588</identifier>
+      <comment/>
+    </curatedRecord>
+  </curatedRecords>
+  <curatedRecords>
+    <identifier>oai:aineistopaketit.finna.fi:6946</identifier>
+    <name>Mets&#xE4;ty&#xF6;n muuttuneet sukupuoliroolit</name>
+    <description>Ammatit ja ty&#xF6;t ovat etenkin ennen usein leimautuneet sukupuolen mukaan.</description>
+    <additionalType>content</additionalType>
+    <position>3</position>
+    <display>grid</display>
+    <curatedRecord>
+      <name lang="fi">Savotan ty&#xF6;ntekij&#xF6;it&#xE4; k&#xE4;mp&#xE4;ss&#xE4; p&#xF6;yd&#xE4;n &#xE4;&#xE4;ress&#xE4;.</name>
+      <url>https://finna.fi/Record/lusto.knp-86444?sid=5155889858</url>
+      <position>0</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-86444</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Taulu; Sein&#xE4;taulu, mainoskuva</name>
+      <url>https://finna.fi/Record/lusto.knp-5603?sid=5155651967</url>
+      <position>1</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-5603</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">McCULLOCH-mainos&#x200E; (1967)</name>
+      <url>https://finna.fi/Record/elka.143409868787500_169806217597200?sid=5156324543</url>
+      <position>2</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>elka.143409868787500_169806217597200</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Hankkija-lippalakkiin pukeutunut nainen katkoo pient&#xE4; puuta Jobu SL21 moottorisahalla.</name>
+      <url>https://finna.fi/Record/lusto.knp-137268?sid=5155889858</url>
+      <position>3</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-137268</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kuvaajan mets&#xE4;suhde: "Papan metsien hoitoa ja siin&#xE4; samalla tulee hoidettua itse&#xE4;nikin &lt;3"</name>
+      <url>https://finna.fi/Record/lusto.knp-172664?sid=5155656671</url>
+      <position>4</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-172664</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Kuvaajan mets&#xE4;suhde: "Papan metsien hoitoa ja siin&#xE4; samalla tulee hoidettua itse&#xE4;nikin &lt;3"</name>
+      <url>https://finna.fi/Record/lusto.knp-172663?sid=5155910192</url>
+      <position>5</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-172663</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Ella Hautaviita kaataa kuusta Saksassa</name>
+      <url>https://finna.fi/Record/lusto.knp-284699?sid=5155912574</url>
+      <position>6</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-284699</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Ella Hautaviita kaatoty&#xF6;maalla mets&#xE4;ss&#xE4; Saksassa</name>
+      <url>https://finna.fi/Record/lusto.knp-284700?sid=5157149144&amp;imgid=1</url>
+      <position>7</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-284700</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Tauko puunkaadon lomassa lopputalven mets&#xE4;maisemassa Porissa</name>
+      <url>https://finna.fi/Record/lusto.knp-284697?sid=5157316346</url>
+      <position>8</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>lusto.knp-284697</identifier>
+      <comment/>
+    </curatedRecord>
+  </curatedRecords>
+  <curatedRecords>
+    <identifier>oai:aineistopaketit.finna.fi:6897</identifier>
+    <name>Kirjallisuutta aiheesta</name>
+    <description/>
+    <additionalType>sources</additionalType>
+    <position>4</position>
+    <display>grid</display>
+    <curatedRecord>
+      <name lang="fi">Moottorisaha sata vuotta Suomessa</name>
+      <url>https://finna.fi/Record/blanka.fb1e3e9d-c702-4f20-a19a-331dececf91f?sid=5182971143</url>
+      <position>0</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>blanka.fb1e3e9d-c702-4f20-a19a-331dececf91f</identifier>
+      <comment/>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Vuosilusto. 2002-2003</name>
+      <url>https://finna.fi/Record/kainet.795811?sid=5153941064</url>
+      <position>1</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>kainet.795811</identifier>
+      <comment>Lehonkoski, Pekka 2004. Arbor, Gerber, Sector ja Tapio. Moottorisahojen pioneerikausi Suomessa. Vuosilusto 2002&#x2013;2003, s. 109&#x2013;118.</comment>
+    </curatedRecord>
+    <curatedRecord>
+      <name lang="fi">Mets&#xE4; ja kuva</name>
+      <url>https://finna.fi/Record/helka.9926388683506253?sid=5153942795</url>
+      <position>2</position>
+      <inLanguage>fi</inLanguage>
+      <identifier>helka.9926388683506253</identifier>
+      <comment>Lehonkoski, Pekka 2014. _Sarvi-Stihl ja Sininen Super. Moottorisahojen murroskausi ja sen kuvamaailma 1945&#x2013;1961._ Vuosilusto 10, s. 82&#x2013;93</comment>
+    </curatedRecord>
+  </curatedRecords>
+  <additionalInformation>Valtaosa Suomen Mets&#xE4;museo Luston kokoelman moottorisahoista sijoittuu 1960-80-luvuille.</additionalInformation>
+  <feedbackOrganization>182</feedbackOrganization>
+  <recordID>node-6888</recordID>
+</dc>
