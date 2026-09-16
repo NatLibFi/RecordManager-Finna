@@ -2013,6 +2013,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     'p', 'r', 's', 't',
                 ]],
                 [MarcHandler::GET_BOTH, '740', ['a']],
+                [MarcHandler::GET_BOTH, '774', ['t']],
                 // 979b = component part title
                 [MarcHandler::GET_BOTH, '979', ['b']],
                 // 979e = component part uniform title
@@ -2303,6 +2304,9 @@ class Marc extends \RecordManager\Base\Record\Marc
             '773' => [
                 '0', '4', '6', '7', '8', 'g', 'q',
                 'w',
+            ],
+            '774' => [
+                'i', '9',
             ],
             '787' => ['i'],
             // Koha serial enumerations
