@@ -48,6 +48,18 @@
         <subfield code="2">yso/fin</subfield>
         <subfield code="0">http://www.yso.fi/onto/yso/p8471</subfield>
     </datafield>
+    <datafield tag="774" ind1="0">
+        <subfield code="i">Yhteensidottuna:</subfield>
+        <subfield code="t">Studies towards an elephant utopia</subfield>
+        <subfield code="w">997807363506253</subfield>
+        <subfield code="9">unrelated</subfield>
+    </datafield>
+    <datafield tag="774" ind1="0">
+        <subfield code="i">Yhteensidottuna:</subfield>
+        <subfield code="t">On the sources of mighty mammoths</subfield>
+        <subfield code="w">997807363506253</subfield>
+        <subfield code="9">unrelated</subfield>
+    </datafield>
     <datafield tag="920" ind1=" " ind2=" ">
         <subfield code="a">AMK-opinnäytetyö :</subfield>
         <subfield code="c">Sample Program,</subfield>
