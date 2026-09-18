@@ -456,7 +456,9 @@ class Qdc extends AbstractRecord
     {
         $allFields = [];
         foreach ($this->doc->children() as $field) {
-            $allFields[] = trim((string)$field);
+            if ($trimmed = trim((string)$field)) {
+                $allFields[] = $trimmed;
+            }
         }
         return $allFields;
     }

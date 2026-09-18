@@ -426,7 +426,6 @@ class SolrUpdaterTest extends \PHPUnit\Framework\TestCase
                 'free_online_boolean' => '1',
                 'free_online_str_mv' => 'Snerpaloosi Instiploop',
                 'identifier' => 'Test identifier',
-                'material' => "\n      \n    ",
                 'usage_rights_str_mv' => ['CC BY 4.0'],
                 'usage_rights_ext_str_mv' => ['CC BY 4.0'],
                 'author_facet' => ['Kralloo Mipsten'],

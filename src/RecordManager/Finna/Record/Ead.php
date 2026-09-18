@@ -176,8 +176,8 @@ class Ead extends \RecordManager\Base\Record\Ead
             $data['measurements'] = (string)$doc->did->dimensions;
         }
 
-        if (isset($doc->did->physdesc)) {
-            $data['material'] = (string)$doc->did->physdesc;
+        if ('' !== ($material = trim((string)($doc->did->physdesc ?? '')))) {
+            $data['material'] = $material;
         }
 
         if (isset($doc->did->userestrict->p)) {
