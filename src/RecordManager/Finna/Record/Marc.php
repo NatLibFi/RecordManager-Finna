@@ -1727,6 +1727,9 @@ class Marc extends \RecordManager\Base\Record\Marc
         };
         if ('r' === $typeOfRecord) {
             $visualType = substr($field008, 33, 1);
+            if ($termIn655('palapelit')) {
+                return 'JigsawPuzzle';
+            }
             if ('g' === $visualType || $termIn655('lautapelit')) {
                 return 'BoardGame';
             }
@@ -1809,8 +1812,12 @@ class Marc extends \RecordManager\Base\Record\Marc
                             return 'Print';
                         case 'G':
                             return 'Photonegative';
+                        case 'I':
+                            return 'Image';
                         case 'J':
                             return 'Print';
+                        case 'K':
+                            return 'Poster';
                         case 'L':
                             return 'TechnicalDrawing';
                         case 'O':
