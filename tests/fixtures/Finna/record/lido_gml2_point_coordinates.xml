@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<lido:lidoWrap xmlns:lido="http://www.lido-schema.org" xmlns:gml="http://www.opengis.net/gml">
+  <lido:lido>
+    <lido:lidoRecID lido:type="item">testimuseo-630</lido:lidoRecID>
+    <lido:descriptiveMetadata xml:lang="fi">
+      <lido:objectIdentificationWrap>
+        <lido:repositoryWrap>
+          <lido:repositorySet>
+            <lido:repositoryLocation>
+              <lido:gml>
+                <gml:Point>
+                  <gml:coordinates>  60.187796179482426,24.983517601821166  </gml:coordinates>
+                </gml:Point>
+              </lido:gml>
+            </lido:repositoryLocation>
+          </lido:repositorySet>
+        </lido:repositoryWrap>
+        <lido:titleWrap>
+          <lido:titleSet lido:type="title">
+            <lido:appellationValue lido:pref="preferred">GML Tester</lido:appellationValue>
+          </lido:titleSet>
+        </lido:titleWrap>
+      </lido:objectIdentificationWrap>
+    </lido:descriptiveMetadata>
+  </lido:lido>
+</lido:lidoWrap>

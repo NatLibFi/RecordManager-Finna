@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<lidoWrap>
+  <lido>
+    <lidoRecID type="item">testimuseo-630</lidoRecID>
+    <descriptiveMetadata xml:lang="fi">
+      <objectIdentificationWrap>
+        <repositoryWrap>
+          <repositorySet>
+            <repositoryLocation>
+              <gml>
+                <Point>
+                  <coordinates>  60.187796179482426,24.983517601821166  </coordinates>
+                </Point>
+              </gml>
+            </repositoryLocation>
+          </repositorySet>
+        </repositoryWrap>
+        <titleWrap>
+          <titleSet type="title">
+            <appellationValue pref="preferred">GML Tester Without Namespaces</appellationValue>
+          </titleSet>
+        </titleWrap>
+      </objectIdentificationWrap>
+    </descriptiveMetadata>
+  </lido>
+</lidoWrap>

@@ -4,7 +4,7 @@
  *
  * PHP version 8
  *
- * Copyright (C) Ere Maijala 2021.
+ * Copyright (C) The National Library of Finland 2021-2026.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -32,9 +32,6 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 define('RECMAN_BASE_PATH', getenv('RECMAN_BASE_PATH') ?: __DIR__);
-$app = Laminas\Mvc\Application::init(
-    include RECMAN_BASE_PATH . '/conf/application.config.php'
-);
-$sm = $app->getServiceManager();
-$provider = $sm->get(\RecordManager\Base\Controller\OaiPmhProvider::class);
+$serviceManager = require __DIR__ . '/conf/container.php';
+$provider = $serviceManager->get(\RecordManager\Base\Controller\OaiPmhProvider::class);
 $provider->launch();

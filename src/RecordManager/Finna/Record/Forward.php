@@ -315,6 +315,7 @@ class Forward extends \RecordManager\Base\Record\Forward
             $name = (string)$agent->AgentName;
             if (empty($name)) {
                 $attrName = 'elokuva-elokreditoimatontekija-nimi';
+                // @phpstan-ignore-next-line
                 $attrs = $agent->AgentName->attributes();
                 if (!empty($attrs->{$attrName})) {
                     $name = (string)$attrs->{$attrName};

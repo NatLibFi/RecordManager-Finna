@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<lido:lidoWrap xmlns:lido="http://www.lido-schema.org" xmlns:gml="http://www.opengis.net/gml">
+  <lido:lido>
+    <lido:lidoRecID lido:type="item">testimuseo-630</lido:lidoRecID>
+    <lido:descriptiveMetadata xml:lang="fi">
+      <lido:objectIdentificationWrap>
+        <lido:titleWrap>
+          <lido:titleSet lido:type="title">
+            <lido:appellationValue lido:pref="preferred">Location Without GML</lido:appellationValue>
+          </lido:titleSet>
+        </lido:titleWrap>
+      </lido:objectIdentificationWrap>
+      <lido:objectRelationWrap>
+        <lido:subjectWrap>
+          <lido:subjectSet>
+            <lido:subject>
+              <lido:subjectPlace>
+                <lido:displayPlace>Helsinki, Finland</lido:displayPlace>
+              </lido:subjectPlace>
+            </lido:subject>
+          </lido:subjectSet>
+        </lido:subjectWrap>
+        <lido:subjectWrap>
+          <lido:subjectSet>
+            <lido:subject>
+              <lido:subjectPlace>
+                <lido:displayPlace>Mööjärvi<!-- This is too vague! --></lido:displayPlace>
+              </lido:subjectPlace>
+            </lido:subject>
+          </lido:subjectSet>
+        </lido:subjectWrap>
+      </lido:objectRelationWrap>
+    </lido:descriptiveMetadata>
+  </lido:lido>
+</lido:lidoWrap>

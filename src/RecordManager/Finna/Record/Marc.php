@@ -1727,6 +1727,9 @@ class Marc extends \RecordManager\Base\Record\Marc
         };
         if ('r' === $typeOfRecord) {
             $visualType = substr($field008, 33, 1);
+            if ($termIn655('palapelit')) {
+                return 'JigsawPuzzle';
+            }
             if ('g' === $visualType || $termIn655('lautapelit')) {
                 return 'BoardGame';
             }
@@ -1809,8 +1812,12 @@ class Marc extends \RecordManager\Base\Record\Marc
                             return 'Print';
                         case 'G':
                             return 'Photonegative';
+                        case 'I':
+                            return 'Image';
                         case 'J':
                             return 'Print';
+                        case 'K':
+                            return 'Poster';
                         case 'L':
                             return 'TechnicalDrawing';
                         case 'O':
@@ -2013,6 +2020,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     'p', 'r', 's', 't',
                 ]],
                 [MarcHandler::GET_BOTH, '740', ['a']],
+                [MarcHandler::GET_BOTH, '774', ['t']],
                 // 979b = component part title
                 [MarcHandler::GET_BOTH, '979', ['b']],
                 // 979e = component part uniform title
@@ -2304,6 +2312,9 @@ class Marc extends \RecordManager\Base\Record\Marc
                 '0', '4', '6', '7', '8', 'g', 'q',
                 'w',
             ],
+            '774' => [
+                'i', '9',
+            ],
             '787' => ['i'],
             // Koha serial enumerations
             '952' => ['a', 'b', 'c', 'o'],
@@ -2552,6 +2563,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '610', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '611', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '630', ['a', 'x']],
+                [MarcHandler::GET_NORMAL, '647', ['a']],
                 [MarcHandler::GET_NORMAL, '648', ['x']],
                 [MarcHandler::GET_NORMAL, '650', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '651', ['x']],
@@ -2586,6 +2598,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [MarcHandler::GET_NORMAL, '385', ['a']],
                     [MarcHandler::GET_NORMAL, '356', ['a']],
                     [MarcHandler::GET_NORMAL, '567', ['b']],
+                    [MarcHandler::GET_NORMAL, '647', ['a']],
                     [MarcHandler::GET_BOTH, '690', [
                         'a', 'b', 'c', 'd', 'e', 'v', 'x', 'y', 'z',
                     ]],

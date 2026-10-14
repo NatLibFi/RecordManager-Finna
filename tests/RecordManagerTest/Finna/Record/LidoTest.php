@@ -32,6 +32,7 @@
 
 namespace RecordManagerTest\Finna\Record;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use RecordManager\Finna\Record\Lido;
 
 /**
@@ -84,6 +85,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('pannut', $fields['topic']);
         $this->assertContains('kahvipannut', $fields['topic']);
         $this->assertContains('Toimija, Toini', $fields['topic']);
+        $this->assertContains('http://www.yso.fi/onto/yso/p4847', $fields['topic_id_str_mv']);
+        $this->assertContains('http://www.yso.fi/onto/yso/p4277', $fields['topic_id_str_mv']);
 
         $this->assertEquals('kahvipannu', $fields['title']);
 
@@ -119,6 +122,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
         $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
+        $this->assertContains('Undefined rights', $fields['usage_rights_str_mv']);
+        $this->assertContains('https://rightsstatements.org/vocab/InC/1.0/', $fields['usage_rights_str_mv']);
     }
 
     /**
@@ -316,10 +321,10 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'free_online_str_mv' => '__unit_test_no_source__',
             'location_geo' => [],
             'usage_rights_str_mv' => [
-                '',
+                'restricted',
             ],
             'usage_rights_ext_str_mv' => [
-                '',
+                'restricted',
             ],
             'author_facet' => [
                 'Testaaja, Taavi',
@@ -752,5 +757,114 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('Puuttuvien testien kokoelma', $fields['allfields']);
         $this->assertContains('testi-418 Testi joka puuttui', $fields['allfields']);
         $this->assertEquals('Testiarkisto', $fields['collection']);
+    }
+
+    /**
+     * Data provider for testGml.
+     *
+     * @return \Generator
+     */
+    public static function gmlProvider(): \Iterator
+    {
+        $point = 'POINT (24.983517601821166 60.187796179482426)';
+        $polygon = 'POLYGON ((20.0 40.0,20.0 40.0,10.0 20.0,10.0 20.0,20.0 20.0)'
+            . ',(25.0 35.0,25.0 35.0,15.0 25.0,15.0 25.0,25.0 25.0))';
+
+        yield [
+            'lido_gml2_point_pos.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_point_coordinates.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_polygon.xml',
+            [$polygon],
+        ];
+
+        yield [
+            'lido_gml2_nons_point_pos.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_nons_point_coordinates.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_nons_polygon.xml',
+            [$polygon],
+        ];
+    }
+
+    /**
+     * Test geographic locations.
+     *
+     * @param string $filename Record to test
+     * @param array  $expected Expected location data
+     *
+     * @return void
+     */
+    #[DataProvider('gmlProvider')]
+    public function testGml(string $filename, array $expected): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            $filename,
+            [],
+            'Finna'
+        );
+        $this->assertSame(
+            $expected,
+            $record->toSolrArray()['location_geo']
+        );
+    }
+
+    /**
+     * Data provider for testLocationsForEnrichment.
+     *
+     * @return \Generator
+     */
+    public static function locationsForEnrichmentProvider(): \Iterator
+    {
+        yield [
+            'lido_location_without_gml.xml',
+            [
+                'primary' => ['Helsinki, Finland'],
+                'secondary' => [],
+            ],
+        ];
+
+        yield [
+            'lido_location_with_gml.xml',
+            [],
+        ];
+    }
+
+    /**
+     * Test locations for enrichment.
+     *
+     * @param string $filename Record to test
+     * @param array  $expected Expected locations
+     *
+     * @return void
+     */
+    #[DataProvider('locationsForEnrichmentProvider')]
+    public function testLocationsForEnrichment(string $filename, array $expected): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            $filename,
+            [],
+            'Finna'
+        );
+        $this->assertSame(
+            $expected,
+            ($record instanceof Lido) ? $record->getLocations() : []
+        );
     }
 }
