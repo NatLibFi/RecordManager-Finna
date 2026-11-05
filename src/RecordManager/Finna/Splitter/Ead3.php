@@ -65,6 +65,33 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
     protected $archiveType = 'archive';
 
     /**
+     * Whether to check for online descendants
+     *
+     * @var bool
+     */
+    protected $checkOnlineDescendants = false;
+
+    /**
+     * Records with online material in their subtree, keyed by record position.
+     *
+     * @var array<int, bool>
+     */
+    protected array $onlineDescendants = [];
+
+    /**
+     * Initializer
+     *
+     * @param array $params Splitter configuration
+     *
+     * @return void
+     */
+    public function init(array $params): void
+    {
+        parent::init($params);
+        $this->checkOnlineDescendants = $params['checkOnlineDescendants'] ?? false;
+    }
+
+    /**
      * Set metadata
      *
      * @param string $data EAD XML
@@ -75,6 +102,77 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
     {
         parent::setData($data);
         $this->archiveType = $this->getArchiveType();
+        if ($this->checkOnlineDescendants) {
+            $this->onlineDescendants = [];
+            $recordIndex = 0;
+            $this->checkOnlineDescendants($this->doc->archdesc, $recordIndex);
+        }
+    }
+
+    /**
+     * Check whether a record or any of its descendants have online material
+     *
+     * @param \SimpleXMLElement $node        EAD3 node
+     * @param int               $recordIndex Current record index
+     * @param bool              $insideDsc   Whether inside the component tree
+     *
+     * @return bool Whether this record or any descendant record has online data
+     */
+    protected function checkOnlineDescendants(
+        \SimpleXMLElement $node,
+        int &$recordIndex,
+        bool $insideDsc = false
+    ): bool {
+        $isArchdesc = $node->getName() === 'archdesc';
+        $insideDsc = $insideDsc || $node->getName() === 'dsc';
+
+        $isRecord = $isArchdesc
+            || ($insideDsc && isset($node->attributes()->level));
+
+        $currentRecordIndex = $isRecord ? $recordIndex++ : null;
+
+        $hasOnline = $isRecord && $this->hasOnlineData($node);
+        foreach ($node->children() as $child) {
+            if (
+                $this->checkOnlineDescendants(
+                    $child,
+                    $recordIndex,
+                    $insideDsc
+                )
+            ) {
+                $hasOnline = true;
+            }
+        }
+
+        if ($isRecord && $hasOnline && $currentRecordIndex) {
+            $this->onlineDescendants[$currentRecordIndex] = true;
+        }
+
+        return $hasOnline;
+    }
+
+    /**
+     * Check whether a record has online material.
+     *
+     * @param \SimpleXMLElement $node EAD3 record node
+     *
+     * @return bool
+     */
+    protected function hasOnlineData(\SimpleXMLElement $node): bool
+    {
+        foreach ($node->did->dao ?? [] as $dao) {
+            if (trim((string)$dao->attributes()->href) !== '') {
+                return true;
+            }
+        }
+
+        foreach ($node->did->daoset->dao ?? [] as $dao) {
+            if (trim((string)$dao->attributes()->href) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -153,6 +251,9 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
     {
         parent::addAdditionalData($record, $original);
         $record->{'add-data'}->archive->addAttribute('type', $this->archiveType);
+        if ($this->checkOnlineDescendants && isset($this->onlineDescendants[$this->currentPos - 1])) {
+            $record->{'add-data'}->addAttribute('onlineDescendants', '1');
+        }
     }
 
     /**
