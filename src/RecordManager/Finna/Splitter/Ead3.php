@@ -144,7 +144,7 @@ class Ead3 extends \RecordManager\Base\Splitter\Ead3
             }
         }
 
-        if ($isRecord && $hasOnline && $currentRecordIndex) {
+        if ($isRecord && $hasOnline && ($currentRecordIndex !== null)) {
             $this->onlineDescendants[$currentRecordIndex] = true;
         }
 
