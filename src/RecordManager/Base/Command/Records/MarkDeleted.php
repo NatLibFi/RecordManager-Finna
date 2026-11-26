@@ -112,6 +112,7 @@ class MarkDeleted extends AbstractBase
                 ? Command::SUCCESS : Command::FAILURE;
         }
 
+        // @phpstan-ignore-next-line
         if (empty($sourceId)) {
             $this->logger
                 ->logInfo('markDeleted', "Marking record $singleId deleted");

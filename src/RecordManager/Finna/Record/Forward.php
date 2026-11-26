@@ -193,6 +193,8 @@ class Forward extends \RecordManager\Base\Record\Forward
         $data['subtitle_lng_str_mv']
             = $this->metadataUtils->normalizeLanguageStrings($subtitles);
 
+        $data['color_str_mv'] = $this->getColors();
+
         return $data;
     }
 
@@ -285,6 +287,16 @@ class Forward extends \RecordManager\Base\Record\Forward
     }
 
     /**
+     * Return colors.
+     *
+     * @return array
+     */
+    protected function getColors(): array
+    {
+        return $this->getProductionEventAttribute('elokuva-alkupvari');
+    }
+
+    /**
      * Get all authors or authors by relator codes.
      *
      * @param array $relators List of allowed relators, or an empty list
@@ -303,6 +315,7 @@ class Forward extends \RecordManager\Base\Record\Forward
             $name = (string)$agent->AgentName;
             if (empty($name)) {
                 $attrName = 'elokuva-elokreditoimatontekija-nimi';
+                // @phpstan-ignore-next-line
                 $attrs = $agent->AgentName->attributes();
                 if (!empty($attrs->{$attrName})) {
                     $name = (string)$attrs->{$attrName};
@@ -368,7 +381,7 @@ class Forward extends \RecordManager\Base\Record\Forward
         $result = $this->getProductionEventAttribute('elokuva-genre');
 
         foreach ($this->getMainElement()->ProductionEvent as $event) {
-            if (null !== ($event->elokuva_laji2fin)) {
+            if (!empty($event->elokuva_laji2fin)) {
                 $parts = explode(',', $event->elokuva_laji2fin);
 
                 foreach ($parts as $part) {

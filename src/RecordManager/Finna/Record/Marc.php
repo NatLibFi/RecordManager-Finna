@@ -24,6 +24,7 @@
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Juha Luoma <juha.luoma@helsinki.fi>
+ * @author   Minna Rönkä <minna.ronka@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.1 GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -55,6 +56,7 @@ use function strlen;
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Juha Luoma <juha.luoma@helsinki.fi>
+ * @author   Minna Rönkä <minna.ronka@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -1369,6 +1371,37 @@ class Marc extends \RecordManager\Base\Record\Marc
     }
 
     /**
+     * Get series data for series key and order
+     *
+     * @return array
+     */
+    public function getSeriesKeyData(): array
+    {
+        $seriesOrder = '';
+        $result = [];
+        $workIdSets = $this->getWorkIdentificationData();
+        if ($author = $workIdSets[0]['authors'][0]['value'] ?? null) {
+            foreach ($this->record->getFields('490') as $field490) {
+                $seriesKeyData = [];
+                if ($field490a = $this->record->getSubfield($field490, 'a')) {
+                    $seriesKeyData['series'] = $field490a;
+                    $seriesKeyData['author'] = $author;
+                    if ($languages = $this->getLanguages()) {
+                        $seriesKeyData['language'] = $languages[0];
+                    }
+                    if ($seriesOrder === '') {
+                        if ($seriesOrder = $this->record->getSubfield($field490, 'v')) {
+                            $seriesKeyData['order'] = $seriesOrder;
+                        }
+                    }
+                    $result[] = $seriesKeyData;
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Create field data from a component record
      *
      * @param array $data Component part data from getComponentPartMetadata
@@ -1696,6 +1729,9 @@ class Marc extends \RecordManager\Base\Record\Marc
         };
         if ('r' === $typeOfRecord) {
             $visualType = substr($field008, 33, 1);
+            if ($termIn655('palapelit')) {
+                return 'JigsawPuzzle';
+            }
             if ('g' === $visualType || $termIn655('lautapelit')) {
                 return 'BoardGame';
             }
@@ -1778,8 +1814,12 @@ class Marc extends \RecordManager\Base\Record\Marc
                             return 'Print';
                         case 'G':
                             return 'Photonegative';
+                        case 'I':
+                            return 'Image';
                         case 'J':
                             return 'Print';
+                        case 'K':
+                            return 'Poster';
                         case 'L':
                             return 'TechnicalDrawing';
                         case 'O':
@@ -1982,6 +2022,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     'p', 'r', 's', 't',
                 ]],
                 [MarcHandler::GET_BOTH, '740', ['a']],
+                [MarcHandler::GET_BOTH, '774', ['t']],
                 // 979b = component part title
                 [MarcHandler::GET_BOTH, '979', ['b']],
                 // 979e = component part uniform title
@@ -2105,33 +2146,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         };
 
-        if ($field = $this->record->getField('260')) {
-            $year = $this->extractYear($this->record->getSubfield($field, 'c'));
-            if ($year) {
-                $startDate = "{$year}-01-01T00:00:00Z";
-                $endDate = "{$year}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            }
-        }
-
-        foreach ($this->record->getFields('264') as $field) {
-            if ($this->record->getIndicator($field, 2) !== '1') {
-                continue;
-            }
-            $publishDate = $this->record->getSubfield($field, 'c');
-            if ($years = $this->extractYearRange($publishDate)) {
-                $startDate = "{$years[0]}-01-01T00:00:00Z";
-                $endDate = "{$years[1]}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            } elseif ($year = $this->extractYear($publishDate)) {
-                $startDate = "{$year}-01-01T00:00:00Z";
-                $endDate = "{$year}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            }
-        }
-
-        $field008 = $this->record->getControlField('008');
-        if ($field008) {
+        if ($field008 = $this->record->getControlField('008')) {
             $startDate = null;
             $endDate = null;
             switch (substr($field008, 6, 1)) {
@@ -2171,6 +2186,31 @@ class Marc extends \RecordManager\Base\Record\Marc
                     break;
             }
             $addToResult($startDate, $endDate);
+        }
+
+        if ($field = $this->record->getField('260')) {
+            $year = $this->extractYear($this->record->getSubfield($field, 'c'));
+            if ($year) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
+        }
+
+        foreach ($this->record->getFields('264') as $field) {
+            if ($this->record->getIndicator($field, 2) !== '1') {
+                continue;
+            }
+            $publishDate = $this->record->getSubfield($field, 'c');
+            if ($years = $this->extractYearRange($publishDate)) {
+                $startDate = "{$years[0]}-01-01T00:00:00Z";
+                $endDate = "{$years[1]}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            } elseif ($year = $this->extractYear($publishDate)) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
         }
 
         return $this->resultCache[__METHOD__] = array_unique($result);
@@ -2272,6 +2312,9 @@ class Marc extends \RecordManager\Base\Record\Marc
             '773' => [
                 '0', '4', '6', '7', '8', 'g', 'q',
                 'w',
+            ],
+            '774' => [
+                'i', '9',
             ],
             '787' => ['i'],
             // Koha serial enumerations
@@ -2521,6 +2564,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                 [MarcHandler::GET_NORMAL, '610', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '611', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '630', ['a', 'x']],
+                [MarcHandler::GET_NORMAL, '647', ['a']],
                 [MarcHandler::GET_NORMAL, '648', ['x']],
                 [MarcHandler::GET_NORMAL, '650', ['a', 'x']],
                 [MarcHandler::GET_NORMAL, '651', ['x']],
@@ -2555,6 +2599,7 @@ class Marc extends \RecordManager\Base\Record\Marc
                     [MarcHandler::GET_NORMAL, '385', ['a']],
                     [MarcHandler::GET_NORMAL, '356', ['a']],
                     [MarcHandler::GET_NORMAL, '567', ['b']],
+                    [MarcHandler::GET_NORMAL, '647', ['a']],
                     [MarcHandler::GET_BOTH, '690', [
                         'a', 'b', 'c', 'd', 'e', 'v', 'x', 'y', 'z',
                     ]],

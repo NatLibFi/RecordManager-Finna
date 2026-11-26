@@ -776,6 +776,9 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'AMK-opinnäytetyö',
                 'Second Sample Program',
                 'testaus',
+                'Studies towards an elephant utopia',
+                '997807363506253',
+                'On the sources of mighty mammoths',
                 'AMK-opinnäytetyö',
             ],
             'language' => [
@@ -803,7 +806,10 @@ class MarcTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_sub' => '',
             'title_short' => 'Thesis Title',
             'title_full' => 'Thesis Title / Test Author',
-            'title_alt' => [],
+            'title_alt' => [
+                'Studies towards an elephant utopia',
+                'On the sources of mighty mammoths',
+            ],
             'title_old' => [],
             'title_new' => [],
             'title_sort' => 'thesis title test author',

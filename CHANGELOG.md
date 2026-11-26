@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## 3.0.0 - TBD
+## 4.0.0 - TBD
+
+This release changes the XML handling in record classes to use the VuFindXml library. The storage format for XML records has changed, and while this version can read records written into RecordManager's database using older versions, older versions will not be able to read records written by this version.
+
+Anything marked with [**BC**] is known to affect backward compatibility with previous versions.
+
+### Changed
+
+- [**BC**] LIDO: XML handling changed to VuFindXml.
+- [**BC**] Laminas Module Manager has been replaced with a simple custom module manager. The Module class of any custom module must now implement the \RecordManager\Base\ModuleManager\ModuleInterface interface. The initialize method can be left empty, but it must exist. The bootstrapping code has been moved from config/application.php to config/container.php.
+
+
+## 3.0.0 - 2026-06-09
 
 **N.B. This version bumps the minimum PHP version to 8.2**
 
@@ -17,9 +29,10 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 ### Added
 
 - Sierra API: Added support for harvesting authority records.
+- Added support for HTTP authentication with harvesting requests.
 - Added support for defining additional HTTP headers for a data source.
 - Added linking_id_str_mv field for search-time linking between records.
-- Added an option (mergeMultiLevelParts) to merge component parts to a parent record even when parent is a component part itself ()
+- Added an option (mergeMultiLevelParts) to merge component parts to a parent record even when parent is a component part itself.
 - MARC: Added support for ignoring authors by relators/roles (see hidden_author_relators setting).
 - Added support for deleting unseen records after import.
 - Added support for defining additional HTTP options for Solr index requests. This could be useful e.g. when using SSL with self-signed certificates.
@@ -27,6 +40,7 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - Regular expression support for suppressOnField setting did not work properly. A new suppressOnFieldRegEx was introduced to make this option explicit.
 - Record classes can now implement methods preProcessRecordForIndexing and postProcessRecordForIndexing for additional preparation around toSolrArray method.
 - LIDO: Records without the lidoWrap root element are now supported (lidoWrap root element is automatically added).
+- LIDO: Added support for indexing hierarchies.
 
 ### Changed
 
@@ -45,6 +59,8 @@ Anything marked with [**BC**] is known to affect backward compatibility with pre
 - MusicBrainzEnrichment was adjusted for improved matching.
 - MARC indexing rules were updated to align with VuFind 11.0.
 - MARC, DC, QDC, LIDO, EAD, EAD3, ESE: toSolrArray method was refactored to collect the fields using other methods so that it's easier to override fields.
+- Added id-file options to harvesting for specifying a file of identifiers to harvest.
+- Added support for language-specific title fields (not used by default).
 
 ### Fixed
 

@@ -25,6 +25,7 @@
     </daoset>
     <unitdate label="Ajallinen kattavuus" normal="1881-uu-uu/1881-uu-uu">xx.xx.1881-xx.xx.1881</unitdate>
     <unittitle label="Sundvall Gustaf Edvard S 1:a) 1" normal="Sundvall Gustaf Edvard S 1:a) 1" lang="fin">Sundvall Gustaf Edvard S 1:a) 1</unittitle>
+    <unittitle label="Sundvall Gustaf Edvard S 1:a) 1" normal="Sundvall Gustaf Edvard S 1:a) 1" lang="swe">Sundvall Gustaf Edvard S 1:a) 1 swe</unittitle>
     <unitid label="J&#xE4;rjestysnumero">1</unitid>
     <unitid label="Tekninen" identifier="238612737"/>
     <unitid label="Muu tunniste">s/sundvall_gustaf_edvard/001/00001/00005</unitid>

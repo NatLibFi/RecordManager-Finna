@@ -49,21 +49,32 @@ class LidoTest extends RecordTestBase
      */
     public function testLido1()
     {
-        $record = $this->createRecord(Lido::class, 'lido1.xml');
+        $record = $this->createRecord(
+            Lido::class,
+            'lido1.xml',
+            [],
+            'Base',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        );
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
 
         $expected = [
             'record_format' => 'lido',
-            'title_full' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen;'
-                . ' Säädökset',
-            'title_short' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen;'
-                . ' Säädökset',
-            'title' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen;'
-                . ' Säädökset',
-            'title_sort' => 'luonnonsuojelusäädökset toimittanut raimo luhtanen'
-                . ' säädökset',
-            'title_alt' => [],
+            'title_full' => 'English Title; English Alt Title',
+            'title_short' => 'English Title; English Alt Title',
+            'title' => 'English Title; English Alt Title',
+            'title_sort' => 'english title english alt title',
+            'title_alt' => ['Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen; Säädökset'],
             'description' => '',
             'format' => 'Kirja',
             'institution' => 'Test Institution',
@@ -90,6 +101,7 @@ class LidoTest extends RecordTestBase
                 '(knp)M011-320623',
             ],
             'isbn' => [
+                '9789517718721',
                 '9789518593730',
                 '9789518593731',
                 '9789518593732',
@@ -101,9 +113,13 @@ class LidoTest extends RecordTestBase
             'thumbnail' => '',
             'allfields' => [
                 'knp-247394',
+                '12345678',
+                'URN:ISBN:951-771-872-1',
                 'Kirja',
                 'Säädökset',
                 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
+                'English Title',
+                'English Alt Title',
                 'Test Institution',
                 '26054',
                 '9518593736',
@@ -142,6 +158,10 @@ class LidoTest extends RecordTestBase
                 'titles' => [
                     [
                         'type' => 'title',
+                        'value' => 'English Title; English Alt Title',
+                    ],
+                    [
+                        'type' => 'title',
                         'value' => 'Luonnonsuojelusäädökset / toimittanut Raimo'
                         . ' Luhtanen; Säädökset',
                     ],
@@ -168,9 +188,21 @@ class LidoTest extends RecordTestBase
                     'driverParams' => [
                         'mergeTitleValues=false',
                         'mergeTitleSets=false',
+                        'defaultDisplayLanguage=fi',
                     ],
                 ],
-            ]
+            ],
+            'Base',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
         );
         $fields = $record->toSolrArray();
         unset($fields['fullrecord']);
@@ -183,6 +215,7 @@ class LidoTest extends RecordTestBase
             'title_sort' => 'luonnonsuojelusäädökset toimittanut raimo luhtanen',
             'title_alt' => [
                 'Säädökset',
+                'English Title',
             ],
             'description' => '',
             'format' => 'Kirja',
@@ -210,6 +243,7 @@ class LidoTest extends RecordTestBase
                 '(knp)M011-320623',
             ],
             'isbn' => [
+                '9789517718721',
                 '9789518593730',
                 '9789518593731',
                 '9789518593732',
@@ -221,9 +255,13 @@ class LidoTest extends RecordTestBase
             'thumbnail' => '',
             'allfields' => [
                 'knp-247394',
+                '12345678',
+                'URN:ISBN:951-771-872-1',
                 'Kirja',
                 'Säädökset',
                 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
+                'English Title',
+                'English Alt Title',
                 'Test Institution',
                 '26054',
                 '9518593736',
@@ -268,6 +306,10 @@ class LidoTest extends RecordTestBase
                     [
                         'type' => 'title',
                         'value' => 'Säädökset',
+                    ],
+                                        [
+                        'type' => 'title',
+                        'value' => 'English Title',
                     ],
                 ],
                 'titlesAltScript' => [],
@@ -342,33 +384,262 @@ class LidoTest extends RecordTestBase
     }
 
     /**
+     * Test getTitles
+     *
+     * @return void
+     */
+    public function testGetTitles()
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido1.xml',
+            [],
+            'Base',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        );
+        $reflection = new \ReflectionObject($record);
+        $getTitles = $reflection->getMethod('getTitles');
+
+        $this->assertEquals(
+            [
+                'preferred' => 'English Title; English Alt Title',
+                'alternate' => ['Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen; Säädökset'],
+            ],
+            $getTitles->invokeArgs($record, [])
+        );
+        $this->assertEquals(
+            [
+                'preferred' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen; Säädökset',
+                'alternate' => [],
+            ],
+            $getTitles->invokeArgs($record, ['fi'])
+        );
+        $record = $this->createRecord(
+            Lido::class,
+            'lido1.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'mergeTitleValues=false',
+                    ],
+                ],
+            ],
+            'Base',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        );
+        $this->assertEquals(
+            [
+                'preferred' => 'English Title',
+                'alternate' => [
+                    'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
+                    'English Alt Title',
+                ],
+            ],
+            $getTitles->invokeArgs($record, [])
+        );
+        $this->assertEquals(
+            [
+                'preferred' => 'Luonnonsuojelusäädökset / toimittanut Raimo Luhtanen',
+                'alternate' => [
+                    'Säädökset',
+                ],
+            ],
+            $getTitles->invokeArgs($record, ['fi'])
+        );
+    }
+
+    /**
+     * Test LIDO hierarchy handling
+     *
+     * @return void
+     */
+    public function testLidoHierarchies()
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_hierarchy.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'indexHierarchies=true',
+                        'addIdToHierarchyTitle=true',
+                        'defaultDisplayLanguage=fi',
+                    ],
+                ],
+            ]
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals('testit-200', $fields['hierarchy_top_id']);
+        $this->assertEquals('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['hierarchy_top_title']);
+        $this->assertEquals('testit-404', $fields['hierarchy_parent_id']);
+        $this->assertEquals('Puuttuvien testien kokoelma', $fields['hierarchy_parent_title']);
+        $this->assertEquals('testi-000000418', $fields['hierarchy_sequence']);
+        $this->assertEquals(['testi-418 Testi joka puuttui'], $fields['title_in_hierarchy']);
+        $this->assertContains('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['allfields']);
+        $this->assertContains('Puuttuvien testien kokoelma', $fields['allfields']);
+        $this->assertContains('testi-418 Testi joka puuttui', $fields['allfields']);
+        $this->assertEquals('Testiarkisto', $fields['collection']);
+    }
+
+    /**
+     * Test namespace handling.
+     *
+     * @return void
+     */
+    public function testNamespaces(): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_ns.xml',
+            [],
+            'Base',
+            [],
+        );
+        $reflection = new \ReflectionObject($record);
+        $getTitles = $reflection->getMethod('getTitles');
+
+        $this->assertEquals(
+            [
+                'preferred' => 'The story of the image: Cat On Grass',
+                'alternate' => [],
+            ],
+            $getTitles->invokeArgs($record, ['en'])
+        );
+        $this->assertEquals(
+            [
+                'preferred' => 'Kissa nurmikolla -kuvan tarina',
+                'alternate' => [],
+            ],
+            $getTitles->invokeArgs($record, ['fi'])
+        );
+        $this->assertEquals(
+            ['http://www.yso.fi/onto/yso/p19378'],
+            $reflection->getMethod('getTopicIDs')->invokeArgs($record, [])
+        );
+    }
+
+    /**
      * Data provider for testLidoRootElementHandling
      *
      * @return \Iterator
      */
     public static function lidoRootElementProvider(): \Iterator
     {
+        $xsiPart = 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:';
+        $nsLidoPart = 'xmlns:lido="http://www.lido-schema.org" ' . $xsiPart;
         $schema10 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.0/lido-v1.0.xsd"';
         $schema11 = 'schemaLocation="http://www.lido-schema.org http://www.lido-schema.org/schema/v1.1/lido-v1.1.xsd"';
         yield 'lido 1.0 with lidoWrap' => [
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lidoWrap $schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                        <descriptiveMetadata lang="en"/>
+                    </lido>
+                </lidoWrap>
+                XML,
+            <<<XML
+                <lidoWrap $xsiPart$schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                        <!-- Note: should be xml:lang, but without namespaces we don't know that.. -->
+                        <descriptiveMetadata lang="en"/>
+                    </lido>
+                </lidoWrap>
+                XML,
         ];
         yield 'lido 1.1 with lidoWrap' => [
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lidoWrap $schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lidoWrap>
+                XML,
+            <<<XML
+                <lidoWrap $xsiPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lidoWrap>
+                XML,
+        ];
+        yield 'lido 1.1 with lidoWrap including namespaces' => [
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido:lido>
+                        <lido:lidoRecID lido:type="ITEM">123</lido:lidoRecID>
+                    </lido:lido>
+                </lido:lidoWrap>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido:lido>
+                        <lido:lidoRecID lido:type="ITEM">123</lido:lidoRecID>
+                    </lido:lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'lido 1.0 without lidoWrap' => [
-            "<lido $schema10><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
-            "<lidoWrap $schema10><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido $schema10>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema10>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'lido 1.1 without lidoWrap' => [
-            "<lido $schema11><lidoRecID type=\"ITEM\">123</lidoRecID></lido>",
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido $schema11>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
         yield 'unspecified lido version without lidoWrap' => [
-            '<lido><lidoRecID type="ITEM">123</lidoRecID></lido>',
-            "<lidoWrap $schema11><lido><lidoRecID type=\"ITEM\">123</lidoRecID></lido></lidoWrap>",
+            <<<XML
+                <lido>
+                    <lidoRecID type="ITEM">123</lidoRecID>
+                </lido>
+                XML,
+            <<<XML
+                <lido:lidoWrap $nsLidoPart$schema11>
+                    <lido>
+                        <lidoRecID type="ITEM">123</lidoRecID>
+                    </lido>
+                </lido:lidoWrap>
+                XML,
         ];
     }
 
@@ -383,8 +654,97 @@ class LidoTest extends RecordTestBase
     #[\PHPUnit\Framework\Attributes\DataProvider('lidoRootElementProvider')]
     public function testLidoRootElementHandling(string $input, string $expected): void
     {
-        $prolog = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $prolog = "<?xml version=\"1.0\"?>\n";
         $record = $this->createRecordFromString($prolog . $input, Lido::class);
-        $this->assertEquals($prolog . $expected, trim($record->toXML()));
+        $this->assertXmlStringEqualsXmlString($prolog . $expected, $record->toXML());
+    }
+
+    /**
+     * LIDO thumbnail data provider
+     *
+     * @return \Iterator
+     */
+    public static function lidoThumbnailDataProvider(): \Iterator
+    {
+        yield 'Type Preview image' => [
+            'Preview image',
+            'http://url.it/1',
+            'http://url.it/1',
+        ];
+        yield 'Type image overview' => [
+            'image overview',
+            'http://url.it/2',
+            'http://url.it/2',
+        ];
+        yield 'Type Image preview' => [
+            'Image preview',
+            'http://url.it/3',
+            'http://url.it/3',
+        ];
+        yield 'Type image_medium' => [
+            'image_medium',
+            'http://url.it/4',
+            'http://url.it/4',
+        ];
+        yield 'Type thumbnail' => [
+            'thumbnail',
+            'http://url.it/5',
+            'http://url.it/5',
+        ];
+        yield 'Type image_large' => [
+            'image_large',
+            'http://url.it/6',
+            '',
+        ];
+        yield 'Type custom image_thumb' => [
+            'image_thumb',
+            'http://url.it/7',
+            'http://url.it/7',
+            [
+                'LidoRecord' => [
+                    'thumbnail_type_labels' => 'image_thumb,image_very_small',
+                ],
+            ],
+        ];
+        yield 'Type custom image_very_small' => [
+            'image_very_small',
+            'http://url.it/8',
+            'http://url.it/8',
+            [
+                'LidoRecord' => [
+                    'thumbnail_type_labels' => 'image_thumb,image_very_small',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Test LIDO thumbnail indexing
+     *
+     * @param string $type     ResourceRepresentation type
+     * @param string $url      LinkResource url
+     * @param string $expected Expected result
+     * @param array  $config   Main config
+     *
+     * @return void
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('lidoThumbnailDataProvider')]
+    public function testLidoThumbnailIndexing(
+        string $type,
+        string $url,
+        string $expected,
+        array $config = []
+    ) {
+        $fixture = $this->getFixture('record/lido4.xml');
+        $fixture = str_replace(['%%type%%', '%%url%%'], [$type, $url], $fixture);
+
+        $record = $this->createRecordFromString(
+            $fixture,
+            Lido::class,
+            config: $config
+        );
+
+        $data = $record->toSolrArray();
+        $this->assertEquals($expected, $data['thumbnail']);
     }
 }

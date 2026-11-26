@@ -27,3 +27,8 @@
 ; Example for allowing IIIF json files.
 ;allowed_media_types[] = application/ld+json;profile="http://iiif.io/api/presentation/3/context.json"
 
+; The following section can be used to change the Solr fields used when indexing
+; records, particularly for hierarchical records. Any field can also be set to empty
+; to disable it.
+;[Solr Fields]
+;container_title_facet = 

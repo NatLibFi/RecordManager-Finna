@@ -32,6 +32,7 @@
 
 namespace RecordManagerTest\Finna\Record;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use RecordManager\Finna\Record\Lido;
 
 /**
@@ -84,6 +85,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('pannut', $fields['topic']);
         $this->assertContains('kahvipannut', $fields['topic']);
         $this->assertContains('Toimija, Toini', $fields['topic']);
+        $this->assertContains('http://www.yso.fi/onto/yso/p4847', $fields['topic_id_str_mv']);
+        $this->assertContains('http://www.yso.fi/onto/yso/p4277', $fields['topic_id_str_mv']);
 
         $this->assertEquals('kahvipannu', $fields['title']);
 
@@ -119,6 +122,8 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
         $this->assertContains('teollinen tuote', $fields['allfields']);
         $this->assertContains('Museovirasto/MV', $fields['allfields']);
         $this->assertEquals(['image/jpeg'], $fields['media_type_str_mv']);
+        $this->assertContains('Undefined rights', $fields['usage_rights_str_mv']);
+        $this->assertContains('https://rightsstatements.org/vocab/InC/1.0/', $fields['usage_rights_str_mv']);
     }
 
     /**
@@ -128,7 +133,22 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
      */
     public function testMusketti2()
     {
-        $fields = $this->createRecord(Lido::class, 'musketti2.xml', [], 'Finna')
+        $fields = $this->createRecord(
+            Lido::class,
+            'musketti2.xml',
+            [],
+            'Finna',
+            [],
+            [
+                'Metadata Language Code Mappings' => [
+                    'fin' => 'fi',
+                    'swe' => 'sv',
+                    'en-gb' => 'en',
+                    'eng' => 'en',
+                    'sme' => 'se',
+                ],
+            ],
+        )
             ->toSolrArray();
         unset($fields['fullrecord']);
 
@@ -137,8 +157,14 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_full' => 'Imatrankoski',
             'title_short' => 'Imatrankoski',
             'title' => 'Imatrankoski',
+            'title_en_txt' => '',
+            'title_fi_txt' => 'Imatrankoski',
+            'title_se_txt' => '',
+            'title_sv_txt' => 'Imatra fors',
             'title_sort' => 'imatrankoski',
-            'title_alt' => [],
+            'title_alt' => [
+                'Imatra fors',
+            ],
             'format' => 'kuva',
             'institution' => 'Museoviraston kuva-arkisto/',
             'author' => [
@@ -200,7 +226,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'fi',
                 'sv',
                 'en',
+                'mustavalkoinen',
                 'Imatrankoski',
+                'Imatra fors',
                 '33,1.',
                 'Imatra. val. H.Hintze 1897 Antr.',
                 '33,1.',
@@ -218,6 +246,9 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
                 'Kalasatama',
                 'Capellanranta 1 ja 3 välillä',
                 'Helsinki',
+                'keltainen',
+                'yellow',
+                'punainen',
                 'valmistus',
                 'http://urn.fi/URN:NBN:fi:au:finaf:000173713',
                 'https://isni.org/isni/0000000073500621',
@@ -268,6 +299,12 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'classification_txt_mv' => [
                 'valokuva',
             ],
+            'color_str_mv' => [
+                'mustavalkoinen',
+                'keltainen',
+                'yellow',
+                'punainen',
+            ],
             'exhibition_str_mv' => [],
             'main_date_str' => '1897',
             'main_date' => '1897-01-01T00:00:00Z',
@@ -284,10 +321,10 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'free_online_str_mv' => '__unit_test_no_source__',
             'location_geo' => [],
             'usage_rights_str_mv' => [
-                '',
+                'restricted',
             ],
             'usage_rights_ext_str_mv' => [
-                '',
+                'restricted',
             ],
             'author_facet' => [
                 'Testaaja, Taavi',
@@ -563,6 +600,7 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'title_full' => 'lierihattu',
             'title_short' => 'lierihattu',
             'title' => 'lierihattu',
+            'title_fi_txt' => 'lierihattu',
             'title_sort' => 'lierihattu',
             'allfields' => [
                 'M123',
@@ -675,5 +713,158 @@ class LidoTest extends \RecordManagerTest\Base\Record\RecordTestBase
             'http://www.yso.fi/onto/yso/p94137',
         ];
         $this->compareArray($expected, $result, 'RawGeographicTopicIds');
+    }
+
+    /**
+     * Test LIDO hierarchy handling
+     *
+     * @return void
+     */
+    public function testLidoHierarchies()
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            'lido_hierarchy.xml',
+            [
+                '__unit_test_no_source__' => [
+                    'driverParams' => [
+                        'indexHierarchies=true',
+                        'addIdToHierarchyTitle=true',
+                        'defaultDisplayLanguage=fi',
+                    ],
+                ],
+            ],
+            'Finna'
+        );
+        $fields = $record->toSolrArray();
+
+        $this->assertEquals('testit-200', $fields['hierarchy_top_id']);
+        $this->assertEquals('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['hierarchy_top_title']);
+        $this->assertEquals('testit-404', $fields['hierarchy_parent_id']);
+        $this->assertEquals(
+            [
+                'Puuttuvien testien kokoelma',
+                'Testiarkisto',
+                'Yksikkötestikokoelma',
+            ],
+            $fields['hierarchy_parent_title']
+        );
+        $this->assertEquals('testi-000000418', $fields['hierarchy_sequence']);
+        $this->assertEquals(['testi-418 Testi joka puuttui'], $fields['title_in_hierarchy']);
+        $this->assertEquals(['testi-418 Testi joka puuttui'], $fields['title_in_hierarchy_fi_str_mv']);
+        $this->assertEquals(['testi-418 The test that was missing'], $fields['title_in_hierarchy_en_str_mv']);
+        $this->assertContains('Yksikkötestikokoelma; Kaikki testit kautta aikojen', $fields['allfields']);
+        $this->assertContains('Puuttuvien testien kokoelma', $fields['allfields']);
+        $this->assertContains('testi-418 Testi joka puuttui', $fields['allfields']);
+        $this->assertEquals('Testiarkisto', $fields['collection']);
+    }
+
+    /**
+     * Data provider for testGml.
+     *
+     * @return \Generator
+     */
+    public static function gmlProvider(): \Iterator
+    {
+        $point = 'POINT (24.983517601821166 60.187796179482426)';
+        $polygon = 'POLYGON ((20.0 40.0,20.0 40.0,10.0 20.0,10.0 20.0,20.0 20.0)'
+            . ',(25.0 35.0,25.0 35.0,15.0 25.0,15.0 25.0,25.0 25.0))';
+
+        yield [
+            'lido_gml2_point_pos.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_point_coordinates.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_polygon.xml',
+            [$polygon],
+        ];
+
+        yield [
+            'lido_gml2_nons_point_pos.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_nons_point_coordinates.xml',
+            [$point],
+        ];
+
+        yield [
+            'lido_gml2_nons_polygon.xml',
+            [$polygon],
+        ];
+    }
+
+    /**
+     * Test geographic locations.
+     *
+     * @param string $filename Record to test
+     * @param array  $expected Expected location data
+     *
+     * @return void
+     */
+    #[DataProvider('gmlProvider')]
+    public function testGml(string $filename, array $expected): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            $filename,
+            [],
+            'Finna'
+        );
+        $this->assertSame(
+            $expected,
+            $record->toSolrArray()['location_geo']
+        );
+    }
+
+    /**
+     * Data provider for testLocationsForEnrichment.
+     *
+     * @return \Generator
+     */
+    public static function locationsForEnrichmentProvider(): \Iterator
+    {
+        yield [
+            'lido_location_without_gml.xml',
+            [
+                'primary' => ['Helsinki, Finland'],
+                'secondary' => [],
+            ],
+        ];
+
+        yield [
+            'lido_location_with_gml.xml',
+            [],
+        ];
+    }
+
+    /**
+     * Test locations for enrichment.
+     *
+     * @param string $filename Record to test
+     * @param array  $expected Expected locations
+     *
+     * @return void
+     */
+    #[DataProvider('locationsForEnrichmentProvider')]
+    public function testLocationsForEnrichment(string $filename, array $expected): void
+    {
+        $record = $this->createRecord(
+            Lido::class,
+            $filename,
+            [],
+            'Finna'
+        );
+        $this->assertSame(
+            $expected,
+            ($record instanceof Lido) ? $record->getLocations() : []
+        );
     }
 }

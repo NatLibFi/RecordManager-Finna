@@ -159,7 +159,11 @@ trait QdcRecordTrait
                 ...$originalIds,
             ];
         }
-
+        // Language specific title fields
+        $data['title_en_txt'] = $this->getTitleEn();
+        $data['title_fi_txt'] = $this->getTitleFi();
+        $data['title_se_txt'] = $this->getTitleSe();
+        $data['title_sv_txt'] = $this->getTitleSv();
         return $data;
     }
 
@@ -181,6 +185,46 @@ trait QdcRecordTrait
             'primary' => $locations,
             'secondary' => [],
         ];
+    }
+
+    /**
+     * Return record title in English
+     *
+     * @return string
+     */
+    protected function getTitleEn(): string
+    {
+        return $this->getTitleByLanguage(false, 'en');
+    }
+
+    /**
+     * Return record title in Finnish
+     *
+     * @return string
+     */
+    protected function getTitleFi(): string
+    {
+        return $this->getTitleByLanguage(false, 'fi');
+    }
+
+    /**
+     * Return record title in Northern Sami
+     *
+     * @return string
+     */
+    protected function getTitleSe(): string
+    {
+        return $this->getTitleByLanguage(false, 'se');
+    }
+
+    /**
+     * Return record title in Swedish
+     *
+     * @return string
+     */
+    protected function getTitleSv(): string
+    {
+        return $this->getTitleByLanguage(false, 'sv');
     }
 
     /**

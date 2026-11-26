@@ -179,18 +179,7 @@ class Lrmi extends \RecordManager\Base\Record\Lrmi
      */
     public function getTitle($forFiling = false)
     {
-        $doc = $this->doc;
-        $title = (string)$doc->title;
-        foreach ($doc->title as $t) {
-            if ((string)$t->attributes()->lang === 'fi') {
-                $title = (string)$t;
-                break;
-            }
-        }
-        if ($forFiling) {
-            $title = $this->metadataUtils->createSortTitle($title);
-        }
-        return $title;
+        return $this->getTitleByLanguage($forFiling, 'fi') ?: $this->getTitleByLanguage($forFiling);
     }
 
     /**

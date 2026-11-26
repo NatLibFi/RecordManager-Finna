@@ -11,18 +11,22 @@ jobs:
       VUFIND_LOCAL_DIR: $GITHUB_WORKSPACE/local
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4', '8.4-no-mongo']
+        job: ['8.2', '8.3', '8.4', '8.4-no-mongo']
         include:
-          - php-version: 8.2
+          - job: '8.2'
+            php-version: 8.2
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl, mongodb
-          - php-version: 8.3
+          - job: '8.3'
+            php-version: 8.3
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl, mongodb
-          - php-version: 8.4
+          - job: '8.4'
+            php-version: 8.4
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl, mongodb
-          - php-version: 8.4-no-mongo
+          - job: '8.4-no-mongo'
+            php-version: 8.4
             phing_tasks: "qa-tasks"
             php-extensions: intl, xsl
 
@@ -34,42 +38,42 @@ jobs:
           extensions: ${{ matrix.php-extensions }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Get composer cache directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Cache php-cs-fixer data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .php_cs_cache
           key: "php-${{ matrix.php-version }}-php-cs-fixer-${{ github.sha }}"
           restore-keys: "php-${{ matrix.php-version }}-php-cs-fixer-"
 
       - name: Cache php-stan data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .phpstan_cache
           key: "php-${{ matrix.php-version }}-phpstan-${{ github.sha }}"
           restore-keys: "php-${{ matrix.php-version }}-phpstan-"
 
       - name: Cache PHP_CodeSniffer data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tests/phpcs.cache.json
           key: "php-${{ matrix.php-version }}-phpcs-${{ github.sha }}"
           restore-keys: "php-${{ matrix.php-version }}-phpcs-"
 
       - name: Cache rector data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .rector
           key: "php-${{ matrix.php-version }}-rector-${{ github.sha }}"

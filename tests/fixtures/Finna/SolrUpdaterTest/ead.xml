@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<c level="item">
+  <did>
+    <unittitle>Ead record test title</unittitle>
+    <unitid identifier="m1036">Test identifier</unitid>
+    <unitdate>12-12-1999</unitdate>
+    <physdesc>
+      <extent>Test physical description</extent>
+    </physdesc>
+    <physloc>Test physical location</physloc>
+    <langmaterial>
+      <language>fin</language>
+      <language>eng</language>
+    </langmaterial>
+    <origination>
+      <persname>Kralloo Mipsten</persname>
+    </origination>
+    <repository>
+      <corpname>Snerpaloosi Instiploop</corpname>
+    </repository>
+    <daogrp>
+      <daodesc>
+        <p>In web</p>
+      </daodesc>
+      <daoloc linktype="locator" href="https://siiri2.utu.fi/content/skel-67-raita-1_vt.mp3"/>
+    </daogrp>
+  </did>
+  <scopecontent>
+    <p>Test scope content</p>
+  </scopecontent>
+  <controlaccess/>
+  <controlaccess>
+    <genreform>test/interview</genreform>
+  </controlaccess>
+  <controlaccess>
+    <geogname>Saksa</geogname>
+  </controlaccess>
+  <controlaccess>
+    <geogname>
+      <geographiccoordinates coordinatesystem="WGS84">11.11111, 22.22222</geographiccoordinates>
+      <part>Somewhere</part>
+    </geogname>
+  </controlaccess>
+  <controlaccess>
+    <subject>Something</subject>
+    <subject>Person interview</subject>
+  </controlaccess>
+  <userestrict>
+    <p>CC BY 4.0</p>
+  </userestrict>
+  <add-data identifier="272_m1036">
+    <archive id="271" title="Hierarchy top title" sequence="0000020"/>
+    <parent id="272" title="Hierarchy parent title"/>
+  </add-data>
+</c>

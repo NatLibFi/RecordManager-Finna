@@ -23,12 +23,16 @@
                     <classification type="language">
                         <term>en</term>
                     </classification>
+                    <classification type="colour content">
+                        <term>mustavalkoinen</term>
+                    </classification>
                 </classificationWrap>
             </objectClassificationWrap>
             <objectIdentificationWrap>
                 <titleWrap>
                     <titleSet>
-                        <appellationValue label="aihe/nimi">Imatrankoski</appellationValue>
+                        <appellationValue label="aihe/nimi" lang="fi">Imatrankoski</appellationValue>
+                        <appellationValue label="aihe/nimi" lang="swe">Imatra fors</appellationValue>
                     </titleSet>
                 </titleWrap>
                 <inscriptionsWrap>
@@ -112,6 +116,19 @@
                         <objectMeasurements />
                     </objectMeasurementsSet>
                 </objectMeasurementsWrap>
+                <objectMaterialsTechWrap>
+                    <objectMaterialsTechSet>
+                        <materialsTech>
+                            <termMaterialsTech type="väri">
+                                <term lang="fi">keltainen</term>
+                                <term lang="en">yellow</term>
+                            </termMaterialsTech>
+                            <termMaterialsTech type="Colour name">
+                                <term>punainen</term>
+                            </termMaterialsTech>
+                        </materialsTech>
+                    </objectMaterialsTechSet>
+                </objectMaterialsTechWrap>
             </objectIdentificationWrap>
             <eventWrap>
                 <eventSet>
@@ -284,7 +301,7 @@
                 <resourceSet>
                     <resourceID>111222</resourceID>
                     <resourceDescription type="displayLink">mau.jpg</resourceDescription>
-                    <resourceRepresentation>
+                    <resourceRepresentation type="image_thumb">
                         <linkResource formatResource="image/jpeg">http://muisti.nba.fi/m/4878_1/00013199.jpg</linkResource>
                     </resourceRepresentation>
                     <rightsResource>
