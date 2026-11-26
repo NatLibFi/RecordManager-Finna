@@ -188,7 +188,7 @@
             </recordWrap>
             <resourceWrap>
                 <resourceSet>
-                    <resourceRepresentation>
+                    <resourceRepresentation type="http://terminology.lido-schema.org/lido00451">
                         <linkResource formatResource="image/jpeg">http://muisti.nba.fi/m/S3168_23/sa009218.jpg</linkResource>
                     </resourceRepresentation>
                     <rightsResource>

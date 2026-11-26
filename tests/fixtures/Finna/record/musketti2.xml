@@ -301,7 +301,7 @@
                 <resourceSet>
                     <resourceID>111222</resourceID>
                     <resourceDescription type="displayLink">mau.jpg</resourceDescription>
-                    <resourceRepresentation>
+                    <resourceRepresentation type="image_thumb">
                         <linkResource formatResource="image/jpeg">http://muisti.nba.fi/m/4878_1/00013199.jpg</linkResource>
                     </resourceRepresentation>
                     <rightsResource>

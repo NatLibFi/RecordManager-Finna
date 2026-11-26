@@ -209,6 +209,32 @@ class Lido extends \RecordManager\Base\Record\Lido
     ];
 
     /**
+     * LIDO thumbnail image types
+     *
+     * @see http://terminology.lido-schema.org/lido00451
+     * @var array
+     */
+    protected array $thumbnailImageTypes = [
+        'preview image',
+        'image overview',
+        'image preview',
+        'image_medium',
+        'thumbnail',
+        'vorschau bild',
+        'bildvorschau',
+        'miniaturbild',
+        'vorschaubild',
+        'image_small',
+        'image_thumb',
+        'image_large',
+        'thumb',
+        'zoomview',
+        'image overview',
+        'image preview',
+        'http://terminology.lido-schema.org/lido00451',
+    ];
+
+    /**
      * Constructor
      *
      * @param array         $config           Main configuration
