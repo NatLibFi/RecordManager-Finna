@@ -24,6 +24,7 @@
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Juha Luoma <juha.luoma@helsinki.fi>
+ * @author   Minna Rönkä <minna.ronka@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.1 GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -55,6 +56,7 @@ use function strlen;
  * @package  RecordManager
  * @author   Ere Maijala <ere.maijala@helsinki.fi>
  * @author   Juha Luoma <juha.luoma@helsinki.fi>
+ * @author   Minna Rönkä <minna.ronka@helsinki.fi>
  * @license  http://opensource.org/licenses/gpl-2.0.php GNU General Public License
  * @link     https://github.com/NatLibFi/RecordManager
  */
@@ -2144,33 +2146,7 @@ class Marc extends \RecordManager\Base\Record\Marc
             }
         };
 
-        if ($field = $this->record->getField('260')) {
-            $year = $this->extractYear($this->record->getSubfield($field, 'c'));
-            if ($year) {
-                $startDate = "{$year}-01-01T00:00:00Z";
-                $endDate = "{$year}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            }
-        }
-
-        foreach ($this->record->getFields('264') as $field) {
-            if ($this->record->getIndicator($field, 2) !== '1') {
-                continue;
-            }
-            $publishDate = $this->record->getSubfield($field, 'c');
-            if ($years = $this->extractYearRange($publishDate)) {
-                $startDate = "{$years[0]}-01-01T00:00:00Z";
-                $endDate = "{$years[1]}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            } elseif ($year = $this->extractYear($publishDate)) {
-                $startDate = "{$year}-01-01T00:00:00Z";
-                $endDate = "{$year}-12-31T23:59:59Z";
-                $addToResult($startDate, $endDate);
-            }
-        }
-
-        $field008 = $this->record->getControlField('008');
-        if ($field008) {
+        if ($field008 = $this->record->getControlField('008')) {
             $startDate = null;
             $endDate = null;
             switch (substr($field008, 6, 1)) {
@@ -2210,6 +2186,31 @@ class Marc extends \RecordManager\Base\Record\Marc
                     break;
             }
             $addToResult($startDate, $endDate);
+        }
+
+        if ($field = $this->record->getField('260')) {
+            $year = $this->extractYear($this->record->getSubfield($field, 'c'));
+            if ($year) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
+        }
+
+        foreach ($this->record->getFields('264') as $field) {
+            if ($this->record->getIndicator($field, 2) !== '1') {
+                continue;
+            }
+            $publishDate = $this->record->getSubfield($field, 'c');
+            if ($years = $this->extractYearRange($publishDate)) {
+                $startDate = "{$years[0]}-01-01T00:00:00Z";
+                $endDate = "{$years[1]}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            } elseif ($year = $this->extractYear($publishDate)) {
+                $startDate = "{$year}-01-01T00:00:00Z";
+                $endDate = "{$year}-12-31T23:59:59Z";
+                $addToResult($startDate, $endDate);
+            }
         }
 
         return $this->resultCache[__METHOD__] = array_unique($result);
