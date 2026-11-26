@@ -1593,7 +1593,7 @@ class Lido extends AbstractRecord
         // thumbnail field is not multivalued, so just store take the first one:
         foreach ($this->getResourceSetNodes() as $set) {
             foreach ($this->xmlDoc->all($set, 'resourceRepresentation') as $node) {
-                $urlType = mb_strtolower($this->xmlDoc->attr($node, 'type'));
+                $urlType = mb_strtolower($this->xmlDoc->attr($node, 'type') ?? '', 'UTF-8');
                 if (!in_array($urlType, $this->thumbnailImageTypes)) {
                     continue;
                 }
