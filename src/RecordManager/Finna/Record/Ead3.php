@@ -233,6 +233,9 @@ class Ead3 extends \RecordManager\Base\Record\Ead3
         $resourceIdentifiers = $this->getResourceIdentifiers();
         $data['identifier_txtP_mv'] = $resourceIdentifiers['ids'];
         $data['file_identifier_str_mv'] = $resourceIdentifiers['fileIds'];
+        if (isset($doc->{'add-data'}->attributes()->onlineDescendants)) {
+            $data['online_descendants_boolean'] = (bool)$doc->{'add-data'}->attributes()->onlineDescendants;
+        }
         return $data;
     }
 
